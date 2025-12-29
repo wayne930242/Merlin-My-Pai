@@ -1,0 +1,41 @@
+# ===== Environment =====
+.env
+.env.local
+.env.*.local
+
+# ===== Dependencies =====
+node_modules/
+.bun/
+
+# ===== Build output =====
+dist/
+build/
+*.tsbuildinfo
+
+# ===== Data & Logs =====
+*.db
+*.sqlite
+data/
+logs/
+*.log
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ===== Ansible =====
+ansible/inventory/group_vars/all/vault.yml
+*.retry
+
+# ===== Claude Code =====
+# Don't commit runtime data
+pai-claude/data/
+pai-claude/*.db
+
+# ===== Temporary =====
+tmp/
+temp/
+*.tmp

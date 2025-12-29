@@ -1,0 +1,83 @@
+---
+- name: Setup PAI VPS
+  hosts: pai-server
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install system dependencies
+      apt:
+        name:
+          - curl
+          - unzip
+          - git
+          - build-essential
+        state: present
+
+    - name: Check if Bun is installed
+      stat:
+        path: "/home/{{ ansible_user }}/.bun/bin/bun"
+      register: bun_installed
+      become_user: "{{ ansible_user }}"
+
+    - name: Install Bun
+      shell: curl -fsSL https://bun.sh/install | bash
+      become_user: "{{ ansible_user }}"
+      when: not bun_installed.stat.exists
+
+    - name: Add Bun to PATH in .bashrc
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        line: 'export PATH="$HOME/.bun/bin:$PATH"'
+        state: present
+      become_user: "{{ ansible_user }}"
+
+    - name: Check if Claude Code is installed
+      stat:
+        path: "/home/{{ ansible_user }}/.claude/bin/claude"
+      register: claude_installed
+      become_user: "{{ ansible_user }}"
+
+    - name: Install Claude Code CLI
+      shell: curl -fsSL https://claude.ai/install.sh | sh
+      become_user: "{{ ansible_user }}"
+      when: not claude_installed.stat.exists
+
+    - name: Add Claude to PATH in .bashrc
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        line: 'export PATH="$HOME/.claude/bin:$PATH"'
+        state: present
+      become_user: "{{ ansible_user }}"
+
+    - name: Install pm2 globally
+      shell: /home/{{ ansible_user }}/.bun/bin/bun install -g pm2
+      become_user: "{{ ansible_user }}"
+
+    - name: Create application directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "/home/{{ ansible_user }}/pai-bot"
+        - "/home/{{ ansible_user }}/pai-bot/data"
+        - "/home/{{ ansible_user }}/pai-bot/logs"
+
+    - name: Print next steps
+      debug:
+        msg: |
+          VPS setup complete!
+
+          Next steps:
+          1. SSH into the server: ssh {{ ansible_user }}@{{ ansible_host }}
+          2. Run: claude login
+          3. Complete OAuth in your browser
+          4. Run: ansible-playbook playbooks/deploy-claude.yml
+          5. Run: ansible-playbook playbooks/deploy-bot.yml

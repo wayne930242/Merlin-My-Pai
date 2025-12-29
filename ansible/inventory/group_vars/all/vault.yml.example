@@ -1,0 +1,5 @@
+# Create encrypted version with:
+# ansible-vault create ansible/inventory/group_vars/all/vault.yml
+
+telegram_bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
+telegram_allowed_user_ids: "YOUR_USER_ID"

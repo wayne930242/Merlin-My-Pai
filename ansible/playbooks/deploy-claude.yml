@@ -1,0 +1,36 @@
+---
+- name: Deploy Claude Configuration
+  hosts: pai-server
+
+  tasks:
+    - name: Sync Claude configuration
+      synchronize:
+        src: ../../pai-claude/
+        dest: "/home/{{ ansible_user }}/.claude/"
+        delete: yes
+        rsync_opts:
+          - "--exclude=data/"
+          - "--exclude=*.db"
+
+    - name: Ensure data directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "/home/{{ ansible_user }}/.claude/data"
+        - "/home/{{ ansible_user }}/.claude/data/history"
+        - "/home/{{ ansible_user }}/.claude/data/history/sessions"
+        - "/home/{{ ansible_user }}/.claude/data/history/learnings"
+
+    - name: Verify Claude configuration
+      stat:
+        path: "/home/{{ ansible_user }}/.claude/CLAUDE.md"
+      register: claude_config
+
+    - name: Print deployment status
+      debug:
+        msg: "Claude configuration deployed successfully"
+      when: claude_config.stat.exists

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bun run ~/.claude/scripts/on-session-start.ts"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "bun run ~/.claude/scripts/on-stop.ts"
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bun:*)",
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Read",
+      "Write",
+      "Edit"
+    ]
+  }
+}

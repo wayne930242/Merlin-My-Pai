@@ -1,0 +1,85 @@
+---
+- name: Deploy PAI Bot Service
+  hosts: pai-server
+  vars_files:
+    - ../inventory/group_vars/all/vault.yml
+
+  tasks:
+    - name: Sync bot source code
+      synchronize:
+        src: ../../pai-bot/
+        dest: "/home/{{ ansible_user }}/pai-bot/"
+        delete: yes
+        rsync_opts:
+          - "--exclude=node_modules/"
+          - "--exclude=.env"
+          - "--exclude=data/"
+          - "--exclude=logs/"
+
+    - name: Create .env file
+      template:
+        src: templates/bot.env.j2
+        dest: "/home/{{ ansible_user }}/pai-bot/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    - name: Install dependencies
+      shell: |
+        source ~/.bashrc
+        cd ~/pai-bot
+        ~/.bun/bin/bun install
+      become_user: "{{ ansible_user }}"
+      args:
+        executable: /bin/bash
+
+    - name: Initialize database
+      shell: |
+        source ~/.bashrc
+        cd ~/pai-bot
+        ~/.bun/bin/bun run db:init
+      become_user: "{{ ansible_user }}"
+      args:
+        executable: /bin/bash
+        creates: "/home/{{ ansible_user }}/pai-bot/data/pai.db"
+
+    - name: Stop existing bot (if running)
+      shell: |
+        source ~/.bashrc
+        ~/.bun/bin/pm2 delete pai-bot || true
+      become_user: "{{ ansible_user }}"
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Start bot with pm2
+      shell: |
+        source ~/.bashrc
+        cd ~/pai-bot
+        ~/.bun/bin/pm2 start ecosystem.config.cjs
+        ~/.bun/bin/pm2 save
+      become_user: "{{ ansible_user }}"
+      args:
+        executable: /bin/bash
+
+    - name: Setup pm2 startup
+      shell: |
+        source ~/.bashrc
+        ~/.bun/bin/pm2 startup systemd -u {{ ansible_user }} --hp /home/{{ ansible_user }} | tail -1 | sudo bash
+      become_user: "{{ ansible_user }}"
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Check bot status
+      shell: |
+        source ~/.bashrc
+        ~/.bun/bin/pm2 status
+      become_user: "{{ ansible_user }}"
+      args:
+        executable: /bin/bash
+      register: pm2_status
+
+    - name: Print bot status
+      debug:
+        var: pm2_status.stdout_lines

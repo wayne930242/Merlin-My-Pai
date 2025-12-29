@@ -1,0 +1,21 @@
+{
+  "name": "pai-bot",
+  "version": "0.1.0",
+  "description": "Personal AI Infrastructure - Telegram Bot",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "db:init": "bun run src/storage/init-db.ts"
+  },
+  "dependencies": {
+    "@grammyjs/parse-mode": "^2.2.0",
+    "grammy": "^1.21.1",
+    "pino": "^8.17.2",
+    "pino-pretty": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  }
+}
