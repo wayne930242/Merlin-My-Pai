@@ -4,13 +4,19 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "bun run ~/.claude/scripts/on-session-start.ts"
+        "command": "bun run scripts/on-session-start.ts"
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "bun run ~/.claude/scripts/on-stop.ts"
+        "command": "bun run scripts/on-stop.ts"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "bun run scripts/pre-tool-use.ts"
       }
     ]
   },
