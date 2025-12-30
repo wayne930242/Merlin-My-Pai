@@ -244,7 +244,9 @@ ${toMarkdownV2(currentText)}`;
       contextManager.saveMessage(userId, "assistant", finalContent);
     }
   } catch (error) {
-    logger.error({ error, userId }, "Failed to process message");
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error({ error: errorMessage, stack: errorStack, userId }, "Failed to process message");
     await ctx.reply("❌ 魔法失效了，請稍後再試");
   }
 }

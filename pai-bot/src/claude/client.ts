@@ -100,8 +100,10 @@ export async function* streamClaude(
       throw new Error(`Claude exited with code ${exitCode}: ${stderr}`);
     }
   } catch (error) {
-    logger.error({ error }, "Stream error");
-    yield { type: "error", content: String(error) };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error({ error: errorMessage, stack: errorStack }, "Stream error");
+    yield { type: "error", content: errorMessage };
   }
 }
 

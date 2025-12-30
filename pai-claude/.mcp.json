@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "google": {
+      "type": "stdio",
+      "command": "/home/pai/pai-bot/src/mcp/start.sh",
+      "args": []
+    }
+  }
+}

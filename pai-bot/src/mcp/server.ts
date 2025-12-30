@@ -1,0 +1,291 @@
+#!/usr/bin/env bun
+/**
+ * Google Services MCP Server
+ * 提供 Google Calendar, Drive, Gmail, Contacts 服務給 Claude Code
+ */
+
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import * as google from "../services/google";
+
+// Simple stderr logger for MCP (stdout is reserved for protocol)
+const log = {
+  info: (msg: string, data?: object) =>
+    console.error(`[MCP INFO] ${msg}`, data ? JSON.stringify(data) : ""),
+  error: (msg: string, data?: object) =>
+    console.error(`[MCP ERROR] ${msg}`, data ? JSON.stringify(data) : ""),
+};
+
+// Wrapper for tool handlers with error logging
+function withErrorHandling<T>(
+  toolName: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  return fn().catch((error) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log.error(`Tool ${toolName} failed`, { error: errorMessage });
+    throw error;
+  });
+}
+
+log.info("Starting Google Services MCP Server");
+
+const server = new McpServer({
+  name: "google-services",
+  version: "1.0.0",
+});
+
+// === Calendar Tools ===
+
+server.registerTool(
+  "google_calendar_list",
+  {
+    title: "List Calendars",
+    description: "列出所有 Google 日曆",
+    inputSchema: {},
+  },
+  async () => {
+    return withErrorHandling("google_calendar_list", async () => {
+      const calendars = await google.calendar.listCalendars();
+      return {
+        content: [{ type: "text", text: JSON.stringify(calendars, null, 2) }],
+      };
+    });
+  }
+);
+
+server.registerTool(
+  "google_calendar_events",
+  {
+    title: "List Calendar Events",
+    description: "列出日曆行程",
+    inputSchema: {
+      calendarId: z.string().optional().describe("日曆 ID，預設 primary"),
+      timeMin: z.string().optional().describe("開始時間 (ISO 8601)"),
+      timeMax: z.string().optional().describe("結束時間 (ISO 8601)"),
+      maxResults: z.number().optional().describe("最多回傳幾筆，預設 10"),
+      q: z.string().optional().describe("搜尋關鍵字"),
+    },
+  },
+  async ({ calendarId, timeMin, timeMax, maxResults, q }) => {
+    const events = await google.calendar.listEvents(calendarId || "primary", {
+      timeMin,
+      timeMax,
+      maxResults,
+      q,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(events, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "google_calendar_create_event",
+  {
+    title: "Create Calendar Event",
+    description: "建立日曆行程",
+    inputSchema: {
+      summary: z.string().describe("行程標題"),
+      description: z.string().optional().describe("行程描述"),
+      startDateTime: z
+        .string()
+        .describe("開始時間 (ISO 8601，如 2024-01-15T10:00:00+08:00)"),
+      endDateTime: z.string().describe("結束時間 (ISO 8601)"),
+      location: z.string().optional().describe("地點"),
+      calendarId: z.string().optional().describe("日曆 ID，預設 primary"),
+    },
+  },
+  async ({
+    summary,
+    description,
+    startDateTime,
+    endDateTime,
+    location,
+    calendarId,
+  }) => {
+    const event = await google.calendar.createEvent(
+      {
+        summary,
+        description,
+        start: { dateTime: startDateTime },
+        end: { dateTime: endDateTime },
+        location,
+      },
+      calendarId || "primary"
+    );
+    return {
+      content: [{ type: "text", text: JSON.stringify(event, null, 2) }],
+    };
+  }
+);
+
+// === Drive Tools ===
+
+server.registerTool(
+  "google_drive_list",
+  {
+    title: "List Drive Files",
+    description: "列出雲端硬碟檔案",
+    inputSchema: {
+      folderId: z.string().optional().describe("資料夾 ID"),
+      pageSize: z.number().optional().describe("最多回傳幾筆，預設 20"),
+    },
+  },
+  async ({ folderId, pageSize }) => {
+    const files = await google.drive.listFiles({ folderId, pageSize });
+    return {
+      content: [{ type: "text", text: JSON.stringify(files, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "google_drive_search",
+  {
+    title: "Search Drive Files",
+    description: "搜尋雲端硬碟檔案",
+    inputSchema: {
+      query: z.string().describe("搜尋關鍵字"),
+    },
+  },
+  async ({ query }) => {
+    const files = await google.drive.searchFiles(query);
+    return {
+      content: [{ type: "text", text: JSON.stringify(files, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "google_drive_get_file",
+  {
+    title: "Get Drive File",
+    description: "取得檔案資訊或內容",
+    inputSchema: {
+      fileId: z.string().describe("檔案 ID"),
+      getContent: z
+        .boolean()
+        .optional()
+        .describe("是否取得檔案內容（僅純文字檔案）"),
+    },
+  },
+  async ({ fileId, getContent }) => {
+    if (getContent) {
+      const content = await google.drive.getFileContent(fileId);
+      return { content: [{ type: "text", text: content }] };
+    } else {
+      const file = await google.drive.getFile(fileId);
+      return {
+        content: [{ type: "text", text: JSON.stringify(file, null, 2) }],
+      };
+    }
+  }
+);
+
+// === Gmail Tools ===
+
+server.registerTool(
+  "google_gmail_list",
+  {
+    title: "List Gmail Messages",
+    description: "列出 Gmail 郵件",
+    inputSchema: {
+      q: z
+        .string()
+        .optional()
+        .describe("搜尋條件（如 from:someone@example.com）"),
+      maxResults: z.number().optional().describe("最多回傳幾筆，預設 10"),
+    },
+  },
+  async ({ q, maxResults }) => {
+    const messages = await google.gmail.listMessages({ q, maxResults });
+    return {
+      content: [{ type: "text", text: JSON.stringify(messages, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "google_gmail_get",
+  {
+    title: "Get Gmail Message",
+    description: "讀取郵件內容",
+    inputSchema: {
+      messageId: z.string().describe("郵件 ID"),
+    },
+  },
+  async ({ messageId }) => {
+    const message = await google.gmail.getMessageContent(messageId);
+    return {
+      content: [{ type: "text", text: JSON.stringify(message, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "google_gmail_send",
+  {
+    title: "Send Gmail",
+    description: "寄送郵件",
+    inputSchema: {
+      to: z.string().describe("收件人 email"),
+      subject: z.string().describe("郵件主旨"),
+      body: z.string().describe("郵件內容"),
+      cc: z.string().optional().describe("副本"),
+      bcc: z.string().optional().describe("密件副本"),
+    },
+  },
+  async ({ to, subject, body, cc, bcc }) => {
+    const result = await google.gmail.sendMessage(to, subject, body, {
+      cc,
+      bcc,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+// === Contacts Tools ===
+
+server.registerTool(
+  "google_contacts_list",
+  {
+    title: "List Contacts",
+    description: "列出聯絡人",
+    inputSchema: {
+      pageSize: z.number().optional().describe("最多回傳幾筆，預設 100"),
+    },
+  },
+  async ({ pageSize }) => {
+    const result = await google.contacts.listContacts({ pageSize });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "google_contacts_search",
+  {
+    title: "Search Contacts",
+    description: "搜尋聯絡人",
+    inputSchema: {
+      query: z.string().describe("搜尋關鍵字（姓名、email、電話）"),
+    },
+  },
+  async ({ query }) => {
+    const contacts = await google.contacts.searchContacts(query);
+    return {
+      content: [{ type: "text", text: JSON.stringify(contacts, null, 2) }],
+    };
+  }
+);
+
+// Start server
+log.info("Connecting to transport...");
+const transport = new StdioServerTransport();
+await server.connect(transport);
+log.info("MCP Server connected and ready");
