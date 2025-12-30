@@ -3,6 +3,10 @@
   hosts: pai-server
   become: yes
 
+  vars:
+    app_user: "{{ ansible_user }}"
+    home_dir: "/home/{{ app_user }}"
+
   tasks:
     - name: Update apt cache
       apt:
@@ -20,55 +24,59 @@
 
     - name: Check if Bun is installed
       stat:
-        path: "/home/{{ ansible_user }}/.bun/bin/bun"
+        path: "{{ home_dir }}/.bun/bin/bun"
       register: bun_installed
-      become_user: "{{ ansible_user }}"
 
     - name: Install Bun
       shell: curl -fsSL https://bun.sh/install | bash
-      become_user: "{{ ansible_user }}"
+      become_user: "{{ app_user }}"
       when: not bun_installed.stat.exists
 
     - name: Add Bun to PATH in .bashrc
       lineinfile:
-        path: "/home/{{ ansible_user }}/.bashrc"
+        path: "{{ home_dir }}/.bashrc"
         line: 'export PATH="$HOME/.bun/bin:$PATH"'
         state: present
-      become_user: "{{ ansible_user }}"
+        create: yes
+      become_user: "{{ app_user }}"
 
     - name: Check if Claude Code is installed
       stat:
-        path: "/home/{{ ansible_user }}/.claude/bin/claude"
+        path: "{{ home_dir }}/.local/bin/claude"
       register: claude_installed
-      become_user: "{{ ansible_user }}"
 
     - name: Install Claude Code CLI
-      shell: curl -fsSL https://claude.ai/install.sh | sh
-      become_user: "{{ ansible_user }}"
+      shell: curl -fsSL https://claude.ai/install.sh | bash
+      become_user: "{{ app_user }}"
+      args:
+        executable: /bin/bash
       when: not claude_installed.stat.exists
 
     - name: Add Claude to PATH in .bashrc
       lineinfile:
-        path: "/home/{{ ansible_user }}/.bashrc"
-        line: 'export PATH="$HOME/.claude/bin:$PATH"'
+        path: "{{ home_dir }}/.bashrc"
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
         state: present
-      become_user: "{{ ansible_user }}"
+      become_user: "{{ app_user }}"
 
-    - name: Install pm2 globally
-      shell: /home/{{ ansible_user }}/.bun/bin/bun install -g pm2
-      become_user: "{{ ansible_user }}"
+    - name: Install pm2 globally via bun
+      shell: "{{ home_dir }}/.bun/bin/bun install -g pm2"
+      become_user: "{{ app_user }}"
+      args:
+        creates: "{{ home_dir }}/.bun/bin/pm2"
 
     - name: Create application directories
       file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
         mode: "0755"
       loop:
-        - "/home/{{ ansible_user }}/pai-bot"
-        - "/home/{{ ansible_user }}/pai-bot/data"
-        - "/home/{{ ansible_user }}/pai-bot/logs"
+        - "{{ home_dir }}/pai-bot"
+        - "{{ home_dir }}/pai-bot/data"
+        - "{{ home_dir }}/pai-bot/logs"
+        - "{{ home_dir }}/pai-claude"
 
     - name: Print next steps
       debug:
@@ -76,8 +84,5 @@
           VPS setup complete!
 
           Next steps:
-          1. SSH into the server: ssh {{ ansible_user }}@{{ ansible_host }}
-          2. Run: claude login
-          3. Complete OAuth in your browser
-          4. Run: ansible-playbook playbooks/deploy-claude.yml
-          5. Run: ansible-playbook playbooks/deploy-bot.yml
+          1. Run: ansible-playbook playbooks/setup-claude-auth.yml
+          2. Run: ansible-playbook playbooks/deploy-bot.yml

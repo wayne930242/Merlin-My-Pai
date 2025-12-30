@@ -1,0 +1,58 @@
+---
+# Initialize pai user on remote server
+# Run this once with root: ansible-playbook playbooks/init-user.yml
+
+- name: Initialize PAI Agent User
+  hosts: pai-server
+  become: yes
+  vars:
+    agent_user: "{{ pai_agent_user }}"
+    agent_ssh_public_key: "{{ pai_agent_ssh_public_key }}"
+
+  tasks:
+    - name: Create pai user
+      user:
+        name: "{{ agent_user }}"
+        shell: /bin/bash
+        create_home: yes
+        state: present
+
+    - name: Add pai user to sudo group
+      user:
+        name: "{{ agent_user }}"
+        groups: sudo
+        append: yes
+
+    - name: Setup passwordless sudo for pai user
+      copy:
+        content: "{{ agent_user }} ALL=(ALL) NOPASSWD:ALL"
+        dest: "/etc/sudoers.d/{{ agent_user }}"
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    - name: Create .ssh directory
+      file:
+        path: "/home/{{ agent_user }}/.ssh"
+        state: directory
+        owner: "{{ agent_user }}"
+        group: "{{ agent_user }}"
+        mode: "0700"
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ agent_user }}"
+        key: "{{ agent_ssh_public_key }}"
+        state: present
+
+    - name: Verify user setup
+      command: id {{ agent_user }}
+      register: user_info
+      changed_when: false
+
+    - name: Display result
+      debug:
+        msg: |
+          ✅ User '{{ agent_user }}' created!
+          {{ user_info.stdout }}
+
+          Next: Update inventory to use this user, then run setup-vps.yml

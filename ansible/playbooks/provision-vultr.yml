@@ -1,0 +1,79 @@
+---
+# Provision a new Vultr instance for PAI
+# Usage: ansible-playbook playbooks/provision-vultr.yml
+
+- name: Provision Vultr Instance
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  vars:
+    vultr_region: sgp  # Singapore
+    vultr_plan: vc2-1c-1gb  # 1 vCPU, 1GB RAM, $5/mo
+    vultr_os: "Ubuntu 24.04 LTS x64"
+    vultr_label: pai-server
+    vultr_hostname: pai
+    ssh_key_name: pai-deploy
+
+  tasks:
+    - name: Ensure SSH key exists on Vultr
+      vultr.cloud.ssh_key:
+        api_key: "{{ vultr_api_key }}"
+        name: "{{ ssh_key_name }}"
+        ssh_key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+        state: present
+      register: ssh_key
+
+    - name: Create Vultr instance
+      vultr.cloud.instance:
+        api_key: "{{ vultr_api_key }}"
+        label: "{{ vultr_label }}"
+        hostname: "{{ vultr_hostname }}"
+        region: "{{ vultr_region }}"
+        plan: "{{ vultr_plan }}"
+        os: "{{ vultr_os }}"
+        ssh_keys:
+          - "{{ ssh_key_name }}"
+        backups: false
+        enable_ipv6: false
+        state: present
+      register: server
+
+    - name: Wait for instance to be ready
+      vultr.cloud.instance_info:
+        api_key: "{{ vultr_api_key }}"
+        label: "{{ vultr_label }}"
+      register: instance_info
+      until: instance_info.vultr_instance.status == "active" and instance_info.vultr_instance.server_status == "ok"
+      retries: 30
+      delay: 10
+
+    - name: Display instance info
+      debug:
+        msg: |
+          ✅ Instance created!
+
+          Label: {{ instance_info.vultr_instance.label }}
+          IP: {{ instance_info.vultr_instance.main_ip }}
+          Region: {{ instance_info.vultr_instance.region }}
+          Plan: {{ instance_info.vultr_instance.plan }}
+
+          Next steps:
+          1. Update inventory/hosts.yml with IP: {{ instance_info.vultr_instance.main_ip }}
+          2. Run: ansible-playbook playbooks/setup-vps.yml
+          3. SSH and run: claude login
+          4. Run: ansible-playbook playbooks/deploy-bot.yml
+
+    - name: Update inventory file
+      blockinfile:
+        path: "{{ playbook_dir }}/../inventory/hosts.yml"
+        marker: "# {mark} VULTR MANAGED BLOCK"
+        block: |
+          all:
+            hosts:
+              pai-server:
+                ansible_host: {{ instance_info.vultr_instance.main_ip }}
+                ansible_user: root
+        create: yes
+      when: instance_info.vultr_instance.main_ip is defined

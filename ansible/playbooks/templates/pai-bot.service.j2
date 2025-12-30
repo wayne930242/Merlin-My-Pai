@@ -1,0 +1,22 @@
+[Unit]
+Description=PAI Bot - Telegram Bot with Claude Code
+After=network.target
+
+[Service]
+Type=simple
+User={{ ansible_user }}
+Group={{ ansible_user }}
+WorkingDirectory=/home/{{ ansible_user }}/pai-bot
+ExecStart=/home/{{ ansible_user }}/.bun/bin/bun run src/index.ts
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PATH=/home/{{ ansible_user }}/.local/bin:/home/{{ ansible_user }}/.bun/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/home/{{ ansible_user }}
+
+# Logging
+StandardOutput=append:/home/{{ ansible_user }}/pai-bot/logs/output.log
+StandardError=append:/home/{{ ansible_user }}/pai-bot/logs/error.log
+
+[Install]
+WantedBy=multi-user.target

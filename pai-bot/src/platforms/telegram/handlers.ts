@@ -1,7 +1,5 @@
 import { Context } from "grammy";
 import { callClaude } from "../../claude/client";
-import { isApprovalMessage, isRejectionMessage } from "../../claude/authorization";
-import { handlePermissionResponse, hasPendingPermission } from "../../api/server";
 import { contextManager } from "../../context/manager";
 import { logger } from "../../utils/logger";
 
@@ -51,20 +49,6 @@ export async function handleMessage(ctx: Context): Promise<void> {
   const text = ctx.message?.text;
 
   if (!userId || !text) return;
-
-  // 檢查是否為 MCP 權限請求的回應
-  if (hasPendingPermission(userId)) {
-    if (isApprovalMessage(text)) {
-      handlePermissionResponse(userId, true);
-      await ctx.reply("✅ 已授權");
-      return;
-    }
-    if (isRejectionMessage(text)) {
-      handlePermissionResponse(userId, false, "使用者拒絕");
-      await ctx.reply("❌ 已拒絕");
-      return;
-    }
-  }
 
   // 處理 /cc: Claude slash command
   let prompt = text;

@@ -34,9 +34,9 @@ export async function callClaude(
 
     // Call Claude Code in headless mode
     // cwd 設為 pai-claude 目錄，讓 Claude 讀取專案級的 CLAUDE.md 和 Skills
-    // 使用 MCP server 處理權限請求，所以不限制 tools
+    // 使用 --dangerously-skip-permissions 跳過權限確認
     const result =
-      await $`claude -p ${fullPrompt} --output-format text`
+      await $`claude -p ${fullPrompt} --dangerously-skip-permissions --output-format text`
         .cwd(projectDir)
         .text();
 

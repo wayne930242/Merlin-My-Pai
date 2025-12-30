@@ -5,24 +5,24 @@
 # 1. 先在本地執行 claude login 完成認證
 # 2. 執行此 playbook 複製認證到 VPS
 #
-# ansible-playbook playbooks/setup-claude-auth.yml
+# ./scripts/ansible-wrapper.sh ansible-playbook playbooks/setup-claude-auth.yml
 
 - name: Setup Claude Code Authentication
   hosts: pai-server
 
   vars:
-    local_auth_file: "{{ lookup('env', 'HOME') }}/.claude/auth.json"
-    remote_auth_dir: "/home/{{ ansible_user }}/.claude"
+    local_auth_file: "{{ lookup('env', 'HOME') }}/.claude.json"
+    remote_auth_file: "/home/{{ ansible_user }}/.claude.json"
 
   tasks:
-    - name: Check if local auth.json exists
+    - name: Check if local .claude.json exists
       local_action:
         module: stat
         path: "{{ local_auth_file }}"
       register: local_auth
       become: no
 
-    - name: Fail if local auth.json not found
+    - name: Fail if local .claude.json not found
       fail:
         msg: |
           本地 Claude 認證檔案不存在！
@@ -33,27 +33,18 @@
           完成認證後再執行此 playbook。
       when: not local_auth.stat.exists
 
-    - name: Ensure remote .claude directory exists
-      file:
-        path: "{{ remote_auth_dir }}"
-        state: directory
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        mode: "0700"
-
-    - name: Copy auth.json to VPS
+    - name: Copy .claude.json to VPS
       copy:
         src: "{{ local_auth_file }}"
-        dest: "{{ remote_auth_dir }}/auth.json"
+        dest: "{{ remote_auth_file }}"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0600"
 
-    - name: Verify Claude authentication
+    - name: Verify Claude installation
       shell: |
         source ~/.bashrc
         ~/.claude/bin/claude --version
-      become_user: "{{ ansible_user }}"
       args:
         executable: /bin/bash
       register: claude_version

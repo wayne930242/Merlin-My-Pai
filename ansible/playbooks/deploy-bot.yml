@@ -5,6 +5,15 @@
     - ../inventory/group_vars/all/vault.yml
 
   tasks:
+    - name: Sync pai-claude source code
+      synchronize:
+        src: ../../pai-claude/
+        dest: "/home/{{ ansible_user }}/pai-claude/"
+        delete: yes
+        rsync_opts:
+          - "--exclude=node_modules/"
+          - "--exclude=.git/"
+
     - name: Sync bot source code
       synchronize:
         src: ../../pai-bot/
@@ -15,6 +24,24 @@
           - "--exclude=.env"
           - "--exclude=data/"
           - "--exclude=logs/"
+
+    - name: Fix ownership of synced files
+      file:
+        path: "/home/{{ ansible_user }}/{{ item }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        recurse: yes
+      loop:
+        - pai-bot
+        - pai-claude
+
+    - name: Ensure logs directory exists
+      file:
+        path: "/home/{{ ansible_user }}/pai-bot/logs"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
 
     - name: Create .env file
       template:
@@ -43,43 +70,31 @@
         executable: /bin/bash
         creates: "/home/{{ ansible_user }}/pai-bot/data/pai.db"
 
-    - name: Stop existing bot (if running)
-      shell: |
-        source ~/.bashrc
-        ~/.bun/bin/pm2 delete pai-bot || true
-      become_user: "{{ ansible_user }}"
-      args:
-        executable: /bin/bash
+    - name: Install systemd service
+      template:
+        src: templates/pai-bot.service.j2
+        dest: /etc/systemd/system/pai-bot.service
+        mode: "0644"
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start pai-bot service
+      systemd:
+        name: pai-bot
+        enabled: yes
+        state: restarted
+
+    - name: Wait for service to start
+      pause:
+        seconds: 3
+
+    - name: Check service status
+      shell: systemctl status pai-bot --no-pager
+      register: service_status
       ignore_errors: yes
 
-    - name: Start bot with pm2
-      shell: |
-        source ~/.bashrc
-        cd ~/pai-bot
-        ~/.bun/bin/pm2 start ecosystem.config.cjs
-        ~/.bun/bin/pm2 save
-      become_user: "{{ ansible_user }}"
-      args:
-        executable: /bin/bash
-
-    - name: Setup pm2 startup
-      shell: |
-        source ~/.bashrc
-        ~/.bun/bin/pm2 startup systemd -u {{ ansible_user }} --hp /home/{{ ansible_user }} | tail -1 | sudo bash
-      become_user: "{{ ansible_user }}"
-      args:
-        executable: /bin/bash
-      ignore_errors: yes
-
-    - name: Check bot status
-      shell: |
-        source ~/.bashrc
-        ~/.bun/bin/pm2 status
-      become_user: "{{ ansible_user }}"
-      args:
-        executable: /bin/bash
-      register: pm2_status
-
-    - name: Print bot status
+    - name: Print service status
       debug:
-        var: pm2_status.stdout_lines
+        var: service_status.stdout_lines
