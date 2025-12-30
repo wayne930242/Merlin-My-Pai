@@ -41,7 +41,7 @@ Personal AI Infrastructure - Merlin 專案開發環境。
 
 **Law 9: Ansible Wrapper**
 - 所有 ansible 命令必須透過 `./ansible/scripts/ansible-wrapper.sh` 執行
-- 範例：`./ansible/scripts/ansible-wrapper.sh ansible-playbook playbooks/deploy-bot.yml`
+- 範例：`./ansible/scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-bot.yml`
 - 此 wrapper 會自動從 vault 解密 SSH key
 </law>
 
@@ -53,13 +53,18 @@ weihung-pai/
 │   ├── commands/     # Slash commands
 │   └── rules/        # 開發規範
 ├── pai-bot/          # Telegram Bot (Bun + grammY)
-├── pai-claude/       # Merlin VPS 運行配置 (勿修改)
+├── pai-claude/       # Merlin VPS 運行配置
+│   ├── agents/       # Subagents
+│   ├── skills/       # 技能模組 (learning, daily, research, fabric, coding)
+│   ├── context/      # 身份與原則
+│   └── scripts/      # Hooks
 ├── ansible/          # VPS 部署
 │   ├── playbooks/    # 部署劇本
-│   │   ├── init/     # 初始化腳本 (provision, setup)
+│   │   ├── init/     # 初始化 (provision, setup)
 │   │   ├── deploy-bot.yml
 │   │   └── deploy-claude.yml
-│   └── scripts/      # 包含 ansible-wrapper.sh
+│   ├── inventory/    # 主機清單與 vault
+│   └── scripts/      # ansible-wrapper.sh, ssh-to-vps.sh
 └── docs/             # 文件
 ```
 
@@ -69,8 +74,9 @@ weihung-pai/
 |------|------|
 | Runtime | Bun |
 | Bot | grammY |
+| AI | Claude Code CLI (Headless) |
 | Database | SQLite (bun:sqlite) |
-| Deploy | Ansible + PM2 |
+| Deploy | Ansible + systemd |
 
 ## 常用指令
 
@@ -78,14 +84,21 @@ weihung-pai/
 # pai-bot 開發
 cd pai-bot && bun run dev
 
-# 日常部署
-./ansible/scripts/ansible-wrapper.sh ansible-playbook -i ansible/inventory ansible/playbooks/deploy-bot.yml
+# 日常部署（在 ansible 目錄下執行）
+./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-bot.yml
+./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-claude.yml
 
-# 初始化 (僅首次)
-./ansible/scripts/ansible-wrapper.sh ansible-playbook -i ansible/inventory ansible/playbooks/init/setup-vps.yml
+# 初始化（僅首次）
+./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/setup-vps.yml
 ```
+
+## 敏感資料
+
+所有敏感資料存放在 `ansible/inventory/group_vars/all/vault.yml`（已加密）。
+
+設定方式見 `vault.yml.example`。
 
 ## 注意事項
 
-- `pai-claude/` 是 Merlin Bot 的運行配置，開發時請勿直接修改
-- 環境變數統一放在根目錄 `.env`，子專案透過 symlink 使用
+- `pai-claude/` 是 Merlin 的運行配置
+- 不要在程式碼中寫死敏感資訊（用 vault 管理）

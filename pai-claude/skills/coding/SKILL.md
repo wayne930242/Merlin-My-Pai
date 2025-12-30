@@ -99,13 +99,13 @@ git commit -m "add: description"
 git push origin main
 ```
 
-## 初始化 Repo（首次）
+## Repo 資訊
 
-```bash
-cd ~/merlin-workspace
-git init
-gh repo create weihung/merlin-workspace --private --source=. --push
-```
+- **本地路徑**: `~/merlin-workspace/`
+- **查看 remote**: `cd ~/merlin-workspace && git remote -v`
+- **查看所有 repo**: `gh repo list`
+
+> Repo 已在 VPS 初始化時建立，直接使用即可。
 
 ## 程式碼風格
 

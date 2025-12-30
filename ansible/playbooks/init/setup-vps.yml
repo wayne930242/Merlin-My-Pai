@@ -176,7 +176,7 @@
       ansible.builtin.shell:
         cmd: |
           cd {{ home_dir }}/merlin-workspace
-          gh repo create wayne930242/merlin-workspace --private --source=. --push
+          gh repo create {{ github_username }}/merlin-workspace --private --source=. --push
         executable: /bin/bash
       become: true
       become_user: "{{ app_user }}"

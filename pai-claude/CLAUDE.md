@@ -21,8 +21,8 @@
 ## Workspace
 
 如果需要撰寫程式碼或腳本，保存到 `~/merlin-workspace/`：
-- 用 `gh` CLI 管理 GitHub repo
-- Repo: `weihung/merlin-workspace` (private)
+- 用 `gh` CLI 管理 GitHub repo（用 `gh repo list` 查看）
+- 寫完後記得 `git add . && git commit && git push`
 
 ## Skills
 

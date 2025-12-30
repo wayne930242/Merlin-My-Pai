@@ -1,5 +1,28 @@
-# Create encrypted version with:
-# ansible-vault create ansible/inventory/group_vars/all/vault.yml
+# Ansible Vault 範例
+# 複製此檔案為 vault.yml 並填入你的值
+# 然後執行: ansible-vault encrypt inventory/group_vars/all/vault.yml
 
+# === Telegram Bot ===
 telegram_bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
-telegram_allowed_user_ids: "YOUR_USER_ID"
+telegram_allowed_user_ids: "YOUR_TELEGRAM_USER_ID"
+
+# === VPS 設定 ===
+vault_server_ip: "YOUR_VPS_IP"
+pai_agent_user: "pai"
+
+# === SSH Key（用於 Ansible 部署）===
+# 產生方式: ssh-keygen -t ed25519 -C "pai-agent"
+pai_agent_ssh_private_key: |
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  YOUR_PRIVATE_KEY_HERE
+  -----END OPENSSH PRIVATE KEY-----
+pai_agent_ssh_public_key: "ssh-ed25519 AAAA... pai-agent"
+
+# === GitHub CLI（用於 Merlin workspace）===
+# 產生方式: https://github.com/settings/tokens
+# 需要 scopes: repo, read:org, gist
+github_token: "ghp_YOUR_GITHUB_TOKEN"
+github_username: "YOUR_GITHUB_USERNAME"
+
+# === Vultr API（可選，用於自動建立 VPS）===
+vultr_api_key: "YOUR_VULTR_API_KEY"
