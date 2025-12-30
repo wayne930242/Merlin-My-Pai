@@ -1,0 +1,39 @@
+---
+# 清理 VPS 上的 log 檔案
+# 用法: ./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/clean-logs.yml
+
+- name: Clean logs
+  hosts: pai-server
+  become: true
+
+  vars:
+    app_user: "{{ ansible_user }}"
+    home_dir: "/home/{{ app_user }}"
+
+  tasks:
+    - name: Truncate bot logs
+      ansible.builtin.shell: |
+        > {{ home_dir }}/pai-bot/logs/output.log
+        > {{ home_dir }}/pai-bot/logs/error.log
+      changed_when: true
+
+    - name: Clean Claude debug logs
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.claude/debug"
+        state: "{{ item }}"
+      loop:
+        - absent
+        - directory
+
+    - name: Clean systemd journal (keep last 1 day)
+      ansible.builtin.command: journalctl --vacuum-time=1d
+      changed_when: true
+
+    - name: Show disk usage
+      ansible.builtin.command: df -h /
+      register: disk_usage
+      changed_when: false
+
+    - name: Print disk usage
+      ansible.builtin.debug:
+        var: disk_usage.stdout_lines
