@@ -9,13 +9,13 @@ let db: Database | null = null;
 export function getDb(): Database {
   if (!db) {
     db = new Database(config.database.path);
-    db.exec("PRAGMA journal_mode = WAL");
+    db.run("PRAGMA journal_mode = WAL");
     logger.info({ path: config.database.path }, "Database connected");
 
     // Auto migration on startup
     const schemaPath = join(import.meta.dir, "schema.sql");
     const schema = readFileSync(schemaPath, "utf-8");
-    db.exec(schema);
+    db.run(schema);
     logger.info("Database migration completed");
   }
   return db;

@@ -13,7 +13,7 @@ async function initDatabase() {
     const schemaPath = join(import.meta.dir, "schema.sql");
     const schema = readFileSync(schemaPath, "utf-8");
 
-    db.exec(schema);
+    db.run(schema);
 
     logger.info("Database initialized successfully");
   } catch (error) {
