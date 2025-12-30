@@ -68,7 +68,7 @@ ansible-vault encrypt vault.yml
 | `pai_agent_ssh_public_key` | SSH 公鑰 |
 | `github_token` | GitHub PAT (scopes: repo, read:org, gist) |
 | `github_username` | GitHub 用戶名 |
-| `vultr_api_key` | Vultr API Key（可選）|
+| `vultr_api_key` | Vultr API Key（僅使用 Vultr 自動建立時需要）|
 | `vault_google_client_id` | Google OAuth2 Client ID |
 | `vault_google_client_secret` | Google OAuth2 Client Secret |
 | `vault_google_refresh_token` | Google OAuth2 Refresh Token |
@@ -122,6 +122,8 @@ bun run dev
 
 ### 4. VPS 部署
 
+**VPS 廠商不限** - 專案不綁定 Vultr，可使用任何 VPS（Linode、DigitalOcean、Hetzner 等），只要是 Ubuntu Linux 即可。
+
 所有 ansible 命令透過 wrapper 執行（自動從 vault 解密 SSH key）：
 
 ```bash
@@ -129,8 +131,10 @@ cd ansible
 
 # === 初始化（僅首次）===
 
-# 1. 建立 VPS（可選，若已有 VPS 則跳過）
+# 1. 建立 VPS（二擇一）
+#    方法 A：使用 Vultr 自動建立
 ./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/provision-vultr.yml
+#    方法 B：手動建立任意 VPS，然後更新 vault.yml 中的 vault_server_ip
 
 # 2. 初始化部署用戶
 ./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/init-user.yml
@@ -171,7 +175,7 @@ cd ansible
 
 | Playbook | 說明 |
 |----------|------|
-| `provision-vultr.yml` | 透過 Vultr API 建立 VPS |
+| `provision-vultr.yml` | （可選）透過 Vultr API 自動建立 VPS，使用其他廠商請手動建立 |
 | `init-user.yml` | 初始化部署用戶 |
 | `setup-vps.yml` | VPS 環境設定（Bun, Claude, gh cli, workspace, 防火牆）|
 | `setup-nginx.yml` | 設定 nginx 靜態網站 |
