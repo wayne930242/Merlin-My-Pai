@@ -13,6 +13,11 @@
         rsync_opts:
           - "--exclude=node_modules/"
           - "--exclude=.git/"
+          - "--exclude=statsig/"
+          - "--exclude=debug/"
+          - "--exclude=todos/"
+          - "--exclude=shell-snapshots/"
+          - "--exclude=projects/"
 
     - name: Sync bot source code
       ansible.posix.synchronize:
