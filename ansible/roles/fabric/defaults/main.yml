@@ -1,0 +1,11 @@
+---
+# Fabric role defaults
+
+# API provider: anthropic, openai, ollama
+fabric_default_vendor: anthropic
+
+# API key - 從 vault 讀取
+fabric_api_key: "{{ anthropic_api_key | default('') }}"
+
+# Default model
+fabric_default_model: claude-sonnet-4-20250514

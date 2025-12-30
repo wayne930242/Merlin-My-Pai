@@ -39,3 +39,4 @@
 - `financial` - 財務分析與投資研究
 - `philosophy` - 哲學思辨與深度思考
 - `trpg` - TRPG 遊戲輔助
+- `fabric` - Fabric patterns 內容處理（摘要、提取重點、分析）

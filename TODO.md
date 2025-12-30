@@ -1,6 +1,6 @@
 # PAI 實施待辦清單
 
-基於 `pai.md` 規格書，追蹤剩餘實施項目。
+基於 `pai.md` 規格書，追蹤實施進度。
 
 ---
 
@@ -14,9 +14,9 @@
 
 ---
 
-## 階段二：Skills 開發 ✅ 已有基礎
+## 階段二：Skills + Agents ✅ 完成
 
-現有 Skills：
+### Skills
 - [x] infrastructure（Nomad/Consul/Caddy）
 - [x] development（TDD, Code Review）
 - [x] research（Deep Research）
@@ -24,11 +24,7 @@
 - [x] philosophy（Socratic Dialogue）
 - [x] trpg（Character Creation, Story Generation, DM Assistant）
 
----
-
-## 階段二補充：History + Agents ✅ 完成
-
-### History 系統
+### History 目錄
 - [x] 建立 `pai-claude/history/` 目錄結構
 - [x] 建立 `history/README.md` 說明文件
 
@@ -40,7 +36,7 @@
 
 ---
 
-## 階段三：自動化整合 ✅ 完成
+## 階段三：Hook + 安全層 ✅ 完成
 
 ### Hook 系統
 - [x] 完善 `scripts/on-session-start.ts` - 顯示 Skills、檢查 Sessions
@@ -54,23 +50,19 @@
 - [x] Path Traversal 檢測
 - [x] 敏感檔案存取警告
 
-### History 自動化（待 Phase D）
-- [ ] 實作 Session 自動記錄
-- [ ] 實作 Learnings 自動提取
-
 ---
 
-## 階段四：Agent 系統
+## 階段四：MCP 擴展 ✅ 完成
 
-### 預定義 Agent
-- [ ] 建立 `pai-claude/agents/Engineer.md`
-- [ ] 建立 `pai-claude/agents/Architect.md`
-- [ ] 建立 `pai-claude/agents/Researcher.md`
-- [ ] 建立 `pai-claude/agents/QATester.md`
+### MCP Server Tools（pai-mcp/src/index.ts）
+- [x] `get_history` - 讀取歷史記錄（sessions, learnings, research, decisions）
+- [x] `save_learning` - 保存學習成果
+- [x] `save_session` - 保存 Session 摘要
+- [x] `save_decision` - 保存決策記錄
 
-### MCP Server 擴展
-- [ ] 新增 `get_history` tool
-- [ ] 新增 `save_learning` tool
+### 現有 Tools
+- [x] `request_permission` - 請求執行權限（透過 Telegram）
+- [x] `notify_user` - 發送通知（透過 Telegram）
 
 ---
 
@@ -79,9 +71,45 @@
 | Phase | 項目 | 狀態 |
 |-------|------|------|
 | A | Context 系統 | ✅ 完成 |
-| B | History 目錄 + Agent 定義 | ✅ 完成 |
-| C | Hook 系統完善 + 安全層 | ✅ 完成 |
-| D | 完整 UOCS + MCP 擴展 | 待做 |
+| B | Skills + History + Agents | ✅ 完成 |
+| C | Hook 系統 + 安全層 | ✅ 完成 |
+| D | MCP 擴展 | ✅ 完成 |
+
+---
+
+## 🎉 PAI 基礎建設完成！
+
+### 已建立的系統
+
+```
+pai-claude/
+├── CLAUDE.md              # Merlin 主設定
+├── context/
+│   ├── Identity.md        # 身份定義
+│   └── Principles.md      # 核心原則
+├── skills/                # 6 個 Skills
+├── agents/                # 4 個 Agents
+├── history/               # UOCS 目錄結構
+├── scripts/               # 3 個 Hooks
+└── settings.json          # Hook 註冊
+
+pai-mcp/
+└── src/index.ts           # 6 個 MCP Tools
+```
+
+### 後續可選擴展
+- [ ] 整合更多 MCP Servers（Nomad, Consul API）
+- [ ] 建立 Agent 動態組合系統
+- [x] 整合 Fabric patterns ✅
+- [ ] 建立可觀測性 Dashboard
+
+---
+
+## Fabric 整合 ✅ 完成
+
+- [x] 安裝 Fabric CLI（brew install fabric-ai）
+- [x] 建立 Ansible role（ansible/roles/fabric/）
+- [x] 建立 Fabric Skill（skills/fabric/）
 
 ---
 

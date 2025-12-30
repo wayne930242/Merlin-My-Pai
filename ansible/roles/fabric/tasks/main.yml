@@ -1,0 +1,41 @@
+---
+# Fabric CLI 安裝 (Linux)
+# https://github.com/danielmiessler/fabric
+
+- name: Check if Fabric is installed
+  ansible.builtin.command: fabric --version
+  register: fabric_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Install Fabric via official installer
+  when: fabric_check.rc != 0
+  block:
+    - name: Download Fabric installer
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/danielmiessler/fabric/main/scripts/installer/install.sh
+        dest: /tmp/fabric-install.sh
+        mode: "0755"
+
+    - name: Run Fabric installer
+      ansible.builtin.shell: /tmp/fabric-install.sh
+      args:
+        creates: "{{ ansible_env.HOME }}/.local/bin/fabric"
+
+    - name: Clean up installer
+      ansible.builtin.file:
+        path: /tmp/fabric-install.sh
+        state: absent
+
+- name: Ensure Fabric config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/fabric"
+    state: directory
+    mode: "0755"
+
+- name: Configure Fabric (if API key provided)
+  when: fabric_api_key is defined
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ ansible_env.HOME }}/.config/fabric/.env"
+    mode: "0600"

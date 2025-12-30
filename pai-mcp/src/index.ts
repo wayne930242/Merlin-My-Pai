@@ -353,6 +353,132 @@ ${rationale}
   }
 );
 
+/**
+ * 列出 Fabric patterns
+ */
+server.tool(
+  "fabric_list_patterns",
+  "列出所有可用的 Fabric patterns（可搜尋）",
+  {
+    search: z.string().optional().describe("搜尋關鍵字（選填）"),
+  },
+  async ({ search }) => {
+    try {
+      const proc = Bun.spawn(["fabric-ai", "-l"], { stdout: "pipe" });
+      const output = await new Response(proc.stdout).text();
+      const patterns = output.trim().split("\n").filter(Boolean);
+
+      let filtered = patterns;
+      if (search) {
+        const keyword = search.toLowerCase();
+        filtered = patterns.filter((p) => p.toLowerCase().includes(keyword));
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `可用 patterns (${filtered.length}):\n${filtered.join("\n")}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `無法列出 patterns：${error instanceof Error ? error.message : "未知錯誤"}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+/**
+ * 執行 Fabric pattern
+ */
+server.tool(
+  "fabric_run",
+  "執行 Fabric pattern 處理文字內容",
+  {
+    pattern: z.string().describe("Pattern 名稱（如 summarize, extract_wisdom）"),
+    input: z.string().describe("要處理的內容"),
+  },
+  async ({ pattern, input }) => {
+    try {
+      const proc = Bun.spawn(["fabric-ai", "-p", pattern], {
+        stdin: new Response(input),
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const output = await new Response(proc.stdout).text();
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text();
+        throw new Error(stderr || "Pattern 執行失敗");
+      }
+
+      return {
+        content: [{ type: "text", text: output }],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `執行失敗：${error instanceof Error ? error.message : "未知錯誤"}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+/**
+ * 從 YouTube 提取內容
+ */
+server.tool(
+  "fabric_youtube",
+  "用 Fabric 處理 YouTube 影片（提取字幕並套用 pattern）",
+  {
+    url: z.string().describe("YouTube 影片網址"),
+    pattern: z
+      .string()
+      .default("extract_wisdom")
+      .describe("Pattern 名稱（預設 extract_wisdom）"),
+  },
+  async ({ url, pattern }) => {
+    try {
+      const proc = Bun.spawn(["fabric-ai", "-y", url, "-p", pattern], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const output = await new Response(proc.stdout).text();
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text();
+        throw new Error(stderr || "YouTube 處理失敗");
+      }
+
+      return {
+        content: [{ type: "text", text: output }],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `執行失敗：${error instanceof Error ? error.message : "未知錯誤"}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
 // 啟動 server
 async function main() {
   const transport = new StdioServerTransport();
