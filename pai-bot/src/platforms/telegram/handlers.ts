@@ -3,10 +3,6 @@ import { streamClaude } from "../../claude/client";
 import { contextManager } from "../../context/manager";
 import { logger } from "../../utils/logger";
 
-// Telegram rate limit for message edits (roughly 1 per second per chat)
-const EDIT_THROTTLE_MS = 1000;
-
-// Escape special characters for MarkdownV2
 // Characters that need escaping: _ * [ ] ( ) ~ ` > # + - = | { } . !
 function escapeMarkdownV2(text: string): string {
   return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, "\\$1");
@@ -119,126 +115,52 @@ export async function handleMessage(ctx: Context): Promise<void> {
     // Get conversation context
     const history = contextManager.getConversationContext(userId);
 
-    // Send initial message
-    const msg = await ctx.api.sendMessage(chatId, "🔮 _施法中\\.\\.\\._", {
-      parse_mode: "MarkdownV2",
-    });
-    const messageId = msg.message_id;
+    // Show typing indicator during processing
+    let isProcessing = true;
+    const typingInterval = setInterval(async () => {
+      if (isProcessing) {
+        try {
+          await ctx.api.sendChatAction(chatId, "typing");
+        } catch {
+          // Ignore typing action errors
+        }
+      }
+    }, 4000); // Telegram typing status lasts ~5 seconds
 
-    let currentThinking = "";
+    // Send initial typing
+    await ctx.api.sendChatAction(chatId, "typing");
+
     let currentText = "";
-    let lastEditTime = 0;
-    let pendingEdit: ReturnType<typeof setTimeout> | null = null;
-    let lastContent = "";
 
-    // Throttled edit function
-    const editMessage = async (content: string) => {
-      // Skip if content hasn't changed
-      if (content === lastContent) return;
-      lastContent = content;
-
-      const now = Date.now();
-      const timeSinceLastEdit = now - lastEditTime;
-
-      if (timeSinceLastEdit < EDIT_THROTTLE_MS) {
-        // Schedule a pending edit if not already scheduled
-        if (!pendingEdit) {
-          pendingEdit = setTimeout(async () => {
-            pendingEdit = null;
-            await doEdit(content);
-          }, EDIT_THROTTLE_MS - timeSinceLastEdit);
-        }
-        return;
-      }
-
-      await doEdit(content);
-    };
-
-    const doEdit = async (content: string) => {
-      try {
-        lastEditTime = Date.now();
-        await ctx.api.editMessageText(chatId, messageId, content, {
-          parse_mode: "MarkdownV2",
-        });
-      } catch (error) {
-        // Ignore "message not modified" errors
-        const errStr = String(error);
-        if (!errStr.includes("message is not modified")) {
-          logger.warn({ error }, "Failed to edit message");
-          // Try sending without parse_mode as fallback
-          try {
-            await ctx.api.editMessageText(
-              chatId,
-              messageId,
-              content.replace(/\\/g, "")
-            );
-          } catch {
-            // Ignore fallback errors
-          }
+    try {
+      // Stream the response (collect without editing)
+      for await (const event of streamClaude(prompt, {
+        conversationHistory: history,
+      })) {
+        if (event.type === "text") {
+          currentText = event.content;
+        } else if (event.type === "done") {
+          currentText = event.content || currentText;
+        } else if (event.type === "error") {
+          throw new Error(event.content);
         }
       }
-    };
-
-    // Build display content
-    const buildContent = () => {
-      if (currentThinking && !currentText) {
-        // Show thinking only
-        const thinkingPreview =
-          currentThinking.length > 300
-            ? currentThinking.slice(0, 300) + "..."
-            : currentThinking;
-        return `💭 _${escapeMarkdownV2(thinkingPreview)}_
-
-🔮 _思考中\\.\\.\\._`;
-      }
-
-      if (currentThinking && currentText) {
-        // Show both thinking and text
-        const thinkingPreview =
-          currentThinking.length > 200
-            ? currentThinking.slice(0, 200) + "..."
-            : currentThinking;
-        return `💭 _${escapeMarkdownV2(thinkingPreview)}_
-
-${toMarkdownV2(currentText)}`;
-      }
-
-      if (currentText) {
-        return toMarkdownV2(currentText);
-      }
-
-      return "🔮 _施法中\\.\\.\\._";
-    };
-
-    // Stream the response
-    for await (const event of streamClaude(prompt, {
-      conversationHistory: history,
-    })) {
-      if (event.type === "thinking") {
-        currentThinking = event.content;
-        await editMessage(buildContent());
-      } else if (event.type === "text") {
-        currentText = event.content;
-        await editMessage(buildContent());
-      } else if (event.type === "done") {
-        // Final update with complete response
-        currentText = event.content || currentText;
-      } else if (event.type === "error") {
-        throw new Error(event.content);
-      }
+    } finally {
+      isProcessing = false;
+      clearInterval(typingInterval);
     }
 
-    // Cancel any pending edit
-    if (pendingEdit) {
-      clearTimeout(pendingEdit);
-    }
-
-    // Final edit with complete content (no thinking shown in final)
+    // Send final response as new message
     const finalContent = currentText.trim();
     if (finalContent) {
-      // Wait a bit to ensure we don't hit rate limit
-      await Bun.sleep(EDIT_THROTTLE_MS);
-      await doEdit(toMarkdownV2(finalContent));
+      try {
+        await ctx.api.sendMessage(chatId, toMarkdownV2(finalContent), {
+          parse_mode: "MarkdownV2",
+        });
+      } catch {
+        // Fallback: send without markdown
+        await ctx.api.sendMessage(chatId, finalContent);
+      }
 
       // Save assistant response
       contextManager.saveMessage(userId, "assistant", finalContent);
