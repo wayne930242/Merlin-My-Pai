@@ -24,6 +24,7 @@
           - "--exclude=.env"
           - "--exclude=data/"
           - "--exclude=logs/"
+      register: bot_sync
 
     - name: Fix ownership of synced files
       ansible.builtin.file:
@@ -51,15 +52,21 @@
         group: "{{ ansible_user }}"
         mode: "0600"
 
+    - name: Check if node_modules exists
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/pai-bot/node_modules"
+      register: node_modules_stat
+
     - name: Install dependencies
       ansible.builtin.shell: |
         source ~/.bashrc
         cd ~/pai-bot
-        ~/.bun/bin/bun install
+        ~/.bun/bin/bun install --frozen-lockfile
       become: true
       become_user: "{{ ansible_user }}"
       args:
         executable: /bin/bash
+      when: bot_sync.changed or not node_modules_stat.stat.exists
       changed_when: true
 
     - name: Initialize database
