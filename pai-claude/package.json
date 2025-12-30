@@ -1,0 +1,7 @@
+{
+  "name": "pai-claude",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
