@@ -18,6 +18,30 @@
         "type": "command",
         "command": "bun run scripts/pre-tool-use.ts"
       }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "bun run scripts/on-post-tool-use.ts"
+      }
+    ],
+    "Notification": [
+      {
+        "type": "command",
+        "command": "bun run scripts/on-notification.ts"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "type": "command",
+        "command": "bun run scripts/on-subagent-stop.ts"
+      }
+    ],
+    "PreCompact": [
+      {
+        "type": "command",
+        "command": "bun run scripts/on-pre-compact.ts"
+      }
     ]
   },
   "permissions": {

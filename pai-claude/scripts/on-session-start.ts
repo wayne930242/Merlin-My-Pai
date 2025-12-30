@@ -11,6 +11,7 @@
 
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { notify } from "./lib/notify";
 
 const PAI_ROOT = join(import.meta.dir, "..");
 
@@ -19,6 +20,7 @@ async function main() {
   const time = new Date().toLocaleTimeString("zh-TW", { hour12: false });
 
   console.log(`[PAI] Session started: ${today} ${time}`);
+  await notify(`Session 開始: ${today} ${time}`, "success");
 
   // 列出可用 Skills
   try {
