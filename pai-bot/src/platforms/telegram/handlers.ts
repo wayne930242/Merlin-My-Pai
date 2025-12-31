@@ -215,7 +215,13 @@ export async function handleDocument(ctx: Context): Promise<void> {
 
     logger.info({ userId, fileName, localPath }, "File downloaded");
 
-    await ctx.reply(`已下載至 \`${localPath}\``, { parse_mode: "MarkdownV2" });
+    const userMessage = `[用戶傳送檔案: ${fileName}]`;
+    const assistantMessage = `已下載至 \`${localPath}\``;
+
+    contextManager.saveMessage(userId, "user", userMessage);
+    contextManager.saveMessage(userId, "assistant", assistantMessage);
+
+    await ctx.reply(assistantMessage, { parse_mode: "MarkdownV2" });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error({ error: errorMessage, userId }, "Failed to download file");
@@ -263,7 +269,13 @@ export async function handlePhoto(ctx: Context): Promise<void> {
 
     logger.info({ userId, fileName, localPath }, "Photo downloaded");
 
-    await ctx.reply(`已下載至 \`${localPath}\``, { parse_mode: "MarkdownV2" });
+    const userMessage = `[用戶傳送圖片]`;
+    const assistantMessage = `已下載至 \`${localPath}\``;
+
+    contextManager.saveMessage(userId, "user", userMessage);
+    contextManager.saveMessage(userId, "assistant", assistantMessage);
+
+    await ctx.reply(assistantMessage, { parse_mode: "MarkdownV2" });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error({ error: errorMessage, userId }, "Failed to download photo");
