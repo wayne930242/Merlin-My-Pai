@@ -23,5 +23,9 @@ data/*.db
 # 下載檔案
 workspace/downloads/
 
+# Python venv
+.venv/
+venv/
+
 merlin-config.json
 stats-cache.json
