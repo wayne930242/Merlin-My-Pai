@@ -1,0 +1,5 @@
+---
+- name: Deploy Fabric AI
+  hosts: pai-server
+  roles:
+    - fabric

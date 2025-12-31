@@ -30,6 +30,10 @@ github_username: "YOUR_GITHUB_USERNAME"
 # === Vultr API（可選，用於自動建立 VPS）===
 vultr_api_key: "YOUR_VULTR_API_KEY"
 
+# === Anthropic API（用於 Fabric AI）===
+# 取得方式: https://console.anthropic.com/settings/keys
+vault_anthropic_api_key: "sk-ant-api03-YOUR_ANTHROPIC_API_KEY"
+
 # === Google OAuth2（用於 Calendar, Drive, Gmail, Contacts）===
 # 取得方式:
 #   1. 前往 https://console.cloud.google.com/
