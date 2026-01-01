@@ -18,6 +18,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/contacts",
+    "https://www.googleapis.com/auth/tasks",
 ]
 REDIRECT_URI = "http://localhost:8085"
 
@@ -137,6 +138,7 @@ def update_vault_refresh_token(refresh_token: str) -> None:
             str(tmp_file),
             "--vault-password-file",
             str(VAULT_PASSWORD_FILE),
+            "--encrypt-vault-id=default",
             f"--output={VAULT_FILE}",
         ],
         check=True,

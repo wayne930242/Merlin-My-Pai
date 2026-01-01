@@ -248,4 +248,102 @@ export function registerGoogleTools(server: McpServer): void {
       };
     }
   );
+
+  // === Tasks Tools ===
+
+  server.registerTool(
+    "google_tasks_list_tasklists",
+    {
+      title: "List Task Lists",
+      description: "列出所有工作清單",
+      inputSchema: {},
+    },
+    async () => {
+      const taskLists = await google.tasks.listTaskLists();
+      return {
+        content: [{ type: "text", text: JSON.stringify(taskLists, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "google_tasks_list",
+    {
+      title: "List Tasks",
+      description: "列出工作清單中的工作",
+      inputSchema: {
+        taskListId: z.string().optional().describe("工作清單 ID，預設 @default"),
+        showCompleted: z.boolean().optional().describe("是否顯示已完成的工作"),
+        maxResults: z.number().optional().describe("最多回傳幾筆，預設 100"),
+      },
+    },
+    async ({ taskListId, showCompleted, maxResults }) => {
+      const tasks = await google.tasks.listTasks(taskListId || "@default", {
+        showCompleted,
+        maxResults,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "google_tasks_create",
+    {
+      title: "Create Task",
+      description: "建立新工作",
+      inputSchema: {
+        title: z.string().describe("工作標題"),
+        notes: z.string().optional().describe("工作備註"),
+        due: z.string().optional().describe("到期日 (RFC 3339，如 2024-01-15T00:00:00Z)"),
+        taskListId: z.string().optional().describe("工作清單 ID，預設 @default"),
+      },
+    },
+    async ({ title, notes, due, taskListId }) => {
+      const task = await google.tasks.createTask(
+        { title, notes, due },
+        taskListId || "@default"
+      );
+      return {
+        content: [{ type: "text", text: JSON.stringify(task, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "google_tasks_complete",
+    {
+      title: "Complete Task",
+      description: "將工作標記為完成",
+      inputSchema: {
+        taskId: z.string().describe("工作 ID"),
+        taskListId: z.string().optional().describe("工作清單 ID，預設 @default"),
+      },
+    },
+    async ({ taskId, taskListId }) => {
+      const task = await google.tasks.completeTask(taskId, taskListId || "@default");
+      return {
+        content: [{ type: "text", text: JSON.stringify(task, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "google_tasks_delete",
+    {
+      title: "Delete Task",
+      description: "刪除工作",
+      inputSchema: {
+        taskId: z.string().describe("工作 ID"),
+        taskListId: z.string().optional().describe("工作清單 ID，預設 @default"),
+      },
+    },
+    async ({ taskId, taskListId }) => {
+      await google.tasks.deleteTask(taskId, taskListId || "@default");
+      return {
+        content: [{ type: "text", text: "工作已刪除" }],
+      };
+    }
+  );
 }
