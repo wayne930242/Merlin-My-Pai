@@ -14,3 +14,7 @@ site/*
 !.claude/skills/google/
 !.claude/skills/learning/
 !.claude/skills/research/
+
+# Scripts
+scripts/node_modules/
+scripts/lib/*.js

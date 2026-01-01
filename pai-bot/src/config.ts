@@ -13,9 +13,9 @@ export const config = {
     provider: (process.env.MEMORY_PROVIDER || "gemini") as "gemini" | "haiku",
   },
   claude: {
-    /** Claude 專案目錄（VPS 上是 ~/merlin，本地開發用 ../pai-claude） */
+    /** Claude 專案目錄（VPS 上是 ~/merlin/workspace，本地開發用 ../pai-claude/workspace） */
     projectDir: process.env.CLAUDE_PROJECT_DIR ||
-      (process.env.HOME ? `${process.env.HOME}/merlin` : "../pai-claude"),
+      (process.env.HOME ? `${process.env.HOME}/merlin/workspace` : "../pai-claude/workspace"),
     /** Claude 執行檔路徑 */
     bin: process.env.CLAUDE_BIN ||
       (process.env.HOME ? `${process.env.HOME}/.local/bin/claude` : "claude"),
