@@ -132,6 +132,11 @@ export async function handleMemory(ctx: Context): Promise<void> {
   const userId = ctx.from?.id;
   if (!userId) return;
 
+  if (!config.memory.enabled) {
+    await ctx.reply("長期記憶功能未啟用");
+    return;
+  }
+
   const memories = memoryManager.getRecent(userId, 20);
   const count = memoryManager.count(userId);
 
@@ -154,6 +159,11 @@ export async function handleMemory(ctx: Context): Promise<void> {
 export async function handleForget(ctx: Context): Promise<void> {
   const userId = ctx.from?.id;
   if (!userId) return;
+
+  if (!config.memory.enabled) {
+    await ctx.reply("長期記憶功能未啟用");
+    return;
+  }
 
   const deleted = memoryManager.deleteByUser(userId);
   await ctx.reply(`已清除 ${deleted} 條長期記憶`);
@@ -188,17 +198,19 @@ export async function handleMessage(ctx: Context): Promise<void> {
     // Get conversation context
     const history = contextManager.getConversationContext(userId);
 
-    // Search for relevant memories
+    // Search for relevant memories (if enabled)
     let memoryContext = "";
-    try {
-      const memories = await memoryManager.search(userId, text, 5);
-      if (memories.length > 0) {
-        memoryContext = formatMemoriesForPrompt(memories);
-        logger.debug({ userId, memoryCount: memories.length }, "Retrieved memories");
+    if (config.memory.enabled) {
+      try {
+        const memories = await memoryManager.search(userId, text, 5);
+        if (memories.length > 0) {
+          memoryContext = formatMemoriesForPrompt(memories);
+          logger.debug({ userId, memoryCount: memories.length }, "Retrieved memories");
+        }
+      } catch (error) {
+        // Memory search is optional, don't fail the request
+        logger.warn({ error, userId }, "Memory search failed");
       }
-    } catch (error) {
-      // Memory search is optional, don't fail the request
-      logger.warn({ error, userId }, "Memory search failed");
     }
 
     // Combine memory context with conversation history
@@ -257,10 +269,12 @@ export async function handleMessage(ctx: Context): Promise<void> {
       // Save assistant response
       contextManager.saveMessage(userId, "assistant", finalContent);
 
-      // Extract and save memories asynchronously (don't block response)
-      extractAndSaveMemories(userId, text, finalContent).catch((error) => {
-        logger.warn({ error, userId }, "Memory extraction failed");
-      });
+      // Extract and save memories asynchronously (if enabled, don't block response)
+      if (config.memory.enabled) {
+        extractAndSaveMemories(userId, text, finalContent).catch((error) => {
+          logger.warn({ error, userId }, "Memory extraction failed");
+        });
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

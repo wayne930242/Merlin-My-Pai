@@ -19,7 +19,10 @@ def build_vault_yaml(variables: dict[str, Any]) -> str:
         ("SSH Key（部署用）", ["pai_agent_ssh_private_key", "pai_agent_ssh_public_key"]),
         ("GitHub", ["github_token", "github_username"]),
         ("Vultr API（可選）", ["vultr_api_key"]),
-        ("Anthropic API（可選）", ["vault_anthropic_api_key"]),
+        (
+            "Anthropic API（可選）",
+            ["vault_anthropic_api_key", "vault_enable_memory", "vault_enable_fabric"],
+        ),
         (
             "Google OAuth（可選）",
             [
@@ -28,10 +31,11 @@ def build_vault_yaml(variables: dict[str, Any]) -> str:
                 "vault_google_refresh_token",
             ],
         ),
+        ("Mutagen 同步（可選）", ["vault_use_mutagen_sync"]),
     ]
 
     for section_name, keys in sections:
-        section_vars: list[tuple[str, str]] = [
+        section_vars: list[tuple[str, Any]] = [
             (k, v) for k in keys if (v := variables.get(k)) is not None
         ]
         if not section_vars:
@@ -39,11 +43,14 @@ def build_vault_yaml(variables: dict[str, Any]) -> str:
 
         lines.append(f"# === {section_name} ===")
         for key, value in section_vars:
-            if "\n" in value:  # 多行值（SSH Key）
+            # Boolean 值
+            if isinstance(value, bool):
+                lines.append(f"{key}: {str(value).lower()}")
+            elif isinstance(value, str) and "\n" in value:  # 多行值（SSH Key）
                 lines.append(f"{key}: |")
                 for line in value.strip().split("\n"):
                     lines.append(f"  {line}")
-            else:
+            elif isinstance(value, str):
                 # 對於包含特殊字元的值，使用雙引號
                 special_chars = (
                     '"',
@@ -69,6 +76,9 @@ def build_vault_yaml(variables: dict[str, Any]) -> str:
                     lines.append(f'{key}: "{escaped}"')
                 else:
                     lines.append(f"{key}: {value}")
+            else:
+                # 其他類型直接輸出
+                lines.append(f"{key}: {value}")
         lines.append("")
 
     return "\n".join(lines)

@@ -80,13 +80,27 @@ OPTIONAL_FEATURES: list[FeatureDef] = [
     },
     {
         "name": "anthropic",
-        "description": "Fabric AI 整合",
+        "description": "Anthropic API（記憶 + Fabric AI 共用）",
         "vars": [
             {
                 "key": "vault_anthropic_api_key",
                 "prompt": "Anthropic API Key",
-                "help": "用於 Fabric AI",
+                "help": "用於記憶萃取（Haiku）及 Fabric AI",
                 "secret": True,
+            },
+            {
+                "key": "vault_enable_memory",
+                "prompt": "啟用 Bot 長期記憶",
+                "help": "使用 Haiku 萃取對話中的事實並記憶",
+                "type": "bool",
+                "default": True,
+            },
+            {
+                "key": "vault_enable_fabric",
+                "prompt": "啟用 Fabric AI",
+                "help": "在 VPS 上安裝 Fabric AI CLI",
+                "type": "bool",
+                "default": True,
             },
         ],
     },

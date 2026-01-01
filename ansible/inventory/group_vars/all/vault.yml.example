@@ -38,9 +38,13 @@ vultr_api_key: "YOUR_VULTR_API_KEY"
 # 啟用後 deploy-claude.yml 會跳過 mutagen 同步的目錄
 vault_use_mutagen_sync: true
 
-# === Anthropic API（用於 Fabric AI）===
+# === Anthropic API（記憶 + Fabric AI 共用）===
 # 取得方式: https://console.anthropic.com/settings/keys
 vault_anthropic_api_key: "sk-ant-api03-YOUR_ANTHROPIC_API_KEY"
+# 啟用 Bot 長期記憶（使用 Haiku 萃取對話事實）
+vault_enable_memory: true
+# 啟用 Fabric AI CLI
+vault_enable_fabric: true
 
 # === Google OAuth2（用於 Calendar, Drive, Gmail, Contacts）===
 # 取得方式:

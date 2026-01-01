@@ -1,94 +1,140 @@
 #!/usr/bin/env bun
 /**
- * Memory system integration test
+ * Memory system integration test - Distance calibration
  * Run on VPS: bun run scripts/test-memory.ts
  */
 
-import { memoryManager, cleanupExpiredMemories, getMemoryStats } from "../src/memory";
+import { memoryManager, getEmbedding } from "../src/memory";
 
-const TEST_USER_ID = 99999; // Fake user for testing
+const TEST_USER_ID = 99999;
 
-async function test() {
-  console.log("=== Memory System Test ===\n");
+// Test pairs: [memory1, memory2, shouldBeDuplicate]
+const testPairs: [string, string, boolean][] = [
+  // Should be duplicates (same meaning)
+  ["用戶喜歡喝咖啡", "用戶喜歡喝咖啡，特別是拿鐵", true],
+  ["用戶住在台北", "用戶住在台北市信義區", true],
+  ["用戶是工程師", "用戶的職業是軟體工程師", true],
+  ["用戶喜歡看電影", "用戶愛看電影，尤其是科幻片", true],
 
-  // Cleanup any previous test data
-  memoryManager.deleteByUser(TEST_USER_ID);
-  console.log("✓ Cleaned up previous test data\n");
+  // Should NOT be duplicates (different meanings)
+  ["用戶喜歡喝咖啡", "用戶住在台北", false],
+  ["用戶是工程師", "用戶喜歡看電影", false],
+  ["用戶養了一隻貓", "用戶喜歡吃日本料理", false],
+  ["用戶每天運動", "用戶在科技公司上班", false],
+];
 
-  // Test 1: Save memories
-  console.log("Test 1: Saving memories...");
-  const id1 = await memoryManager.save({
-    userId: TEST_USER_ID,
-    content: "用戶喜歡喝咖啡",
-    category: "preference",
-    importance: 3,
-  });
-  console.log(`  Saved memory #${id1}`);
+async function measureDistance(text1: string, text2: string): Promise<number> {
+  const { embedding: e1 } = await getEmbedding(text1);
+  const { embedding: e2 } = await getEmbedding(text2);
 
-  const id2 = await memoryManager.save({
-    userId: TEST_USER_ID,
-    content: "用戶住在台北市",
-    category: "personal",
-    importance: 5,
-  });
-  console.log(`  Saved memory #${id2}`);
+  // Calculate L2 distance
+  let sum = 0;
+  for (let i = 0; i < e1.length; i++) {
+    const diff = e1[i] - e2[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+}
 
-  const id3 = await memoryManager.save({
-    userId: TEST_USER_ID,
-    content: "用戶是軟體工程師",
-    category: "work",
-    importance: 4,
-  });
-  console.log(`  Saved memory #${id3}`);
-  console.log("✓ Test 1 passed\n");
+async function calibrate() {
+  console.log("=== Distance Calibration Test ===\n");
 
-  // Test 2: Semantic deduplication
-  console.log("Test 2: Semantic deduplication...");
-  const dupId = await memoryManager.save({
-    userId: TEST_USER_ID,
-    content: "用戶喜歡喝咖啡，特別是拿鐵", // Similar to id1
-    category: "preference",
-    importance: 3,
-  });
-  if (dupId === null) {
-    console.log("  Similar memory detected, skipped (correct!)");
-    console.log("✓ Test 2 passed\n");
-  } else {
-    console.log(`  ✗ Should have been deduplicated, but got id ${dupId}`);
+  const duplicateDistances: number[] = [];
+  const differentDistances: number[] = [];
+
+  for (const [text1, text2, shouldBeDuplicate] of testPairs) {
+    const distance = await measureDistance(text1, text2);
+
+    if (shouldBeDuplicate) {
+      duplicateDistances.push(distance);
+      console.log(`[SIMILAR] ${distance.toFixed(2)}: "${text1}" <-> "${text2.slice(0, 20)}..."`);
+    } else {
+      differentDistances.push(distance);
+      console.log(`[DIFFER]  ${distance.toFixed(2)}: "${text1}" <-> "${text2.slice(0, 20)}..."`);
+    }
   }
 
-  // Test 3: Search
-  console.log("Test 3: Semantic search...");
-  const results = await memoryManager.search(TEST_USER_ID, "咖啡飲料", 3);
-  console.log(`  Found ${results.length} results for "咖啡飲料":`);
-  for (const r of results) {
-    console.log(`    - ${r.content} (distance: ${r.distance?.toFixed(4)})`);
-  }
-  if (results.length > 0 && results[0].content.includes("咖啡")) {
-    console.log("✓ Test 3 passed\n");
-  } else {
-    console.log("✗ Test 3 failed\n");
-  }
+  console.log("\n=== Statistics ===");
 
-  // Test 4: Count and getRecent
-  console.log("Test 4: Count and getRecent...");
-  const count = memoryManager.count(TEST_USER_ID);
-  const recent = memoryManager.getRecent(TEST_USER_ID, 5);
-  console.log(`  Count: ${count}`);
-  console.log(`  Recent: ${recent.map((r) => r.content).join(", ")}`);
-  console.log("✓ Test 4 passed\n");
+  const dupMax = Math.max(...duplicateDistances);
+  const dupMin = Math.min(...duplicateDistances);
+  const dupAvg = duplicateDistances.reduce((a, b) => a + b, 0) / duplicateDistances.length;
 
-  // Test 5: Stats
-  console.log("Test 5: Memory stats...");
-  const stats = getMemoryStats();
-  console.log(`  Total memories: ${stats.totalMemories}`);
-  console.log(`  Total users: ${stats.totalUsers}`);
-  console.log(`  Avg per user: ${stats.avgPerUser}`);
-  console.log("✓ Test 5 passed\n");
+  const diffMax = Math.max(...differentDistances);
+  const diffMin = Math.min(...differentDistances);
+  const diffAvg = differentDistances.reduce((a, b) => a + b, 0) / differentDistances.length;
+
+  console.log(`\nSimilar pairs (should dedup):`);
+  console.log(`  Min: ${dupMin.toFixed(2)}, Max: ${dupMax.toFixed(2)}, Avg: ${dupAvg.toFixed(2)}`);
+
+  console.log(`\nDifferent pairs (should NOT dedup):`);
+  console.log(`  Min: ${diffMin.toFixed(2)}, Max: ${diffMax.toFixed(2)}, Avg: ${diffAvg.toFixed(2)}`);
+
+  // Suggest threshold
+  const suggestedThreshold = (dupMax + diffMin) / 2;
+  const margin = diffMin - dupMax;
+
+  console.log(`\n=== Recommendation ===`);
+  console.log(`Suggested threshold: ${suggestedThreshold.toFixed(2)}`);
+  console.log(`Safety margin: ${margin.toFixed(2)} (${margin > 0 ? "GOOD ✓" : "OVERLAP ✗"})`);
+
+  if (margin <= 0) {
+    console.log(`\n⚠️  Warning: Some similar pairs have higher distance than different pairs!`);
+    console.log(`   Consider using a middle value around ${suggestedThreshold.toFixed(1)}`);
+  }
+}
+
+async function testDedup(threshold: number) {
+  console.log(`\n=== Dedup Test with threshold ${threshold} ===\n`);
 
   // Cleanup
   memoryManager.deleteByUser(TEST_USER_ID);
-  console.log("=== All tests completed ===");
+
+  let correctDedups = 0;
+  let incorrectDedups = 0;
+  let correctSaves = 0;
+  let incorrectSaves = 0;
+
+  for (const [text1, text2, shouldBeDuplicate] of testPairs) {
+    // Save first memory
+    memoryManager.deleteByUser(TEST_USER_ID);
+    await memoryManager.save({ userId: TEST_USER_ID, content: text1, category: "test" });
+
+    // Try to save second (should be deduped or not based on expectation)
+    const result = await memoryManager.save({ userId: TEST_USER_ID, content: text2, category: "test" });
+    const wasDeduped = result === null;
+
+    if (shouldBeDuplicate && wasDeduped) {
+      correctDedups++;
+      console.log(`✓ Correctly deduped: "${text2.slice(0, 30)}..."`);
+    } else if (shouldBeDuplicate && !wasDeduped) {
+      incorrectSaves++;
+      console.log(`✗ Should have deduped: "${text2.slice(0, 30)}..."`);
+    } else if (!shouldBeDuplicate && !wasDeduped) {
+      correctSaves++;
+      console.log(`✓ Correctly saved: "${text2.slice(0, 30)}..."`);
+    } else {
+      incorrectDedups++;
+      console.log(`✗ Incorrectly deduped: "${text2.slice(0, 30)}..."`);
+    }
+  }
+
+  console.log(`\n=== Results ===`);
+  console.log(`Correct dedups: ${correctDedups}/${testPairs.filter(p => p[2]).length}`);
+  console.log(`Correct saves: ${correctSaves}/${testPairs.filter(p => !p[2]).length}`);
+  console.log(`Incorrect dedups: ${incorrectDedups}`);
+  console.log(`Incorrect saves: ${incorrectSaves}`);
+  console.log(`\nAccuracy: ${((correctDedups + correctSaves) / testPairs.length * 100).toFixed(1)}%`);
+
+  // Cleanup
+  memoryManager.deleteByUser(TEST_USER_ID);
 }
 
-test().catch(console.error);
+async function main() {
+  await calibrate();
+
+  // Test with current threshold (8.0)
+  await testDedup(8.0);
+}
+
+main().catch(console.error);

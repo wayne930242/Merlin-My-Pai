@@ -8,6 +8,9 @@ export const config = {
       .filter(Boolean)
       .map((id) => parseInt(id, 10)),
   },
+  memory: {
+    enabled: process.env.ENABLE_MEMORY === "true",
+  },
   claude: {
     /** Claude 專案目錄（VPS 上是 ~/merlin，本地開發用 ../pai-claude） */
     projectDir: process.env.CLAUDE_PROJECT_DIR ||

@@ -1,5 +1,13 @@
 ---
 - name: Deploy Fabric AI
   hosts: pai-server
-  roles:
-    - fabric
+  tasks:
+    - name: Check if Fabric is enabled
+      ansible.builtin.fail:
+        msg: "Fabric AI is disabled. Set vault_enable_fabric: true to enable."
+      when: not (vault_enable_fabric | default(false))
+
+    - name: Include Fabric role
+      ansible.builtin.include_role:
+        name: fabric
+      when: vault_enable_fabric | default(false)
