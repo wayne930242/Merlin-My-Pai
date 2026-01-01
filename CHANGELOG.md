@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.6.1 (2026-01-01)
+
+### Bug Fixes
+
+- Use plain text for notify API messages
+  ([`0fb8e84`](https://github.com/wayne930242/weihung-pai/commit/0fb8e842d17714bfddf3202c974414a05e462612))
+
+
 ## v1.6.0 (2026-01-01)
 
 ### Features
