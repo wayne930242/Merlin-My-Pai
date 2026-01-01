@@ -7,8 +7,8 @@ shell-snapshots/
 session-env/
 
 # 本地設定（不同步）
-settings.json
-settings.local.json
+/settings.json
+/settings.local.json
 .mcp.json
 .credentials
 .credentials.json

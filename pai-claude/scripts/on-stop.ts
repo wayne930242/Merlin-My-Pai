@@ -13,7 +13,6 @@
 
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
-import { notify } from "./lib/notify";
 
 const PAI_ROOT = join(import.meta.dir, "..");
 
@@ -24,7 +23,6 @@ async function main() {
   const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "");
 
   console.log(`[PAI] Session ended: ${timestamp}`);
-  await notify(`Session 結束`, "info");
 
   // 確保 sessions 目錄存在
   const sessionsDir = join(PAI_ROOT, "history", "sessions");
