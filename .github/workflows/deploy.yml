@@ -51,11 +51,10 @@ jobs:
       - name: Extract SSH key from vault
         run: |
           uv run ansible-vault decrypt ansible/inventory/group_vars/all/vault.yml \
-            --output=/tmp/vault_plain.yml \
-            --vault-password-file=~/.vault_pass_pai
-          grep -A10 "pai_agent_ssh_private_key:" /tmp/vault_plain.yml | tail -n +2 | sed 's/^  //' > ~/.ssh_key
+            --output=- \
+            --vault-password-file=~/.vault_pass_pai | \
+            awk "/pai_agent_ssh_private_key:/{flag=1; sub(/.*'/, \"\"); print; next} flag && /^[a-z_]+:/{flag=0} flag{sub(/^  /, \"\"); sub(/'$/, \"\"); print}" > ~/.ssh_key
           chmod 600 ~/.ssh_key
-          rm /tmp/vault_plain.yml
 
       - name: Setup SSH known hosts
         run: |
