@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.5.7 (2026-01-01)
+
+### Bug Fixes
+
+- Restore --verbose flag and fix duplicate notification icons
+  ([`8d86fb9`](https://github.com/wayne930242/weihung-pai/commit/8d86fb9d3d5dedd5f208a263a94f4db374587ae8))
+
+
 ## v1.5.6 (2026-01-01)
 
 ### Bug Fixes
