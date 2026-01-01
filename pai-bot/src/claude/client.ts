@@ -61,7 +61,6 @@ export async function* streamClaude(
       "--dangerously-skip-permissions",
       "--output-format",
       "stream-json",
-      "--verbose",
     ],
     cwd: projectDir,
     stdout: "pipe",
