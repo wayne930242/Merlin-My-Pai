@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v1.5.5 (2026-01-01)
+
+### Bug Fixes
+
+- Improve hook notifications with more details
+  ([`0683ff8`](https://github.com/wayne930242/weihung-pai/commit/0683ff830aaf0fa01b39fbe0dff05c5d3c8370e7))
+
+- Move settings.json to workspace/.claude and remove session notify
+  ([`f115978`](https://github.com/wayne930242/weihung-pai/commit/f115978da174f24983aec25653ab33413da86a04))
+
+### Refactoring
+
+- Move CLAUDE.md and scripts to workspace, update projectDir
+  ([`90dccc9`](https://github.com/wayne930242/weihung-pai/commit/90dccc99affc2d51945613ba5f404737d9dee180))
+
+
 ## v1.5.4 (2026-01-01)
 
 ### Bug Fixes
