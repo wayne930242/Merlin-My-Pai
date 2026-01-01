@@ -57,10 +57,8 @@ type = "github"
 push = true
 
 [tool.semantic_release.changelog]
-mode = "update"
-
-[tool.semantic_release.changelog.default_templates]
 changelog_file = "CHANGELOG.md"
+mode = "init"
 
 [tool.semantic_release.publish]
 upload_to_vcs_release = true
