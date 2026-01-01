@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.5.9 (2026-01-01)
+
+### Bug Fixes
+
+- Escape markdown in notify api to prevent parse errors
+  ([`7423620`](https://github.com/wayne930242/weihung-pai/commit/74236204a4affb64f80d664d94f3c4871e24cbd6))
+
+
 ## v1.5.8 (2026-01-01)
 
 ### Bug Fixes
