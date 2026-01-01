@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.5.12 (2026-01-01)
+
+### Bug Fixes
+
+- Read bot logs from file instead of journalctl
+  ([`3dd8303`](https://github.com/wayne930242/weihung-pai/commit/3dd8303dbc0813aabe3c1bbff3a7dfbc570ea619))
+
+
 ## v1.5.11 (2026-01-01)
 
 ### Bug Fixes
