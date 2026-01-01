@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.6.0 (2026-01-01)
+
+### Features
+
+- Add task queue system with interrupt/queue options
+  ([`e5403dd`](https://github.com/wayne930242/weihung-pai/commit/e5403dd8c047c6ffc200405eefe8cddaa9bbe447))
+
+
 ## v1.5.13 (2026-01-01)
 
 ### Bug Fixes
