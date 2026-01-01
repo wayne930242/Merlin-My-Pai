@@ -113,6 +113,19 @@ OPTIONAL_FEATURES: list[FeatureDef] = [
             },
         ],
     },
+    {
+        "name": "mutagen",
+        "description": "Mutagen 雙向同步（本地開發用）",
+        "vars": [
+            {
+                "key": "vault_use_mutagen_sync",
+                "prompt": "啟用 Mutagen 同步",
+                "help": "啟用後 deploy-claude 會跳過 mutagen 同步的目錄",
+                "type": "bool",
+                "default": True,
+            },
+        ],
+    },
 ]
 
 # Playbooks

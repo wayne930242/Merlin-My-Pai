@@ -34,6 +34,10 @@ github_username: "YOUR_GITHUB_USERNAME"
 # === Vultr API（可選，用於自動建立 VPS）===
 vultr_api_key: "YOUR_VULTR_API_KEY"
 
+# === Mutagen 同步（可選）===
+# 啟用後 deploy-claude.yml 會跳過 mutagen 同步的目錄
+vault_use_mutagen_sync: true
+
 # === Anthropic API（用於 Fabric AI）===
 # 取得方式: https://console.anthropic.com/settings/keys
 vault_anthropic_api_key: "sk-ant-api03-YOUR_ANTHROPIC_API_KEY"

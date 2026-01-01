@@ -1,11 +1,41 @@
 ---
-# 單向部署（備用方案，正常使用 mutagen 雙向同步）
-# 用法: ./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-claude.yml
+# 部署 Claude 配置到 VPS
+# - 若啟用 mutagen 同步，只部署非同步的檔案（MCP 配置等）
+# - 若未啟用 mutagen，部署全部檔案
+# 用法: uv run pai ansible ansible-playbook ansible/playbooks/deploy-claude.yml
 - name: Deploy Claude Configuration
   hosts: pai-server
 
   vars_files:
     - ../inventory/group_vars/all/vault.yml
+
+  vars:
+    # 基礎排除項目（Claude 內部目錄和本地設定）
+    base_excludes:
+      - "--exclude=projects/"
+      - "--exclude=todos/"
+      - "--exclude=statsig/"
+      - "--exclude=debug/"
+      - "--exclude=shell-snapshots/"
+      - "--exclude=settings.json"
+      - "--exclude=settings.local.json"
+      - "--exclude=.mcp.json"
+      - "--exclude=.credentials.json"
+      - "--exclude=credentials.json"
+      - "--exclude=node_modules/"
+      - "--exclude=bun.lock"
+      - "--exclude=*.db"
+
+    # Mutagen 同步的目錄（啟用 mutagen 時額外排除）
+    mutagen_excludes:
+      - "--exclude=CLAUDE.md"
+      - "--exclude=context/"
+      - "--exclude=workspace/"
+      - "--exclude=scripts/"
+      - "--exclude=session-env/"
+      - "--exclude=plans/"
+      - "--exclude=history/"
+      - "--exclude=data/"
 
   tasks:
     - name: Generate Merlin config from vault
@@ -25,26 +55,7 @@
         src: ../../pai-claude/
         dest: "/home/{{ ansible_user }}/merlin/"
         delete: false
-        rsync_opts:
-          # Claude 內部目錄
-          - "--exclude=projects/"
-          - "--exclude=todos/"
-          - "--exclude=statsig/"
-          - "--exclude=debug/"
-          - "--exclude=shell-snapshots/"
-          # 本地設定
-          - "--exclude=settings.json"
-          - "--exclude=settings.local.json"
-          - "--exclude=.mcp.json"
-          - "--exclude=.credentials"
-          - "--exclude=credentials.json"
-          # Node
-          - "--exclude=node_modules/"
-          - "--exclude=bun.lock"
-          # 資料庫
-          - "--exclude=*.db"
-          # Mutagen 同步的目錄（避免重複）
-          - "--exclude=workspace/.claude/"
+        rsync_opts: "{{ base_excludes + (mutagen_excludes if vault_use_mutagen_sync | default(false) else []) }}"
 
     - name: Fix ownership after sync
       ansible.builtin.file:

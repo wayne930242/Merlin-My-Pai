@@ -66,8 +66,8 @@ def collect_optional_vars(state: SetupState) -> bool:
         desc: str = feature["description"]
         feature_vars: list[dict[str, Any]] = feature["vars"]
 
-        # 檢查是否已設定
-        all_set = all(variables.get(v["key"]) for v in feature_vars)
+        # 檢查是否已設定（bool 類型 False 也算設定）
+        all_set = all(v["key"] in variables for v in feature_vars)
 
         if all_set:
             print(f"\n✓ {desc} 已設定")
@@ -82,9 +82,15 @@ def collect_optional_vars(state: SetupState) -> bool:
             if ui.ask_yes_no("是否要設定此功能？"):
                 for v in feature_vars:
                     ui.show_var(v)
-                    value = ui.get_input("  輸入值", v.get("default"), v.get("secret", False))
-                    if value:
-                        variables[v["key"]] = value
+                    # 處理 bool 類型變數
+                    if v.get("type") == "bool":
+                        variables[v["key"]] = ui.ask_yes_no("  啟用？", v.get("default", False))
+                    else:
+                        str_value = ui.get_input(
+                            "  輸入值", v.get("default"), v.get("secret", False)
+                        )
+                        if str_value:
+                            variables[v["key"]] = str_value
 
     state.variables = variables
     state.save()
