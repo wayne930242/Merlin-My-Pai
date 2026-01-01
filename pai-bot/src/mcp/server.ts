@@ -9,6 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerGoogleTools } from "./tools/google";
 import { registerSchedulerTools } from "./tools/scheduler";
 import { registerSystemTools } from "./tools/system";
+import { registerMemoryTools } from "./tools/memory";
 
 // Simple stderr logger for MCP (stdout is reserved for protocol)
 const log = {
@@ -29,6 +30,7 @@ const server = new McpServer({
 registerGoogleTools(server);
 registerSchedulerTools(server);
 registerSystemTools(server);
+registerMemoryTools(server);
 
 // Start server
 log.info("Connecting to transport...");

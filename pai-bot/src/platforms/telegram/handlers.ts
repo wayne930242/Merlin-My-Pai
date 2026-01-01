@@ -155,7 +155,7 @@ export async function handleMemory(ctx: Context): Promise<void> {
   await ctx.reply(lines.join("\n"), { parse_mode: "MarkdownV2" });
 }
 
-// Handle /forget command - clear long-term memories
+// Handle /forget command - archive long-term memories (soft delete)
 export async function handleForget(ctx: Context): Promise<void> {
   const userId = ctx.from?.id;
   if (!userId) return;
@@ -165,8 +165,8 @@ export async function handleForget(ctx: Context): Promise<void> {
     return;
   }
 
-  const deleted = memoryManager.deleteByUser(userId);
-  await ctx.reply(`已清除 ${deleted} 條長期記憶`);
+  const archived = memoryManager.archiveByUser(userId);
+  await ctx.reply(`已封存 ${archived} 條長期記憶（可透過 MCP 工具恢復）`);
 }
 
 // Handle regular messages with streaming

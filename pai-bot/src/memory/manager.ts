@@ -43,6 +43,19 @@ function initVec(): void {
     )
   `);
 
+  // Soft delete archive table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS deleted_memories (
+      id INTEGER PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      category TEXT,
+      importance INTEGER,
+      created_at TEXT,
+      deleted_at TEXT NOT NULL
+    )
+  `);
+
   vecInitialized = true;
   logger.info("Vector memory table initialized");
 }
@@ -227,13 +240,91 @@ export class MemoryManager {
   }
 
   /**
-   * Delete all memories for a user
+   * Soft delete all memories for a user (archive them)
+   */
+  archiveByUser(userId: number): number {
+    const db = getDb();
+    const now = new Date().toISOString();
+
+    // Get memories to archive
+    const memories = db
+      .query<Memory, [number]>(
+        `SELECT rowid as id, content, category, importance, created_at as createdAt
+         FROM vec_memories WHERE user_id = ?`
+      )
+      .all(userId);
+
+    if (memories.length === 0) return 0;
+
+    // Insert into archive
+    for (const m of memories) {
+      db.run(
+        `INSERT INTO deleted_memories (user_id, content, category, importance, created_at, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, m.content, m.category, m.importance, m.createdAt, now]
+      );
+    }
+
+    // Delete from vec_memories
+    db.run("DELETE FROM vec_memories WHERE user_id = ?", [userId]);
+
+    logger.info({ userId, archived: memories.length }, "User memories archived");
+    return memories.length;
+  }
+
+  /**
+   * Hard delete all memories for a user (permanent)
    */
   deleteByUser(userId: number): number {
     const db = getDb();
     const result = db.run("DELETE FROM vec_memories WHERE user_id = ?", [userId]);
     logger.info({ userId, deleted: result.changes }, "User memories deleted");
     return result.changes;
+  }
+
+  /**
+   * Restore archived memories for a user
+   */
+  restoreByUser(userId: number): number {
+    const db = getDb();
+
+    const archived = db
+      .query<{ content: string; category: string; importance: number }, [number]>(
+        "SELECT content, category, importance FROM deleted_memories WHERE user_id = ?"
+      )
+      .all(userId);
+
+    if (archived.length === 0) return 0;
+
+    // Re-save each memory (will generate new embeddings)
+    let restored = 0;
+    for (const m of archived) {
+      this.save({
+        userId,
+        content: m.content,
+        category: m.category,
+        importance: m.importance,
+      }).then(() => restored++).catch(() => {});
+    }
+
+    // Clear archive
+    db.run("DELETE FROM deleted_memories WHERE user_id = ?", [userId]);
+
+    logger.info({ userId, restored: archived.length }, "User memories restored");
+    return archived.length;
+  }
+
+  /**
+   * Get archived memories count
+   */
+  countArchived(userId: number): number {
+    const db = getDb();
+    const result = db
+      .query<{ count: number }, [number]>(
+        "SELECT COUNT(*) as count FROM deleted_memories WHERE user_id = ?"
+      )
+      .get(userId);
+    return result?.count ?? 0;
   }
 }
 
