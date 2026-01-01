@@ -45,6 +45,20 @@
         path: "/home/{{ ansible_user }}/pai-bot/node_modules"
       register: node_modules_stat
 
+    - name: Get remote lockfile hash
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/pai-bot/bun.lock"
+        checksum_algorithm: sha256
+      register: remote_lockfile
+
+    - name: Get local lockfile hash
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../../pai-bot/bun.lock"
+        checksum_algorithm: sha256
+      delegate_to: localhost
+      become: false
+      register: local_lockfile
+
     - name: Install dependencies
       ansible.builtin.shell: |
         source ~/.bashrc
@@ -54,7 +68,9 @@
       become_user: "{{ ansible_user }}"
       args:
         executable: /bin/bash
-      when: bot_sync.changed or not node_modules_stat.stat.exists
+      when: >
+        not node_modules_stat.stat.exists or
+        (local_lockfile.stat.checksum | default('') != remote_lockfile.stat.checksum | default(''))
       changed_when: true
 
     - name: Initialize database
