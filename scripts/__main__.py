@@ -66,6 +66,7 @@ def run_bot_command(args: list[str]) -> None:
         print("  status           查看 bot 狀態")
         print("  logs [-n NUM]    查看日誌（預設 50 行）")
         print("  logs -f          持續追蹤日誌")
+        print("  logs -e          查看錯誤日誌")
         print("  restart          重啟 bot")
         sys.exit(1)
 
@@ -74,6 +75,7 @@ def run_bot_command(args: list[str]) -> None:
         sys.exit(status())
     elif subcommand == "logs":
         follow = "-f" in args
+        error = "-e" in args
         lines = 50
         if "-n" in args:
             try:
@@ -81,7 +83,7 @@ def run_bot_command(args: list[str]) -> None:
                 lines = int(args[idx + 1])
             except (IndexError, ValueError):
                 pass
-        sys.exit(logs(lines=lines, follow=follow))
+        sys.exit(logs(lines=lines, follow=follow, error=error))
     elif subcommand == "restart":
         sys.exit(restart())
     else:

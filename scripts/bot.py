@@ -8,17 +8,20 @@ def status() -> int:
     return ssh_to_vps("systemctl status pai-bot --no-pager")
 
 
-def logs(lines: int = 50, follow: bool = False) -> int:
+def logs(lines: int = 50, follow: bool = False, error: bool = False) -> int:
     """
     查看 bot 日誌
 
     Args:
         lines: 顯示行數
         follow: 是否持續追蹤
+        error: 是否只看錯誤日誌
     """
-    cmd = f"journalctl -u pai-bot -n {lines} --no-pager"
+    log_file = "/home/pai/pai-bot/logs/error.log" if error else "/home/pai/pai-bot/logs/output.log"
     if follow:
-        cmd = "journalctl -u pai-bot -f"
+        cmd = f"tail -f {log_file}"
+    else:
+        cmd = f"tail -n {lines} {log_file}"
     return ssh_to_vps(cmd)
 
 
