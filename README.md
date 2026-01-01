@@ -18,13 +18,19 @@ weihung-pai/
 │       ├── mcp/      # MCP Server (Google + System tools)
 │       ├── platforms/# Telegram handlers
 │       └── storage/  # SQLite 儲存
-├── pai-claude/       # Merlin VPS 運行配置 (↔ ~/.claude/)
-│   ├── agents/       # Subagents (Engineer, Architect, etc.)
-│   ├── skills/       # 技能模組 (learning, daily, research, fabric, coding)
+├── pai-claude/       # Merlin VPS 運行配置 (↔ ~/merlin/)
 │   ├── context/      # 身份與原則
-│   ├── workspace/    # 工作區
-│   │   └── site/     # 網站檔案（Caddy serve）
-│   └── scripts/      # Hooks
+│   ├── scripts/      # Hooks
+│   └── workspace/    # 工作區
+│       ├── .claude/  # Agent System 配置
+│       │   ├── agents/   # Subagents
+│       │   ├── skills/   # 技能模組
+│       │   ├── commands/ # Slash commands
+│       │   └── rules/    # 規範
+│       ├── site/     # 網站檔案（Caddy serve）
+│       ├── downloads/# 下載檔案
+│       ├── projects/ # 專案
+│       └── data/     # 資料檔案
 ├── ansible/          # VPS 部署
 │   ├── playbooks/    # 部署劇本
 │   ├── inventory/    # 主機清單與 vault
@@ -118,9 +124,9 @@ cd ansible
 # 安裝 Mutagen
 brew install mutagen-io/mutagen/mutagen
 
-# 啟動雙向同步（pai-claude/ ↔ VPS ~/.claude/）
+# 啟動雙向同步（pai-claude/ ↔ VPS ~/merlin/）
 cd ..
-./scripts/sync.sh start
+./sync start
 ```
 
 ### 4. 本地開發

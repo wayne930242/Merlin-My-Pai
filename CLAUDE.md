@@ -53,13 +53,18 @@ weihung-pai/
 │   ├── commands/     # Slash commands
 │   └── rules/        # 開發規範
 ├── pai-bot/          # Telegram Bot (Bun + grammY)
-├── pai-claude/       # Merlin VPS 運行配置 (↔ ~/.claude/)
-│   ├── agents/       # Subagents
-│   ├── skills/       # 技能模組
+├── pai-claude/       # Merlin VPS 運行配置 (↔ ~/merlin/)
 │   ├── context/      # 身份與原則
-│   ├── workspace/    # 工作區（網站、腳本等）
-│   │   └── site/     # 網站檔案（Caddy serve）
-│   └── scripts/      # Hooks
+│   ├── scripts/      # Hooks
+│   └── workspace/    # 工作區
+│       ├── .claude/  # Agent System 配置
+│       │   ├── agents/   # Subagents
+│       │   ├── skills/   # 技能模組
+│       │   ├── commands/ # Slash commands
+│       │   └── rules/    # 規範
+│       ├── site/     # 網站檔案（Caddy serve）
+│       ├── downloads/# 下載檔案
+│       └── projects/ # 專案
 ├── ansible/          # VPS 部署
 │   ├── playbooks/    # 部署劇本
 │   ├── inventory/    # 主機清單與 vault
@@ -83,11 +88,11 @@ weihung-pai/
 # pai-bot 開發
 cd pai-bot && bun run dev
 
-# 同步 pai-claude ↔ VPS ~/.claude/
-./scripts/sync.sh start   # 啟動同步
-./scripts/sync.sh stop    # 停止同步
-./scripts/sync.sh status  # 查看狀態
-./scripts/sync.sh flush   # 強制同步
+# 同步 pai-claude ↔ VPS ~/merlin/
+./sync start   # 啟動同步
+./sync stop    # 停止同步
+./sync status  # 查看狀態
+./sync flush   # 強制同步
 
 # 日常部署（在 ansible 目錄下執行）
 ./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-bot.yml
