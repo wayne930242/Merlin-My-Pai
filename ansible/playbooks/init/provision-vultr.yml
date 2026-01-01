@@ -10,7 +10,7 @@
 
   vars:
     vultr_region: sgp  # Singapore
-    vultr_plan: vc2-1c-1gb  # 1 vCPU, 1GB RAM, $5/mo
+    vultr_plan: vc2-1c-2gb  # 1 vCPU, 2GB RAM, 55GB SSD, $10/mo
     vultr_os: "Ubuntu 24.04 LTS x64"
     vultr_label: pai-server
     vultr_hostname: pai
