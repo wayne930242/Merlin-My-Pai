@@ -21,7 +21,7 @@
       vultr.cloud.ssh_key:
         api_key: "{{ vultr_api_key }}"
         name: "{{ ssh_key_name }}"
-        ssh_key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+        ssh_key: "{{ lookup('file', vault_local_ssh_key_path + '.pub') }}"
         state: present
       register: ssh_key
 

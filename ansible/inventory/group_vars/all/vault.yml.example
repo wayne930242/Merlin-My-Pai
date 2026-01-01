@@ -10,6 +10,10 @@ telegram_allowed_user_ids: "YOUR_TELEGRAM_USER_ID"
 vault_server_ip: "YOUR_VPS_IP"
 pai_agent_user: "pai"
 
+# === 本地 SSH Key（用於初始化 VPS）===
+# init playbooks 使用本地 key 連接 root（vault key 還沒生效時）
+vault_local_ssh_key_path: "~/.ssh/id_ed25519"
+
 # === 網站設定 ===
 vault_site_domain: "YOUR_DOMAIN"
 
