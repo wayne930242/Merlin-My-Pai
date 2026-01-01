@@ -4,6 +4,7 @@ todos/
 statsig/
 debug/
 shell-snapshots/
+session-env/
 
 # 本地設定（不同步）
 settings.json
