@@ -38,3 +38,19 @@ tmp/
 temp/
 *.tmp
 .ansible/
+
+# ===== AI Generated Content =====
+# Sites (保留核心檔案)
+pai-claude/workspace/site/*
+!pai-claude/workspace/site/index.html
+!pai-claude/workspace/site/privacy-policy.md
+!pai-claude/workspace/site/terms-of-service.md
+
+# Skills (保留核心 skills)
+pai-claude/workspace/.claude/skills/*
+!pai-claude/workspace/.claude/skills/coding/
+!pai-claude/workspace/.claude/skills/daily/
+!pai-claude/workspace/.claude/skills/fabric/
+!pai-claude/workspace/.claude/skills/google/
+!pai-claude/workspace/.claude/skills/learning/
+!pai-claude/workspace/.claude/skills/research/

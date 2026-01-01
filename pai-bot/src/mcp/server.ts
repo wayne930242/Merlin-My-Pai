@@ -395,11 +395,28 @@ server.registerTool(
   "system_reload_caddy",
   {
     title: "Reload Caddy",
-    description: "重載 Caddy 網頁伺服器配置",
+    description: "重載 Caddy 網頁伺服器配置（自動修復 site 目錄權限）",
     inputSchema: {},
   },
   async () => {
     return withErrorHandling("system_reload_caddy", async () => {
+      const siteDir = "/home/pai/merlin/workspace/site";
+
+      // 修復檔案權限 (644)
+      const fixFiles = Bun.spawn(
+        ["find", siteDir, "-type", "f", "-exec", "chmod", "644", "{}", ";"],
+        { stdout: "pipe", stderr: "pipe" }
+      );
+      await fixFiles.exited;
+
+      // 修復目錄權限 (755)
+      const fixDirs = Bun.spawn(
+        ["find", siteDir, "-type", "d", "-exec", "chmod", "755", "{}", ";"],
+        { stdout: "pipe", stderr: "pipe" }
+      );
+      await fixDirs.exited;
+
+      // 重載 Caddy
       const proc = Bun.spawn(["sudo", "systemctl", "reload", "caddy"], {
         stdout: "pipe",
         stderr: "pipe",
@@ -413,7 +430,7 @@ server.registerTool(
         };
       }
       return {
-        content: [{ type: "text", text: "Caddy 已重載" }],
+        content: [{ type: "text", text: "Caddy 已重載（權限已修復）" }],
       };
     });
   }
