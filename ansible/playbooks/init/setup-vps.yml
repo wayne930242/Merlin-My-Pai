@@ -103,6 +103,14 @@
       become: true
       become_user: "{{ app_user }}"
 
+    - name: Schedule daily Claude Code update
+      ansible.builtin.cron:
+        name: "Update Claude Code"
+        minute: "0"
+        hour: "3"
+        job: "{{ home_dir }}/.local/bin/claude update > /dev/null 2>&1"
+        user: "{{ app_user }}"
+
     - name: Install pm2 globally via bun
       ansible.builtin.command:
         cmd: "{{ home_dir }}/.bun/bin/bun install -g pm2"
