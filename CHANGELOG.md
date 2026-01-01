@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v1.5.10 (2026-01-01)
+
+### Bug Fixes
+
+- Change notify success icon to arrow emoji
+  ([`071e3b4`](https://github.com/wayne930242/weihung-pai/commit/071e3b4928e027df59150faebd31238f2740d793))
+
+### Refactoring
+
+- Rewrite Merlin CLAUDE.md in English and add notify skill
+  ([`2116623`](https://github.com/wayne930242/weihung-pai/commit/21166237389e3e748ffb7fde214697c59a32ec90))
+
+- Rewrite skills in English with improved structure
+  ([`4fe718b`](https://github.com/wayne930242/weihung-pai/commit/4fe718bcb5e9b7c3461451ef64a7ada63216bbd3))
+
+
 ## v1.5.9 (2026-01-01)
 
 ### Bug Fixes
