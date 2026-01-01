@@ -1,5 +1,6 @@
 import { config, validateConfig } from "./config";
 import { logger } from "./utils/logger";
+import { fmt } from "./utils/telegram";
 import { createTelegramBot, setupBotCommands } from "./platforms/telegram/bot";
 import { getDb, closeDb } from "./storage/db";
 import { startApiServer, setTelegramBot } from "./api/server";
@@ -27,7 +28,11 @@ async function main() {
     setTelegramBot(
       {
         sendMessage: async (userId: number, text: string) => {
-          await bot.api.sendMessage(userId, text, { parse_mode: "Markdown" });
+          const formatted = fmt`${text}`;
+          await bot.api.sendMessage(userId, formatted.text, {
+            parse_mode: "MarkdownV2",
+            entities: formatted.entities,
+          });
         },
       },
       config.telegram.allowedUserIds

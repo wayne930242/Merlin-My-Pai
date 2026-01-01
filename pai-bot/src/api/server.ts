@@ -11,14 +11,6 @@ let telegramBot: {
   sendMessage: (userId: number, text: string) => Promise<void>;
 } | null = null;
 
-/**
- * 轉義 Telegram Markdown 特殊字元
- * 用於通知訊息，避免 parse_mode: Markdown 解析錯誤
- */
-function escapeMarkdown(text: string): string {
-  return text.replace(/([_*`\[])/g, "\\$1");
-}
-
 // 允許的用戶 ID
 let allowedUserIds: number[] = [];
 
@@ -70,8 +62,7 @@ export function startApiServer(port = 3000) {
           };
 
           const icon = icons[level] || icons.info;
-          const safeMessage = escapeMarkdown(message);
-          await telegramBot.sendMessage(userId, `${icon} ${safeMessage}`);
+          await telegramBot.sendMessage(userId, `${icon} ${message}`);
 
           return Response.json({ success: true });
         }

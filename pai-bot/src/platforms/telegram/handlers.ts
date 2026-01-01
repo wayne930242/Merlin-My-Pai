@@ -6,6 +6,7 @@ import {
 } from "../../claude/client";
 import { contextManager } from "../../context/manager";
 import { logger } from "../../utils/logger";
+import { escapeMarkdownV2, fmt } from "../../utils/telegram";
 import { config } from "../../config";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -14,11 +15,6 @@ import {
   extractAndSaveMemories,
   formatMemoriesForPrompt,
 } from "../../memory";
-
-// Characters that need escaping: _ * [ ] ( ) ~ ` > # + - = | { } . !
-function escapeMarkdownV2(text: string): string {
-  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, "\\$1");
-}
 
 // Convert Claude's markdown to Telegram MarkdownV2
 function toMarkdownV2(text: string): string {
@@ -327,12 +323,13 @@ export async function handleDocument(ctx: Context): Promise<void> {
     logger.info({ userId, fileName, localPath }, "File downloaded");
 
     const userMessage = `[用戶傳送檔案: ${fileName}]`;
-    const assistantMessage = `已下載至 \`${localPath}\``;
+    const assistantMessage = `已下載至 ${localPath}`;
 
     contextManager.saveMessage(userId, "user", userMessage);
     contextManager.saveMessage(userId, "assistant", assistantMessage);
 
-    await ctx.reply(assistantMessage, { parse_mode: "MarkdownV2" });
+    const formatted = fmt`已下載至 \`${localPath}\``;
+    await ctx.reply(formatted.text, { parse_mode: "MarkdownV2", entities: formatted.entities });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error({ error: errorMessage, userId }, "Failed to download file");
@@ -381,12 +378,13 @@ export async function handlePhoto(ctx: Context): Promise<void> {
     logger.info({ userId, fileName, localPath }, "Photo downloaded");
 
     const userMessage = `[用戶傳送圖片]`;
-    const assistantMessage = `已下載至 \`${localPath}\``;
+    const assistantMessage = `已下載至 ${localPath}`;
 
     contextManager.saveMessage(userId, "user", userMessage);
     contextManager.saveMessage(userId, "assistant", assistantMessage);
 
-    await ctx.reply(assistantMessage, { parse_mode: "MarkdownV2" });
+    const formatted = fmt`已下載至 \`${localPath}\``;
+    await ctx.reply(formatted.text, { parse_mode: "MarkdownV2", entities: formatted.entities });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error({ error: errorMessage, userId }, "Failed to download photo");
