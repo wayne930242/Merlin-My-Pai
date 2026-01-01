@@ -40,9 +40,10 @@ Personal AI Infrastructure - Merlin 專案開發環境。
 - `bun install` 取代 `npm install`
 
 **Law 9: Ansible Wrapper**
-- 所有 ansible 命令必須透過 `./ansible/scripts/ansible-wrapper.sh` 執行
-- 範例：`./ansible/scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-bot.yml`
+- 所有 ansible 命令必須透過 `uv run pai ansible` 執行
+- 範例：`uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml`
 - 此 wrapper 會自動從 vault 解密 SSH key
+- ansible.cfg 在專案根目錄，已設定 inventory 和 vault_password_file
 </law>
 
 ## 專案結構
@@ -57,18 +58,14 @@ weihung-pai/
 │   ├── context/      # 身份與原則
 │   ├── scripts/      # Hooks
 │   └── workspace/    # 工作區
-│       ├── .claude/  # Agent System 配置
-│       │   ├── agents/   # Subagents
-│       │   ├── skills/   # 技能模組
-│       │   ├── commands/ # Slash commands
-│       │   └── rules/    # 規範
-│       ├── site/     # 網站檔案（Caddy serve）
-│       ├── downloads/# 下載檔案
-│       └── projects/ # 專案
 ├── ansible/          # VPS 部署
 │   ├── playbooks/    # 部署劇本
-│   ├── inventory/    # 主機清單與 vault
-│   └── scripts/      # ansible-wrapper.sh, ssh-to-vps.sh
+│   └── inventory/    # 主機清單與 vault
+├── scripts/          # Python CLI 工具 (uv run pai)
+├── setup/            # 設定精靈 (python -m setup)
+├── ansible.cfg       # Ansible 配置
+├── pyproject.toml    # Python 依賴 (uv)
+├── sync.py           # Mutagen 同步工具
 └── mutagen.yml       # 雙向同步配置
 ```
 
@@ -89,21 +86,22 @@ weihung-pai/
 cd pai-bot && bun run dev
 
 # 同步 pai-claude ↔ VPS ~/merlin/
-./sync start   # 啟動同步
-./sync stop    # 停止同步
-./sync status  # 查看狀態
-./sync flush   # 強制同步
+./sync.py start   # 啟動同步
+./sync.py stop    # 停止同步
+./sync.py status  # 查看狀態
+./sync.py flush   # 強制同步
 
-# 日常部署（在 ansible 目錄下執行）
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-bot.yml
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-claude.yml
+# 日常部署
+uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml
+uv run pai ansible ansible-playbook ansible/playbooks/deploy-claude.yml
 
-# 維護
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/clean-logs.yml
+# SSH 連線
+uv run pai ssh connect          # 互動式登入
+uv run pai ssh connect "ls -la" # 執行指令
+uv run pai ssh setup            # 設定 ~/.ssh/config
 
 # 初始化（僅首次）
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/setup-vps.yml
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/setup-caddy.yml
+uv run pai-setup
 ```
 
 ## 敏感資料

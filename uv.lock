@@ -24,7 +24,7 @@ wheels = [
 
 [[package]]
 name = "ansible"
-version = "13.1.0"
+version = "13.2.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -33,9 +33,9 @@ resolution-markers = [
 dependencies = [
     { name = "ansible-core", version = "2.20.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/73/a6df4f46328a5548b7da2169fcfb37cf48d120def26f75917baf41af255b/ansible-13.1.0.tar.gz", hash = "sha256:e527b9511be1382e31e8ef7650e2338a7b0f09d63fc5ded3ce9bf8234444d771", size = 51720296, upload-time = "2025-12-09T18:13:32.911Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/18/f13c9a462ef20893d30bd11c4089edee02b5ef1d31e1c2634da592732279/ansible-13.2.0.tar.gz", hash = "sha256:fac46e202d1020027341659918b39e588dd7c43cef26537d7ca7fe51c324fe31", size = 52000144, upload-time = "2025-12-30T16:42:37.456Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/e3/ce74687c52eb18148efd71063fb41ef90c7ae50bd07f9a25e7b13bf14716/ansible-13.1.0-py3-none-any.whl", hash = "sha256:6a31b9c983e529f7ed0cfbc956a966d420874442d7d9a1cb7d8b4c08b70b04af", size = 54097461, upload-time = "2025-12-09T18:13:28.23Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/dc/1b0d0c7b83a75e574b3b56d179f887396d135aad5ab15cc45e121bc4d307/ansible-13.2.0-py3-none-any.whl", hash = "sha256:8a7f536542d4b18118200b8eaba40aa62ed990bd0e7b7622368b656b67db056f", size = 54530175, upload-time = "2025-12-30T16:42:32.195Z" },
 ]
 
 [[package]]
@@ -481,22 +481,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pai-ansible"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "ansible", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "ansible", version = "13.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "ansible-lint" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ansible", specifier = ">=12.3.0" },
-    { name = "ansible-lint", specifier = ">=25.12.2" },
-]
-
-[[package]]
 name = "pathspec"
 version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -720,14 +704,14 @@ wheels = [
 
 [[package]]
 name = "ruamel-yaml"
-version = "0.18.17"
+version = "0.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ruamel-yaml-clib", marker = "python_full_version < '3.15' and platform_python_implementation == 'CPython'" },
+    { name = "ruamel-yaml-clibz", marker = "platform_python_implementation == 'CPython'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3a/2b/7a1f1ebcd6b3f14febdc003e658778d81e76b40df2267904ee6b13f0c5c6/ruamel_yaml-0.18.17.tar.gz", hash = "sha256:9091cd6e2d93a3a4b157ddb8fabf348c3de7f1fb1381346d985b6b247dcd8d3c", size = 149602, upload-time = "2025-12-17T20:02:55.757Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0c/5d/8a1de57b5a11245c61c906d422cd1e66b6778e134a1c68823a451be5759c/ruamel_yaml-0.19.0.tar.gz", hash = "sha256:ff19233e1eb3e9301e7a3d437847713e361a80faace167639327efbe8c0e5f95", size = 142095, upload-time = "2025-12-31T16:47:31.837Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/fe/b6045c782f1fd1ae317d2a6ca1884857ce5c20f59befe6ab25a8603c43a7/ruamel_yaml-0.18.17-py3-none-any.whl", hash = "sha256:9c8ba9eb3e793efdf924b60d521820869d5bf0cb9c6f1b82d82de8295e290b9d", size = 121594, upload-time = "2025-12-17T20:02:07.657Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/3e/835d495068a4bb03419ce8c5464734ff6f3343df948e033cb5e5f81f7f08/ruamel_yaml-0.19.0-py3-none-any.whl", hash = "sha256:96ea8bafd9f3fdb0181ce3cc05e6ec02ce0a8788cbafa9b5a6e47c76fe26dfc6", size = 117777, upload-time = "2025-12-31T16:47:29.07Z" },
 ]
 
 [[package]]
@@ -779,6 +763,12 @@ wheels = [
 ]
 
 [[package]]
+name = "ruamel-yaml-clibz"
+version = "0.3.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/95/9bcc25e84703180c3941062796572e0fc73bd659086efdc4ef9b8af19e36/ruamel_yaml_clibz-0.3.4.tar.gz", hash = "sha256:e99077ac6aa4943af1000161a0cb793a379c5c8cd03ea8dd3803e0b58739b685", size = 231076, upload-time = "2025-12-31T17:11:09.341Z" }
+
+[[package]]
 name = "subprocess-tee"
 version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
@@ -806,6 +796,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/79/3e/c0bdc27cf06f4e47680bd5803a07cb3dfd17de84cde92dd217dcb9e05253/wcmatch-10.1.tar.gz", hash = "sha256:f11f94208c8c8484a16f4f48638a85d771d9513f4ab3f37595978801cb9465af", size = 117421, upload-time = "2025-06-22T19:14:02.49Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/d8/0d1d2e9d3fabcf5d6840362adcf05f8cf3cd06a73358140c3a97189238ae/wcmatch-10.1-py3-none-any.whl", hash = "sha256:5848ace7dbb0476e5e55ab63c6bbd529745089343427caa5537f230cc01beb8a", size = 39854, upload-time = "2025-06-22T19:14:00.978Z" },
+]
+
+[[package]]
+name = "weihung-pai"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "ansible", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "ansible", version = "13.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "ansible-lint" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ansible", specifier = ">=12.3.0" },
+    { name = "ansible-lint", specifier = ">=25.12.2" },
 ]
 
 [[package]]

@@ -6,11 +6,15 @@
 # ===== Dependencies =====
 node_modules/
 .bun/
+.venv/
 
 # ===== Build output =====
 dist/
 build/
 *.tsbuildinfo
+__pycache__/
+*.pyc
+.mypy_cache/
 
 # ===== Data & Logs =====
 *.db
@@ -29,6 +33,8 @@ logs/
 # ===== Ansible =====
 *.retry
 ansible/inventory/group_vars/all/vault.yml
+.vault_password
+.setup_state.json
 
 # ===== Mutagen =====
 mutagen.yml.lock

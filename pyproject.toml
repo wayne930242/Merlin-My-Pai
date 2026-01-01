@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "weihung-pai"
+version = "0.1.0"
+description = "Personal AI Infrastructure"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "ansible>=12.3.0",
+    "ansible-lint>=25.12.2",
+]
+
+[project.scripts]
+sync = "sync:main"
+pai-setup = "setup.__main__:main"
+pai = "scripts.__main__:main"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["setup", "scripts", "sync.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true

@@ -34,7 +34,10 @@ weihung-pai/
 ├── ansible/          # VPS 部署
 │   ├── playbooks/    # 部署劇本
 │   ├── inventory/    # 主機清單與 vault
-│   └── scripts/      # ansible-wrapper.sh, setup-ssh-config.sh
+│   └── roles/        # Ansible roles
+├── scripts/          # Python 工具模組（ansible, ssh, google）
+├── setup/            # 設定精靈模組
+├── sync.py           # Mutagen 同步工具
 └── mutagen.yml       # 雙向同步配置
 ```
 
@@ -49,11 +52,52 @@ weihung-pai/
 - **Fabric AI** - 透過 Fabric patterns 處理內容（摘要、分析）
 - **靜態網站** - Caddy 託管（自動 HTTPS，Merlin 可直接編輯）
 
+## 環境需求
+
+- [uv](https://docs.astral.sh/uv/) - Python 套件管理
+- [Bun](https://bun.sh/) - JavaScript runtime（pai-bot 開發）
+- [Mutagen](https://mutagen.io/) - 檔案同步
+
+```bash
+# macOS
+brew install uv
+brew install oven-sh/bun/bun
+brew install mutagen-io/mutagen/mutagen
+```
+
 ## 快速開始
 
-### 1. 設定 Vault
+### 1. 設定精靈
 
-所有敏感資料都存放在 Ansible Vault 中：
+使用互動式設定精靈配置 Vault 和執行初始化：
+
+```bash
+# 安裝依賴
+uv sync
+
+# 執行設定精靈（互動式）
+uv run setup
+
+# 常用命令
+uv run sync start   # 啟動同步
+uv run sync status  # 查看狀態
+uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml
+uv run pai ssh connect   # SSH 連線到 VPS
+uv run pai google auth   # Google OAuth 授權
+```
+
+設定精靈會引導你：
+1. 設定 Vault 密碼
+2. 填入必要變數（VPS IP、Telegram Bot Token 等）
+3. 選擇可選功能（Vultr、Anthropic、Google OAuth）
+4. 自動產生 SSH Key
+5. 執行初始化 Playbooks
+
+**進度會自動儲存**，中斷後可繼續。
+
+### 1.1 手動設定 Vault（進階）
+
+如果不使用設定精靈，可以手動設定：
 
 ```bash
 cd ansible/inventory/group_vars/all
@@ -99,10 +143,10 @@ cd ansible
 # 2. 存入 Client ID/Secret（只需首次）
 export GOOGLE_CLIENT_ID='your-client-id'
 export GOOGLE_CLIENT_SECRET='your-client-secret'
-./scripts/ansible-wrapper.sh ansible-playbook playbooks/config/google-oauth.yml
+uv run pai ansible ansible-playbook ansible/playbooks/config/google-oauth.yml
 
 # 3. 授權（會開瀏覽器，自動存入 refresh token）
-./scripts/google-auth.sh
+uv run pai google auth
 ```
 
 ### 3. 設定 Inventory
@@ -116,17 +160,11 @@ cp hosts.yml.example hosts.yml
 ### 3. 設定 SSH 和 Mutagen 同步
 
 ```bash
-cd ansible
-
 # 從 vault 提取 SSH 設定（自動設定 ~/.ssh/config）
-./scripts/setup-ssh-config.sh
-
-# 安裝 Mutagen
-brew install mutagen-io/mutagen/mutagen
+uv run pai ssh setup
 
 # 啟動雙向同步（pai-claude/ ↔ VPS ~/merlin/）
-cd ..
-./sync start
+uv run sync start
 ```
 
 ### 4. 本地開發
@@ -150,35 +188,33 @@ bun run dev
 
 **VPS 廠商不限** - 專案不綁定 Vultr，可使用任何 VPS（Linode、DigitalOcean、Hetzner 等），只要是 Ubuntu Linux 即可。
 
-所有 ansible 命令透過 wrapper 執行（自動從 vault 解密 SSH key）：
+所有 ansible 命令透過 `uv run pai ansible` 執行（自動從 vault 解密 SSH key）：
 
 ```bash
-cd ansible
-
 # === 初始化（僅首次）===
 
 # 1. 建立 VPS（二擇一）
 #    方法 A：使用 Vultr 自動建立
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/provision-vultr.yml
+uv run pai ansible ansible-playbook ansible/playbooks/init/provision-vultr.yml
 #    方法 B：手動建立任意 VPS，然後更新 vault.yml 中的 vault_server_ip
 
 # 2. 初始化部署用戶
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/init-user.yml
+uv run pai ansible ansible-playbook ansible/playbooks/init/init-user.yml
 
 # 3. VPS 基礎設定（安裝 Bun, Claude, gh cli, 建立 workspace）
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/init/setup-vps.yml
+uv run pai ansible ansible-playbook ansible/playbooks/init/setup-vps.yml
 
 # 4. Claude Code 認證
-./scripts/ssh-to-vps.sh
+uv run pai ssh connect
 # 進入後執行: ~/.local/bin/claude setup-token
 
 # === 日常部署 ===
 
 # 部署 Claude Code 配置
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-claude.yml
+uv run pai ansible ansible-playbook ansible/playbooks/deploy-claude.yml
 
 # 部署 Bot
-./scripts/ansible-wrapper.sh ansible-playbook -i inventory playbooks/deploy-bot.yml
+uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml
 ```
 
 ## Ansible Playbooks
@@ -206,14 +242,17 @@ cd ansible
 | `setup-vps.yml` | VPS 環境設定（Bun, Claude, gh cli, workspace, 防火牆）|
 | `setup-caddy.yml` | 設定 Caddy 靜態網站（自動 HTTPS）|
 
-### Scripts
+### CLI 工具
 
-| Script | 說明 |
-|--------|------|
-| `ansible-wrapper.sh` | Ansible 執行包裝器（自動從 vault 取得 SSH key）|
-| `setup-ssh-config.sh` | 設定 SSH config 和 Mutagen（從 vault 提取）|
-| `ssh-to-vps.sh` | SSH 快捷連線（用於 Claude 認證等互動操作）|
-| `google-auth.sh` | Google OAuth2 授權（取得 refresh token）|
+| 命令 | 說明 |
+|------|------|
+| `uv run setup` | 互動式設定精靈 |
+| `uv run sync start/stop/status` | Mutagen 同步管理 |
+| `uv run pai ansible <cmd>` | 執行 Ansible（自動解密 SSH key）|
+| `uv run pai ssh connect` | SSH 連線到 VPS |
+| `uv run pai ssh setup` | 設定 SSH config |
+| `uv run pai google auth` | Google OAuth2 授權 |
+| `uv run pai google token` | 取得 Google access token |
 
 ## Bot 指令
 

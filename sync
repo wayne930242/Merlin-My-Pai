@@ -1,3 +1,0 @@
-#!/bin/bash
-# 快速同步指令
-exec "$(dirname "$0")/scripts/sync.sh" "$@"
