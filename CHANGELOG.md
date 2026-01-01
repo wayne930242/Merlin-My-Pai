@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.5.4 (2026-01-01)
+
+### Bug Fixes
+
+- Correct hooks config structure and remove verbose flags
+  ([`f112b80`](https://github.com/wayne930242/weihung-pai/commit/f112b805583bc642fa5734325dfe3c08e99b7762))
+
+
 ## v1.5.3 (2026-01-01)
 
 ### Bug Fixes
