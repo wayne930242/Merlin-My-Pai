@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.9.0 (2026-01-02)
+
+### Features
+
+- Add calendar event update support to Google MCP tools
+  ([`5cc5392`](https://github.com/wayne930242/weihung-pai/commit/5cc539233f5c7f9910dabf285eb4b215e0391e52))
+
+
 ## v1.8.3 (2026-01-02)
 
 ### Bug Fixes
