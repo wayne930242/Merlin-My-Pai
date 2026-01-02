@@ -47,6 +47,7 @@ Feature status is configured in `../merlin-config.json` under `features`:
 |---------|-------------|
 | `memory` | Long-term memory - auto-extract facts, recall in future sessions |
 | `memory_provider` | Memory extraction model (gemini or haiku) |
+| `transcription` | Voice transcription - convert voice messages to text using Gemini |
 | `fabric` | Fabric AI CLI - content processing (summarize, analyze) |
 
 If a feature is disabled, related commands (e.g., `/memory`) will show "Feature not enabled".

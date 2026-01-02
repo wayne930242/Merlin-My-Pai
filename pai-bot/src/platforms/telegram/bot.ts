@@ -12,6 +12,7 @@ import {
   handleMessage,
   handleDocument,
   handlePhoto,
+  handleVoice,
 } from "./handlers";
 import { handleCallbackQuery } from "./callbacks";
 
@@ -72,6 +73,9 @@ export function createTelegramBot(): Bot {
 
   // Photo handler
   bot.on("message:photo", handlePhoto);
+
+  // Voice handler
+  bot.on("message:voice", handleVoice);
 
   // Callback query handler (inline keyboard)
   bot.on("callback_query:data", handleCallbackQuery);

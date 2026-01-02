@@ -44,7 +44,12 @@ vault_enable_memory: true
 # 記憶萃取模型：gemini（推薦，便宜）或 haiku
 vault_memory_provider: "gemini"
 # Gemini API Key（從 https://aistudio.google.com/apikey 取得）
+# 用於記憶萃取和語音轉錄
 vault_gemini_api_key: "YOUR_GEMINI_API_KEY"
+
+# === 語音轉錄（可選）===
+# 使用 Gemini 將語音訊息轉為文字，再送給 Claude 處理
+vault_enable_transcription: true
 
 # === Fabric AI（可選）===
 vault_enable_fabric: false

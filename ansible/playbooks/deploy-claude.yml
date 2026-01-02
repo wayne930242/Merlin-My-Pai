@@ -48,6 +48,7 @@
             "features": {
               "memory": {{ vault_enable_memory | default(false) | lower }},
               "memory_provider": "{{ vault_memory_provider | default('gemini') }}",
+              "transcription": {{ vault_enable_transcription | default(false) | lower }},
               "fabric": {{ vault_enable_fabric | default(false) | lower }}
             }
           }

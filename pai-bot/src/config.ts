@@ -12,6 +12,9 @@ export const config = {
     enabled: process.env.ENABLE_MEMORY === "true",
     provider: (process.env.MEMORY_PROVIDER || "gemini") as "gemini" | "haiku",
   },
+  transcription: {
+    enabled: process.env.ENABLE_TRANSCRIPTION === "true",
+  },
   claude: {
     /** Claude 專案目錄（VPS 上是 ~/merlin/workspace，本地開發用 ../pai-claude/workspace） */
     projectDir: process.env.CLAUDE_PROJECT_DIR ||

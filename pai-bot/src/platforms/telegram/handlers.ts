@@ -19,6 +19,7 @@ import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { memoryManager } from "../../memory";
 import { setTaskExecutor } from "./callbacks";
+import { transcribeAudio } from "../../services/transcription";
 
 // 超時時間（毫秒）
 const DECISION_TIMEOUT_MS = 10000;
@@ -345,5 +346,123 @@ export async function handlePhoto(ctx: Context): Promise<void> {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error({ error: errorMessage, userId }, "Failed to download photo");
     await ctx.reply("下載圖片失敗，請稍後再試");
+  }
+}
+
+export async function handleVoice(ctx: Context): Promise<void> {
+  const userId = ctx.from?.id;
+  const chatId = ctx.chat?.id;
+  const voice = ctx.message?.voice;
+
+  if (!userId || !chatId || !voice) return;
+
+  // 檢查是否啟用轉錄功能
+  if (!config.transcription.enabled) {
+    await ctx.reply("語音轉錄功能未啟用");
+    return;
+  }
+
+  try {
+    // 初始化 bot API（首次調用時）
+    if (!botApi) {
+      initializeTaskExecutor(ctx.api);
+    }
+
+    // 下載語音文件
+    const file = await ctx.getFile();
+    const filePath = file.file_path;
+
+    if (!filePath) {
+      await ctx.reply("無法取得語音檔案路徑");
+      return;
+    }
+
+    const fileUrl = `https://api.telegram.org/file/bot${config.telegram.token}/${filePath}`;
+    const response = await fetch(fileUrl);
+
+    if (!response.ok) {
+      throw new Error(`Failed to download voice: ${response.status}`);
+    }
+
+    const audioBuffer = Buffer.from(await response.arrayBuffer());
+    logger.info({ userId, duration: voice.duration, size: audioBuffer.length }, "Voice downloaded");
+
+    // 轉錄語音
+    await ctx.api.sendChatAction(chatId, "typing");
+    const result = await transcribeAudio(audioBuffer, "audio/ogg");
+
+    if (!result.text || result.text === "[無法辨識]") {
+      await ctx.reply("無法辨識語音內容，請重試");
+      return;
+    }
+
+    // 顯示轉錄結果
+    const formatted = fmt`🎤 ${result.text}`;
+    await ctx.reply(formatted.text, { parse_mode: "MarkdownV2", entities: formatted.entities });
+
+    // 將轉錄文字作為用戶訊息處理
+    const prompt = result.text;
+    const task = await prepareTask(userId, chatId, `[語音訊息] ${prompt}`, prompt);
+    const sender = createTelegramSender(ctx.api);
+
+    // 檢查是否有進行中的任務
+    const isProcessing = queueManager.isProcessing(userId) || hasActiveProcess(userId);
+
+    if (isProcessing) {
+      // 有任務進行中，顯示選擇按鈕
+      const queueSize = queueManager.getQueueLength(userId);
+      const queueInfo = queueSize > 0 ? `（佇列中有 ${queueSize} 個任務）` : "";
+
+      const msg = await ctx.reply(`目前有任務進行中${queueInfo}，請選擇：`, {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "🛑 打斷並執行", callback_data: `abort:${task.id}` },
+            { text: "📋 排入佇列", callback_data: `queue:${task.id}` },
+          ]],
+        },
+      });
+
+      // 暫存任務
+      queueManager.storePendingTask(task);
+
+      // 設定超時自動排隊
+      const timeoutId = setTimeout(async () => {
+        if (!queueManager.getPendingTask(task.id)) return;
+
+        logger.info({ userId, taskId: task.id }, "Auto-queuing due to timeout");
+
+        try {
+          await ctx.api.deleteMessage(chatId, msg.message_id);
+        } catch {
+          // 忽略
+        }
+
+        await ctx.api.sendMessage(chatId, "已自動排入佇列");
+
+        queueManager.enqueue(task, async (t) => {
+          await executeClaudeTask(t, chatId, sender);
+        }).catch((error) => {
+          logger.error({ error, taskId: task.id }, "Queued task failed");
+          ctx.api.sendMessage(chatId, `❌ 任務執行失敗：${error.message}`).catch(() => {});
+        });
+      }, DECISION_TIMEOUT_MS);
+
+      queueManager.setPendingDecision(userId, {
+        taskId: task.id,
+        messageId: msg.message_id,
+        timeoutId,
+      });
+
+      return;
+    }
+
+    // 沒有進行中的任務，直接執行
+    await queueManager.executeImmediately(task, async (t) => {
+      await executeClaudeTask(t, chatId, sender);
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error({ error: errorMessage, userId }, "Failed to process voice");
+    await ctx.reply("處理語音訊息失敗，請稍後再試");
   }
 }

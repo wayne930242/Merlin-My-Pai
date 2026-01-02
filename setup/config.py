@@ -104,8 +104,21 @@ OPTIONAL_FEATURES: list[FeatureDef] = [
             {
                 "key": "vault_gemini_api_key",
                 "prompt": "Gemini API Key",
-                "help": "從 https://aistudio.google.com/apikey 取得",
+                "help": "從 https://aistudio.google.com/apikey 取得（用於記憶和轉錄）",
                 "secret": True,
+            },
+        ],
+    },
+    {
+        "name": "transcription",
+        "description": "語音轉錄功能（需要 Gemini API Key）",
+        "vars": [
+            {
+                "key": "vault_enable_transcription",
+                "prompt": "啟用語音轉錄",
+                "help": "使用 Gemini 將語音訊息轉為文字，再送給 Claude 處理",
+                "type": "bool",
+                "default": True,
             },
         ],
     },
