@@ -170,22 +170,26 @@ async function prepareTask(
   text: string,
   prompt: string,
   isChannelMode: boolean = false,
-  channel?: TextBasedChannel
+  channel?: TextBasedChannel,
+  messageId?: string
 ): Promise<QueuedTask> {
   // Use channel-based session key for channel mode, user-based for DM
   const sessionKey = isChannelMode ? hashToNumeric(channelId) : toNumericId(discordUserId);
   const userId = toNumericId(discordUserId); // Keep original userId for memory
 
-  // Save user message
-  contextManager.saveMessage(sessionKey, "user", text);
+  // Save user message with message ID for deduplication
+  contextManager.saveMessage(sessionKey, "user", text, messageId);
 
   // Get conversation context
   const history = contextManager.getConversationContext(sessionKey);
 
-  // Get channel context from Discord API (exclude bot, include all users for context awareness)
+  // Get all message IDs already in conversation history
+  const existingMessageIds = contextManager.getMessageIds(sessionKey);
+
+  // Get channel context from Discord API (exclude bot and already-included messages)
   let channelContext = "";
   if (isChannelMode && channel) {
-    const channelMessages = await getChannelContext(channel, []); // Don't exclude anyone
+    const channelMessages = await getChannelContext(channel, [], existingMessageIds);
     channelContext = formatChannelContext(channelMessages);
   }
 
@@ -248,7 +252,7 @@ export async function handleMessage(message: Message, isChannelMode: boolean = f
   }
 
   // Prepare task
-  const task = await prepareTask(discordUserId, channelId, text, text, isChannelMode, message.channel);
+  const task = await prepareTask(discordUserId, channelId, text, text, isChannelMode, message.channel, message.id);
 
   // Check if there's an active process
   const isProcessing = queueManager.isProcessing(sessionKey) || hasActiveProcess(sessionKey);
@@ -764,7 +768,7 @@ export async function handleAttachment(message: Message, isChannelMode: boolean 
         await message.reply(`🎤 ${result.text}`);
 
         // Process as message
-        const task = await prepareTask(discordUserId, channelId, `[語音訊息] ${result.text}`, result.text, isChannelMode);
+        const task = await prepareTask(discordUserId, channelId, `[語音訊息] ${result.text}`, result.text, isChannelMode, message.channel, message.id);
 
         if (!isSendableChannel(message.channel)) return;
 

@@ -38,15 +38,30 @@ export class ContextManager {
   }
 
   // Save a message
-  saveMessage(userId: number, role: "user" | "assistant", content: string): void {
+  saveMessage(userId: number, role: "user" | "assistant", content: string, messageId?: string): void {
     const db = getDb();
     db.run(
       `
-      INSERT INTO conversations (user_id, role, content)
-      VALUES (?, ?, ?)
+      INSERT INTO conversations (user_id, role, content, message_id)
+      VALUES (?, ?, ?, ?)
     `,
-      [userId, role, content]
+      [userId, role, content, messageId || null]
     );
+  }
+
+  // Get all message IDs for a user session (for deduplication)
+  getMessageIds(userId: number): Set<string> {
+    const db = getDb();
+    const results = db
+      .query<{ message_id: string }, [number]>(
+        `
+        SELECT message_id
+        FROM conversations
+        WHERE user_id = ? AND message_id IS NOT NULL
+      `
+      )
+      .all(userId);
+    return new Set(results.map(r => r.message_id));
   }
 
   // Clear conversation history

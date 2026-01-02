@@ -20,11 +20,13 @@ const MAX_CONTEXT_MESSAGES = 10;
  * 從 Discord API 即時抓取頻道最近訊息作為上下文
  * @param channel - Discord 頻道物件
  * @param excludeUserIds - 排除這些用戶的訊息
+ * @param excludeMessageIds - 排除這些訊息 ID（已在對話歷史中）
  * @returns 最近的訊息列表（最多 10 則）
  */
 export async function getChannelContext(
   channel: TextBasedChannel,
-  excludeUserIds: string[] = []
+  excludeUserIds: string[] = [],
+  excludeMessageIds: Set<string> = new Set()
 ): Promise<ChannelMessage[]> {
   try {
     // 從 Discord API 抓取最近 20 則訊息
@@ -41,6 +43,9 @@ export async function getChannelContext(
 
       // 排除指定用戶
       if (excludeUserIds.includes(msg.author.id)) continue;
+
+      // 排除已在對話歷史中的訊息（避免重複）
+      if (excludeMessageIds.has(msg.id)) continue;
 
       // 只保留有文字內容的訊息
       if (!msg.content || msg.content.trim().length === 0) continue;
@@ -65,7 +70,7 @@ export async function getChannelContext(
     // 按時間排序（舊到新）
     messages.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
 
-    logger.debug({ channelId: channel.id, messageCount: messages.length }, "Fetched channel context from Discord API");
+    logger.debug({ channelId: channel.id, messageCount: messages.length, excluded: excludeMessageIds.size }, "Fetched channel context from Discord API");
     return messages;
   } catch (error) {
     logger.error({ error, channelId: channel.id }, "Failed to fetch channel context");
@@ -84,7 +89,7 @@ export function formatChannelContext(messages: ChannelMessage[]): string {
     return `${prefix}: ${m.content}`;
   });
 
-  return `[頻道討論記錄]\n${lines.join("\n")}\n[/頻道討論記錄]`;
+  return `[本頻道近期討論上下文 - 供你參考理解對話背景，但不需直接回應]\n${lines.join("\n")}\n[/本頻道近期討論上下文]`;
 }
 
 /**

@@ -6,10 +6,12 @@ CREATE TABLE IF NOT EXISTS conversations (
   user_id INTEGER NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
   content TEXT NOT NULL,
+  message_id TEXT, -- Discord/Telegram message ID for deduplication
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_conv_message_id ON conversations(message_id);
 
 -- Long-term memories
 CREATE TABLE IF NOT EXISTS memories (

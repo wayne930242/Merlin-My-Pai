@@ -16,6 +16,7 @@ import { isAuthorized } from "./auth";
 import { handleMessage, handleInteraction, handleSlashCommand, handleAttachment, initializeTaskExecutor } from "./handlers";
 import { isChannelBound } from "./channels";
 import { registerSlashCommands } from "./commands";
+import { migrateDatabase } from "../../storage/migrate";
 
 /**
  * 檢查訊息是否為 mention 或 reply to bot
@@ -58,6 +59,10 @@ export function createDiscordBot(): Client {
   // Ready event
   client.once(Events.ClientReady, async (readyClient) => {
     logger.info({ username: readyClient.user.tag }, "Discord bot started");
+
+    // Run database migrations
+    migrateDatabase();
+
     initializeTaskExecutor(client);
     // Register slash commands
     await registerSlashCommands(readyClient.user.id);
