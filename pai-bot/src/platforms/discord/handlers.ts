@@ -181,10 +181,10 @@ async function prepareTask(
   // Get conversation context
   const history = contextManager.getConversationContext(sessionKey);
 
-  // Get channel context (exclude allowed users and bot - those are in conversation history)
+  // Get channel context (exclude bot, include all users for context awareness)
   let channelContext = "";
   if (isChannelMode) {
-    const channelMessages = getChannelContext(channelId, config.discord.allowedUserIds);
+    const channelMessages = getChannelContext(channelId, []); // Don't exclude anyone
     channelContext = formatChannelContext(channelMessages);
   }
 
