@@ -16,7 +16,7 @@ export interface ChannelMessage {
   created_at: string;
 }
 
-const MAX_CONTEXT_MESSAGES = 5;
+const MAX_CONTEXT_MESSAGES = 10;
 
 /**
  * 初始化 channel_messages 表
@@ -56,32 +56,50 @@ export function recordChannelMessage(
     [channelId, authorId, authorName, content, isBot ? 1 : 0]
   );
 
-  // 清理舊訊息，只保留最近 MAX_CONTEXT_MESSAGES * 2 條（給一些餘量）
+  // 清理舊訊息，保留最近 20 條
   db.run(
     `DELETE FROM discord_channel_messages
      WHERE channel_id = ? AND id NOT IN (
        SELECT id FROM discord_channel_messages
        WHERE channel_id = ?
        ORDER BY created_at DESC
-       LIMIT ?
+       LIMIT 20
      )`,
-    [channelId, channelId, MAX_CONTEXT_MESSAGES * 2]
+    [channelId, channelId]
   );
 }
 
 /**
  * 取得頻道最近訊息作為上下文
+ * Query 20 條，排除 allowed users 和 bot 後保留最多 10 條
+ * @param excludeUserIds - 排除這些用戶的訊息（allowed users）
  */
-export function getChannelContext(channelId: string, limit: number = MAX_CONTEXT_MESSAGES): ChannelMessage[] {
+export function getChannelContext(
+  channelId: string,
+  excludeUserIds: string[] = []
+): ChannelMessage[] {
   const db = getDb();
-  const messages = db.query<ChannelMessage, [string, number]>(
-    `SELECT * FROM discord_channel_messages
-     WHERE channel_id = ?
-     ORDER BY created_at DESC
-     LIMIT ?`
-  ).all(channelId, limit);
 
-  return messages.reverse(); // 返回時間順序（舊到新）
+  // Query 20 條，排除 bot 訊息和指定用戶的訊息
+  let query = `SELECT * FROM discord_channel_messages
+     WHERE channel_id = ? AND is_bot = 0`;
+
+  const params: (string | number)[] = [channelId];
+
+  if (excludeUserIds.length > 0) {
+    const placeholders = excludeUserIds.map(() => "?").join(", ");
+    query += ` AND author_id NOT IN (${placeholders})`;
+    params.push(...excludeUserIds);
+  }
+
+  query += ` ORDER BY created_at DESC LIMIT 20`;
+
+  const messages = db.query<ChannelMessage, (string | number)[]>(query).all(...params);
+
+  // 保留最多 10 條
+  const limited = messages.slice(0, MAX_CONTEXT_MESSAGES);
+
+  return limited.reverse(); // 返回時間順序（舊到新）
 }
 
 /**
