@@ -8,6 +8,12 @@ export const config = {
       .filter(Boolean)
       .map((id) => parseInt(id, 10)),
   },
+  discord: {
+    token: process.env.DISCORD_BOT_TOKEN || "",
+    allowedUserIds: (process.env.DISCORD_ALLOWED_USER_IDS || "")
+      .split(",")
+      .filter(Boolean),
+  },
   memory: {
     enabled: process.env.ENABLE_MEMORY === "true",
     provider: (process.env.MEMORY_PROVIDER || "gemini") as "gemini" | "haiku",
@@ -46,10 +52,18 @@ export const config = {
 
 // Validate required config
 export function validateConfig(): void {
-  if (!config.telegram.token) {
-    throw new Error("TELEGRAM_BOT_TOKEN is required");
+  const hasTelegram = config.telegram.token && config.telegram.allowedUserIds.length > 0;
+  const hasDiscord = config.discord.token && config.discord.allowedUserIds.length > 0;
+
+  if (!hasTelegram && !hasDiscord) {
+    throw new Error("At least one platform (Telegram or Discord) must be configured");
   }
-  if (config.telegram.allowedUserIds.length === 0) {
-    throw new Error("TELEGRAM_ALLOWED_USER_IDS is required");
-  }
+}
+
+export function isTelegramEnabled(): boolean {
+  return !!(config.telegram.token && config.telegram.allowedUserIds.length > 0);
+}
+
+export function isDiscordEnabled(): boolean {
+  return !!(config.discord.token && config.discord.allowedUserIds.length > 0);
 }

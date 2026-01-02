@@ -65,3 +65,14 @@ CREATE TABLE IF NOT EXISTS schedule_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_schedule_logs_schedule ON schedule_logs(schedule_id, executed_at DESC);
+
+-- Discord bound channels
+CREATE TABLE IF NOT EXISTS discord_channels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  channel_id TEXT NOT NULL UNIQUE,
+  guild_id TEXT,
+  bound_by TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_discord_channels ON discord_channels(channel_id);

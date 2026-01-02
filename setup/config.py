@@ -73,6 +73,23 @@ REQUIRED_VARS: list[VarDef] = [
 # 可選變數（依功能分組）
 OPTIONAL_FEATURES: list[FeatureDef] = [
     {
+        "name": "discord",
+        "description": "Discord Bot（與 Telegram 同時運行）",
+        "vars": [
+            {
+                "key": "discord_bot_token",
+                "prompt": "Discord Bot Token",
+                "help": "從 Discord Developer Portal 取得",
+                "secret": True,
+            },
+            {
+                "key": "discord_allowed_user_ids",
+                "prompt": "允許的 Discord User ID",
+                "help": "你的 Discord User ID（開發者模式下右鍵頭像複製）",
+            },
+        ],
+    },
+    {
         "name": "vultr",
         "description": "Vultr 自動建立 VPS",
         "vars": [

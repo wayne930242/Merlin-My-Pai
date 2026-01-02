@@ -2,9 +2,13 @@
 # 複製此檔案為 vault.yml 並填入你的值
 # 然後執行: ansible-vault encrypt inventory/group_vars/all/vault.yml
 
-# === Telegram Bot ===
+# === Telegram Bot（可選，與 Discord 至少選一）===
 telegram_bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
 telegram_allowed_user_ids: "YOUR_TELEGRAM_USER_ID"
+
+# === Discord Bot（可選，與 Telegram 至少選一）===
+discord_bot_token: "YOUR_DISCORD_BOT_TOKEN"
+discord_allowed_user_ids: "YOUR_DISCORD_USER_ID"
 
 # === VPS 設定 ===
 vault_server_ip: "YOUR_VPS_IP"
