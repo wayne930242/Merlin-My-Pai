@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.8.0 (2026-01-02)
+
+### Documentation
+
+- Update site content to reflect current features
+  ([`6daae1d`](https://github.com/wayne930242/weihung-pai/commit/6daae1d978545bdb2da74adc31061cf010236b11))
+
+### Features
+
+- Add Discord platform support with channel-based sessions
+  ([`f55650e`](https://github.com/wayne930242/weihung-pai/commit/f55650e217a35853a92ab04ade85eaa0d90b3c39))
+
+
 ## v1.7.1 (2026-01-02)
 
 ### Bug Fixes
