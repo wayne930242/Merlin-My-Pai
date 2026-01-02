@@ -57,7 +57,7 @@ export async function getChannelContext(
 
       messages.push({
         author_id: msg.author.id,
-        author_name: msg.author.username,
+        author_name: msg.member?.displayName ?? msg.author.username,
         content,
         is_bot: false,
         created_at: msg.createdAt,
