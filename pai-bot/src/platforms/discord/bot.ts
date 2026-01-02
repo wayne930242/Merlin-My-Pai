@@ -47,6 +47,15 @@ export function createDiscordBot(): Client {
     partials: [Partials.Channel, Partials.Message],
   });
 
+  // Error handlers
+  client.on(Events.Error, (error) => {
+    logger.error({ error }, "Discord client error");
+  });
+
+  client.on(Events.Warn, (warning) => {
+    logger.warn({ warning }, "Discord client warning");
+  });
+
   // Ready event
   client.once(Events.ClientReady, async (readyClient) => {
     logger.info({ username: readyClient.user.tag }, "Discord bot started");

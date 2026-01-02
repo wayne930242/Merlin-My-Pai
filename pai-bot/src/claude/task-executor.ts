@@ -118,8 +118,8 @@ export async function executeClaudeTask(
       await sender.sendMessage(chatId, toMarkdownV2(finalContent), {
         parse_mode: "MarkdownV2",
       });
-    } catch {
-      // Fallback: send without markdown
+    } catch (error) {
+      logger.debug({ error }, "MarkdownV2 parsing failed, fallback to plain text");
       await sender.sendMessage(chatId, finalContent);
     }
 

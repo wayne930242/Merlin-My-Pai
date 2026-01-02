@@ -30,32 +30,40 @@ export async function transcribeAudio(
   // Convert buffer to base64
   const base64Audio = audioBuffer.toString("base64");
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            inlineData: {
-              mimeType,
-              data: base64Audio,
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              inlineData: {
+                mimeType,
+                data: base64Audio,
+              },
             },
-          },
-          {
-            text: "請將這段語音訊息轉錄為文字。只輸出轉錄內容，不要加任何說明或標點符號修飾。如果聽不清楚，請輸出 [無法辨識]。",
-          },
-        ],
-      },
-    ],
-  });
+            {
+              text: "請將這段語音訊息轉錄為文字。只輸出轉錄內容，不要加任何說明或標點符號修飾。如果聽不清楚，請輸出 [無法辨識]。",
+            },
+          ],
+        },
+      ],
+    });
 
-  const text = response.text?.trim() ?? "";
+    const text = response.text?.trim() ?? "";
 
-  logger.info(
-    { mimeType, audioSize: audioBuffer.length, textLength: text.length },
-    "Audio transcribed"
-  );
+    logger.info(
+      { mimeType, audioSize: audioBuffer.length, textLength: text.length },
+      "Audio transcribed"
+    );
 
-  return { text };
+    return { text };
+  } catch (error) {
+    logger.error(
+      { error, mimeType, audioSize: audioBuffer.length },
+      "Transcription API call failed"
+    );
+    throw error;
+  }
 }

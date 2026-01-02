@@ -239,9 +239,9 @@ export async function handleMessage(ctx: Context): Promise<void> {
       await executeClaudeTask(t, chatId, sender);
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error({ error: errorMessage, userId }, "Failed to process message");
+    logger.error({ error, userId }, "Failed to process message");
 
+    const errorMessage = error instanceof Error ? error.message : String(error);
     const shortError = errorMessage.length > 100
       ? errorMessage.substring(0, 100) + "..."
       : errorMessage;
@@ -294,8 +294,7 @@ export async function handleDocument(ctx: Context): Promise<void> {
     const formatted = fmt`已下載至 \`${localPath}\``;
     await ctx.reply(formatted.text, { parse_mode: "MarkdownV2", entities: formatted.entities });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error({ error: errorMessage, userId }, "Failed to download file");
+    logger.error({ error, userId }, "Failed to download file");
     await ctx.reply("下載檔案失敗，請稍後再試");
   }
 }
@@ -343,8 +342,7 @@ export async function handlePhoto(ctx: Context): Promise<void> {
     const formatted = fmt`已下載至 \`${localPath}\``;
     await ctx.reply(formatted.text, { parse_mode: "MarkdownV2", entities: formatted.entities });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error({ error: errorMessage, userId }, "Failed to download photo");
+    logger.error({ error, userId }, "Failed to download photo");
     await ctx.reply("下載圖片失敗，請稍後再試");
   }
 }
@@ -461,8 +459,7 @@ export async function handleVoice(ctx: Context): Promise<void> {
       await executeClaudeTask(t, chatId, sender);
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error({ error: errorMessage, userId }, "Failed to process voice");
+    logger.error({ error, userId }, "Failed to process voice");
     await ctx.reply("處理語音訊息失敗，請稍後再試");
   }
 }

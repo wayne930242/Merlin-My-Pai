@@ -329,8 +329,8 @@ export async function handleMessage(message: Message, isChannelMode: boolean = f
       await executeClaudeTask(t, message.channel);
     });
   } catch (error) {
+    logger.error({ error, sessionKey }, "Failed to process message");
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error({ error: errorMessage, sessionKey }, "Failed to process message");
     await message.reply(`Error: ${errorMessage.slice(0, 100)}`);
   }
 }
@@ -791,8 +791,7 @@ export async function handleAttachment(message: Message, isChannelMode: boolean 
         await message.reply(`已下載至 \`${localPath}\``);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error({ error: errorMessage, sessionKey }, "Failed to process attachment");
+      logger.error({ error, sessionKey }, "Failed to process attachment");
       await message.reply("Failed to process attachment");
     }
   }
