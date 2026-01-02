@@ -42,6 +42,12 @@
 !.claude/skills/web-deploy/**
 !.claude/skills/scheduling/
 !.claude/skills/scheduling/**
+!.claude/skills/memory/
+!.claude/skills/memory/**
+!.claude/skills/reflection/
+!.claude/skills/reflection/**
+!.claude/skills/proactive/
+!.claude/skills/proactive/**
 
 # ===== Hook Scripts =====
 !scripts/
