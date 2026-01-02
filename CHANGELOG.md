@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.8.3 (2026-01-02)
+
+### Bug Fixes
+
+- Include all users in Discord channel context
+  ([`0f58a6e`](https://github.com/wayne930242/weihung-pai/commit/0f58a6e6664fc0aa88e944f3c7b5e9c984164ad1))
+
+
 ## v1.8.2 (2026-01-02)
 
 ### Bug Fixes
