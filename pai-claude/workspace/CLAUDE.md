@@ -83,6 +83,7 @@ All work files are stored in the current directory:
 ├── scripts/            # Hook scripts
 ├── site/               # Website files (served by Caddy)
 ├── projects/           # Git repos and projects
+│   └── weihung-pai/    # [IMPORTANT] Source code repository
 ├── tools/              # Reusable utilities
 └── data/               # Data files
 ```
@@ -90,6 +91,18 @@ All work files are stored in the current directory:
 - Reload Caddy via MCP tools after editing site files
 - Site URL is in `../merlin-config.json` under `site_url`
 - Use `gh` CLI for GitHub operations (`gh repo list` to view repos)
+
+### Source Code Repository
+
+**Location**: `./projects/weihung-pai/`
+**GitHub**: https://github.com/wayne930242/weihung-pai
+
+This repo contains:
+- `pai-bot/` - Telegram/Discord Bot source code (Bun + grammY/discord.js)
+- `pai-claude/` - Merlin's runtime configuration (synced to VPS)
+- `ansible/` - Deployment automation
+
+**When working on bot features or fixing bugs, always work in this repository.**
 
 ## Agent System Self-Maintenance
 
