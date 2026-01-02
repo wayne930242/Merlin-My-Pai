@@ -29,7 +29,7 @@ import { bindChannel, unbindChannel, isChannelBound, getBoundChannels } from "./
 import { transcribeAudio } from "../../services/transcription";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { getChannelContext, formatChannelContext, hashToNumeric, recordChannelMessage } from "./context";
+import { getChannelContext, formatChannelContext, hashToNumeric } from "./context";
 
 // Discord client reference
 let discordClient: Client | null = null;
@@ -169,7 +169,8 @@ async function prepareTask(
   channelId: string,
   text: string,
   prompt: string,
-  isChannelMode: boolean = false
+  isChannelMode: boolean = false,
+  channel?: TextBasedChannel
 ): Promise<QueuedTask> {
   // Use channel-based session key for channel mode, user-based for DM
   const sessionKey = isChannelMode ? hashToNumeric(channelId) : toNumericId(discordUserId);
@@ -181,10 +182,10 @@ async function prepareTask(
   // Get conversation context
   const history = contextManager.getConversationContext(sessionKey);
 
-  // Get channel context (exclude bot, include all users for context awareness)
+  // Get channel context from Discord API (exclude bot, include all users for context awareness)
   let channelContext = "";
-  if (isChannelMode) {
-    const channelMessages = getChannelContext(channelId, []); // Don't exclude anyone
+  if (isChannelMode && channel) {
+    const channelMessages = await getChannelContext(channel, []); // Don't exclude anyone
     channelContext = formatChannelContext(channelMessages);
   }
 
@@ -202,10 +203,10 @@ async function prepareTask(
     }
   }
 
-  // Combine all context: channel context + memory context + conversation history
+  // Combine all context: memory context + conversation history + channel context
   let fullHistory = history;
   if (channelContext) {
-    fullHistory = `${channelContext}\n\n${fullHistory}`;
+    fullHistory = `${fullHistory}\n\n${channelContext}`;
   }
   if (memoryContext) {
     fullHistory = `${memoryContext}\n\n${fullHistory}`;
@@ -247,7 +248,7 @@ export async function handleMessage(message: Message, isChannelMode: boolean = f
   }
 
   // Prepare task
-  const task = await prepareTask(discordUserId, channelId, text, text, isChannelMode);
+  const task = await prepareTask(discordUserId, channelId, text, text, isChannelMode, message.channel);
 
   // Check if there's an active process
   const isProcessing = queueManager.isProcessing(sessionKey) || hasActiveProcess(sessionKey);

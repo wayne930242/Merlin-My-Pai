@@ -16,7 +16,6 @@ import { isAuthorized } from "./auth";
 import { handleMessage, handleInteraction, handleSlashCommand, handleAttachment, initializeTaskExecutor } from "./handlers";
 import { isChannelBound } from "./channels";
 import { registerSlashCommands } from "./commands";
-import { initChannelContextTable, recordChannelMessage } from "./context";
 
 /**
  * 檢查訊息是否為 mention 或 reply to bot
@@ -60,26 +59,14 @@ export function createDiscordBot(): Client {
   client.once(Events.ClientReady, async (readyClient) => {
     logger.info({ username: readyClient.user.tag }, "Discord bot started");
     initializeTaskExecutor(client);
-    // Initialize channel context table
-    initChannelContextTable();
     // Register slash commands
     await registerSlashCommands(readyClient.user.id);
   });
 
   // Message handler
   client.on(Events.MessageCreate, async (message: Message) => {
-    // Ignore bot messages (but record them for context)
+    // Ignore bot messages
     if (message.author.bot) {
-      // Record bot's own messages in bound channels for context
-      if (message.author.id === client.user?.id && isChannelBound(message.channel.id)) {
-        recordChannelMessage(
-          message.channel.id,
-          message.author.id,
-          message.author.username,
-          message.content.slice(0, 500), // Limit content length
-          true
-        );
-      }
       return;
     }
 
@@ -108,21 +95,10 @@ export function createDiscordBot(): Client {
       }
     }
 
-    // Record messages in bound channels (from any user)
-    if (isBound) {
-      recordChannelMessage(
-        channelId,
-        message.author.id,
-        message.author.username,
-        message.content.slice(0, 500),
-        false
-      );
-    }
-
     // Check user authorization for responding
     const isUserAuthorized = isAuthorized(message.author.id);
 
-    // If not authorized, don't respond (but message is already recorded above)
+    // If not authorized, don't respond
     if (!isUserAuthorized) {
       return;
     }

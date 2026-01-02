@@ -1,105 +1,76 @@
 /**
  * Discord Channel Context Management
- * 記錄頻道最近訊息，提供對話背景
+ * 即時從 Discord API 抓取頻道訊息作為對話背景
  */
 
-import { getDb } from "../../storage/db";
+import type { TextBasedChannel, Collection, Message } from "discord.js";
 import { logger } from "../../utils/logger";
 
 export interface ChannelMessage {
-  id: number;
-  channel_id: string;
   author_id: string;
   author_name: string;
   content: string;
   is_bot: boolean;
-  created_at: string;
+  created_at: Date;
 }
 
 const MAX_CONTEXT_MESSAGES = 10;
 
 /**
- * 初始化 channel_messages 表
+ * 從 Discord API 即時抓取頻道最近訊息作為上下文
+ * @param channel - Discord 頻道物件
+ * @param excludeUserIds - 排除這些用戶的訊息
+ * @returns 最近的訊息列表（最多 10 則）
  */
-export function initChannelContextTable(): void {
-  const db = getDb();
-  db.run(`
-    CREATE TABLE IF NOT EXISTS discord_channel_messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      channel_id TEXT NOT NULL,
-      author_id TEXT NOT NULL,
-      author_name TEXT NOT NULL,
-      content TEXT NOT NULL,
-      is_bot INTEGER NOT NULL DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_channel_messages_channel ON discord_channel_messages(channel_id)`);
-}
-
-/**
- * 記錄頻道訊息
- */
-export function recordChannelMessage(
-  channelId: string,
-  authorId: string,
-  authorName: string,
-  content: string,
-  isBot: boolean
-): void {
-  const db = getDb();
-
-  // 插入新訊息
-  db.run(
-    `INSERT INTO discord_channel_messages (channel_id, author_id, author_name, content, is_bot)
-     VALUES (?, ?, ?, ?, ?)`,
-    [channelId, authorId, authorName, content, isBot ? 1 : 0]
-  );
-
-  // 清理舊訊息，保留最近 20 條
-  db.run(
-    `DELETE FROM discord_channel_messages
-     WHERE channel_id = ? AND id NOT IN (
-       SELECT id FROM discord_channel_messages
-       WHERE channel_id = ?
-       ORDER BY created_at DESC
-       LIMIT 20
-     )`,
-    [channelId, channelId]
-  );
-}
-
-/**
- * 取得頻道最近訊息作為上下文
- * Query 20 條，排除 allowed users 和 bot 後保留最多 10 條
- * @param excludeUserIds - 排除這些用戶的訊息（allowed users）
- */
-export function getChannelContext(
-  channelId: string,
+export async function getChannelContext(
+  channel: TextBasedChannel,
   excludeUserIds: string[] = []
-): ChannelMessage[] {
-  const db = getDb();
+): Promise<ChannelMessage[]> {
+  try {
+    // 從 Discord API 抓取最近 20 則訊息
+    const fetchedMessages: Collection<string, Message> = await channel.messages.fetch({
+      limit: 20
+    });
 
-  // Query 20 條，排除 bot 訊息和指定用戶的訊息
-  let query = `SELECT * FROM discord_channel_messages
-     WHERE channel_id = ? AND is_bot = 0`;
+    // 過濾並轉換格式
+    const messages: ChannelMessage[] = [];
 
-  const params: (string | number)[] = [channelId];
+    for (const [_, msg] of fetchedMessages) {
+      // 排除 bot 訊息
+      if (msg.author.bot) continue;
 
-  if (excludeUserIds.length > 0) {
-    const placeholders = excludeUserIds.map(() => "?").join(", ");
-    query += ` AND author_id NOT IN (${placeholders})`;
-    params.push(...excludeUserIds);
+      // 排除指定用戶
+      if (excludeUserIds.includes(msg.author.id)) continue;
+
+      // 只保留有文字內容的訊息
+      if (!msg.content || msg.content.trim().length === 0) continue;
+
+      // 限制訊息長度避免 context 過長
+      const content = msg.content.length > 500
+        ? msg.content.slice(0, 500) + "..."
+        : msg.content;
+
+      messages.push({
+        author_id: msg.author.id,
+        author_name: msg.author.username,
+        content,
+        is_bot: false,
+        created_at: msg.createdAt,
+      });
+
+      // 達到上限就停止
+      if (messages.length >= MAX_CONTEXT_MESSAGES) break;
+    }
+
+    // 按時間排序（舊到新）
+    messages.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
+
+    logger.debug({ channelId: channel.id, messageCount: messages.length }, "Fetched channel context from Discord API");
+    return messages;
+  } catch (error) {
+    logger.error({ error, channelId: channel.id }, "Failed to fetch channel context");
+    return [];
   }
-
-  query += ` ORDER BY created_at DESC LIMIT 20`;
-
-  const messages = db.query<ChannelMessage, (string | number)[]>(query).all(...params);
-
-  // 保留最多 10 條
-  const limited = messages.slice(0, MAX_CONTEXT_MESSAGES);
-
-  return limited.reverse(); // 返回時間順序（舊到新）
 }
 
 /**
@@ -114,32 +85,6 @@ export function formatChannelContext(messages: ChannelMessage[]): string {
   });
 
   return `[頻道討論記錄]\n${lines.join("\n")}\n[/頻道討論記錄]`;
-}
-
-/**
- * 清除頻道訊息記錄
- */
-export function clearChannelMessages(channelId: string): number {
-  const db = getDb();
-  const result = db.run(
-    "DELETE FROM discord_channel_messages WHERE channel_id = ?",
-    [channelId]
-  );
-  return result.changes;
-}
-
-/**
- * 取得 session key
- * - 頻道模式（bound/mention）: 用 channelId
- * - DM 模式: 用 numeric hash of discordUserId
- */
-export function getSessionKey(channelId: string, isChannelMode: boolean): number {
-  if (isChannelMode) {
-    // 用 channelId 的 hash 作為 session key
-    return hashToNumeric(channelId);
-  }
-  // DM 模式下，由外部傳入 userId
-  return hashToNumeric(channelId);
 }
 
 /**

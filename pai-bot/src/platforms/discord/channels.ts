@@ -5,7 +5,7 @@
 
 import { getDb } from "../../storage/db";
 import { contextManager } from "../../context/manager";
-import { clearChannelMessages, hashToNumeric } from "./context";
+import { hashToNumeric } from "./context";
 import { logger } from "../../utils/logger";
 
 export interface BoundChannel {
@@ -34,7 +34,7 @@ export function bindChannel(channelId: string, guildId: string | null, boundBy: 
 
 /**
  * 解綁頻道
- * 同時清除該頻道的 session 和訊息記錄
+ * 同時清除該頻道的 session
  */
 export function unbindChannel(channelId: string): boolean {
   const db = getDb();
@@ -44,10 +44,7 @@ export function unbindChannel(channelId: string): boolean {
     // 清除 channel session
     const sessionKey = hashToNumeric(channelId);
     contextManager.clearHistory(sessionKey);
-
-    // 清除頻道訊息記錄
-    const cleared = clearChannelMessages(channelId);
-    logger.info({ channelId, sessionKey, messagesCleared: cleared }, "Channel session cleared");
+    logger.info({ channelId, sessionKey }, "Channel session cleared");
   }
 
   return result.changes > 0;
