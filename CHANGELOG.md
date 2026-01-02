@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.8.1 (2026-01-02)
+
+### Bug Fixes
+
+- Exclude allowed users from channel context query
+  ([`602bf13`](https://github.com/wayne930242/weihung-pai/commit/602bf139b20619e0aa95eafb9d25d9109b25baf7))
+
+
 ## v1.8.0 (2026-01-02)
 
 ### Documentation
