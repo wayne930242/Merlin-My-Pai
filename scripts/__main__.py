@@ -33,6 +33,10 @@ def main() -> None:
         run_google_command(args)
     elif command == "discord":
         run_discord_command(args)
+    elif command == "spotify":
+        run_spotify_command(args)
+    elif command == "youtube":
+        run_youtube_command(args)
     else:
         print(f"未知命令: {command}")
         print()
@@ -128,6 +132,44 @@ def run_discord_command(args: list[str]) -> None:
         sys.exit(1)
 
 
+def run_spotify_command(args: list[str]) -> None:
+    from .spotify import do_auth, do_test, do_token
+
+    if not args:
+        print("用法: uv run pai spotify <subcommand>")
+        print("  auth   執行 Spotify OAuth 認證")
+        print("  test   測試認證狀態")
+        print("  token  取得 access token")
+        sys.exit(1)
+
+    subcommand = args[0]
+    if subcommand == "auth":
+        sys.exit(do_auth())
+    elif subcommand == "test":
+        sys.exit(do_test())
+    elif subcommand == "token":
+        sys.exit(do_token())
+    else:
+        print(f"未知子命令: {subcommand}")
+        sys.exit(1)
+
+
+def run_youtube_command(args: list[str]) -> None:
+    from .upload_cookies import main as upload_cookies
+
+    if not args:
+        print("用法: uv run pai youtube <subcommand>")
+        print("  upload-cookies   上傳 YouTube cookies 到 VPS")
+        sys.exit(1)
+
+    subcommand = args[0]
+    if subcommand == "upload-cookies":
+        upload_cookies()
+    else:
+        print(f"未知子命令: {subcommand}")
+        sys.exit(1)
+
+
 def print_help() -> None:
     print("PAI Infrastructure Scripts")
     print()
@@ -143,6 +185,9 @@ def print_help() -> None:
     print("  google auth           執行 Google OAuth2 授權")
     print("  google token          取得 Google access token")
     print("  discord invite        生成 Discord Bot 邀請連結")
+    print("  youtube upload-cookies 上傳 YouTube cookies 到 VPS")
+    print("  spotify auth          執行 Librespot OAuth 認證")
+    print("  spotify test          測試 Spotify 認證狀態")
     print()
     print("範例:")
     print("  uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml")

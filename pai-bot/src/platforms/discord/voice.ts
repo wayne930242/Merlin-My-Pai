@@ -18,7 +18,8 @@ import {
 import type { VoiceBasedChannel } from "discord.js";
 import { logger } from "../../utils/logger";
 
-const COBALT_API = "https://api.cobalt.tools";
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
+const YOUTUBE_COOKIES_PATH = "/home/pai/youtube-cookies.txt";
 
 interface QueueItem {
   url: string;
@@ -32,6 +33,7 @@ interface GuildQueue {
   queue: QueueItem[];
   playing: boolean;
   channelId: string;
+  currentItem: QueueItem | null;
 }
 
 // Per-guild voice state
@@ -62,6 +64,7 @@ export async function joinChannel(
         playNext(channel.guild.id);
       } else if (guildQueue) {
         guildQueue.playing = false;
+        guildQueue.currentItem = null;
       }
     });
 
@@ -81,6 +84,7 @@ export async function joinChannel(
       queue: [],
       playing: false,
       channelId: channel.id,
+      currentItem: null,
     });
 
     logger.info({ channel: channel.name, guild: channel.guild.name }, "Joined voice channel");
@@ -115,86 +119,103 @@ export function leaveChannel(guildId: string): boolean {
 }
 
 /**
- * 使用 Cobalt API 獲取音訊 URL
+ * 使用 YouTube Data API 搜尋影片
  */
-async function getCobaltStream(url: string): Promise<{ ok: true; streamUrl: string; title: string } | { ok: false; error: string }> {
+async function searchYouTube(query: string): Promise<{ ok: true; url: string; title: string } | { ok: false; error: string }> {
+  if (!YOUTUBE_API_KEY) {
+    return { ok: false, error: "YouTube API key 未設定" };
+  }
+
   try {
-    const response = await fetch(COBALT_API, {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url,
-        audioFormat: "opus",
-        isAudioOnly: true,
-      }),
+    const params = new URLSearchParams({
+      part: "snippet",
+      q: query,
+      type: "video",
+      maxResults: "1",
+      key: YOUTUBE_API_KEY,
     });
 
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?${params}`
+    );
+
     if (!response.ok) {
-      const text = await response.text();
-      logger.error({ status: response.status, text }, "Cobalt API error");
-      return { ok: false, error: `Cobalt API 錯誤: ${response.status}` };
+      const error = await response.text();
+      logger.error({ status: response.status, error }, "YouTube API error");
+      return { ok: false, error: `YouTube API 錯誤: ${response.status}` };
     }
 
-    const data = await response.json() as { status: string; url?: string; filename?: string; error?: string };
+    const data = await response.json();
+    const items = data.items;
 
-    if (data.status === "error") {
-      return { ok: false, error: data.error || "未知錯誤" };
+    if (!items || items.length === 0) {
+      return { ok: false, error: `找不到「${query}」` };
     }
 
-    if (data.status === "redirect" || data.status === "tunnel") {
-      const title = data.filename?.replace(/\.[^/.]+$/, "") || "Unknown";
-      return { ok: true, streamUrl: data.url!, title };
-    }
-
-    return { ok: false, error: "無法獲取音訊串流" };
+    const video = items[0];
+    return {
+      ok: true,
+      url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+      title: video.snippet.title,
+    };
   } catch (error) {
-    logger.error({ error }, "Cobalt fetch failed");
+    logger.error({ error }, "YouTube search error");
     return { ok: false, error: String(error) };
   }
 }
 
 /**
- * 搜尋 YouTube（使用 Piped API）
+ * 取得影片資訊（YouTube API 搜尋 + 直接 URL）
+ * 不再使用 yt-dlp 取得 metadata（會被 YouTube 封鎖）
  */
-async function searchYouTube(query: string): Promise<string | null> {
-  // 多個 Piped 實例作為備援
-  const pipedInstances = [
-    "https://pipedapi.kavin.rocks",
-    "https://api.piped.yt",
-    "https://pipedapi.in.projectsegfau.lt",
-  ];
-
-  for (const instance of pipedInstances) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(
-        `${instance}/search?q=${encodeURIComponent(query)}&filter=videos`,
-        { signal: controller.signal }
-      );
-      clearTimeout(timeout);
-
-      if (!response.ok) continue;
-
-      const data = await response.json() as { items?: Array<{ url?: string }> };
-      if (!data.items || data.items.length === 0) continue;
-
-      const firstVideo = data.items[0];
-      if (!firstVideo.url) continue;
-
-      // Piped 返回 /watch?v=xxx 格式
-      const videoId = firstVideo.url.replace("/watch?v=", "");
-      return `https://www.youtube.com/watch?v=${videoId}`;
-    } catch {
-      continue;
+async function getVideoInfo(query: string): Promise<{ ok: true; url: string; title: string; duration: string } | { ok: false; error: string }> {
+  try {
+    // 如果是 URL 直接使用
+    if (query.startsWith("http")) {
+      // 從 URL 中提取 video ID 作為標題（簡化處理）
+      const videoId = query.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1] || "Video";
+      return {
+        ok: true,
+        url: query,
+        title: `YouTube Video (${videoId})`,
+        duration: "?:??",
+      };
     }
-  }
 
-  return null;
+    // 使用 YouTube API 搜尋
+    const searchResult = await searchYouTube(query);
+    if (!searchResult.ok) {
+      return searchResult;
+    }
+
+    return {
+      ok: true,
+      url: searchResult.url,
+      title: searchResult.title,
+      duration: "?:??", // YouTube API search doesn't return duration
+    };
+  } catch (error) {
+    logger.error({ error }, "getVideoInfo error");
+    return { ok: false, error: String(error) };
+  }
+}
+
+/**
+ * 使用 yt-dlp 獲取音訊串流
+ */
+function createYtdlpStream(url: string): ReturnType<typeof Bun.spawn> {
+  return Bun.spawn([
+    "yt-dlp",
+    "--cookies", YOUTUBE_COOKIES_PATH,
+    "--remote-components", "ejs:github",
+    "-f", "bestaudio",
+    "-o", "-",
+    "--quiet",
+    url,
+  ], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
 }
 
 /**
@@ -210,26 +231,16 @@ export async function playMusic(
   }
 
   try {
-    // 判斷是 URL 還是搜尋關鍵字
-    let url = query;
-    if (!query.startsWith("http")) {
-      const searchResult = await searchYouTube(query);
-      if (!searchResult) {
-        return { ok: false, error: "找不到相關影片，請嘗試提供完整 YouTube 連結" };
-      }
-      url = searchResult;
-    }
-
-    // 使用 Cobalt 獲取串流
-    const result = await getCobaltStream(url);
+    // 使用 yt-dlp 獲取影片資訊（支援搜尋和 URL）
+    const result = await getVideoInfo(query);
     if (!result.ok) {
       return { ok: false, error: result.error };
     }
 
     const item: QueueItem = {
-      url: result.streamUrl,
+      url: result.url,
       title: result.title,
-      duration: "?:??",
+      duration: result.duration,
     };
 
     guildQueue.queue.push(item);
@@ -256,17 +267,15 @@ async function playNext(guildId: string): Promise<void> {
   }
 
   const item = guildQueue.queue.shift()!;
+  guildQueue.currentItem = item;
 
   try {
-    // Cobalt 返回的是直接的音訊 URL，用 fetch 獲取串流
-    const response = await fetch(item.url);
-    if (!response.ok || !response.body) {
-      throw new Error(`Failed to fetch audio: ${response.status}`);
-    }
+    // 使用 yt-dlp 串流音訊
+    const proc = createYtdlpStream(item.url);
 
-    // 將 Web ReadableStream 轉換為 Node.js Readable
+    // 將 Bun 的 ReadableStream 轉換為 Node.js Readable
     const nodeStream = await import("node:stream");
-    const readable = nodeStream.Readable.fromWeb(response.body as any);
+    const readable = nodeStream.Readable.fromWeb(proc.stdout as any);
 
     const resource = createAudioResource(readable, {
       inputType: StreamType.Arbitrary,
@@ -276,6 +285,14 @@ async function playNext(guildId: string): Promise<void> {
     guildQueue.playing = true;
 
     logger.info({ title: item.title }, "Now playing");
+
+    // 監聯 yt-dlp 錯誤
+    proc.exited.then(async (code) => {
+      if (code !== 0 && proc.stderr) {
+        const stderr = await new Response(proc.stderr as ReadableStream).text();
+        logger.error({ stderr, code, url: item.url }, "yt-dlp stream error");
+      }
+    });
   } catch (error) {
     logger.error({ error, item }, "Failed to play next track");
     // Try next song
@@ -312,6 +329,7 @@ export function stop(guildId: string): boolean {
   guildQueue.queue = [];
   guildQueue.player.stop();
   guildQueue.playing = false;
+  guildQueue.currentItem = null;
   return true;
 }
 
@@ -349,7 +367,5 @@ export function getNowPlaying(guildId: string): QueueItem | null {
   if (!guildQueue || !guildQueue.playing) {
     return null;
   }
-  // The currently playing item was already shifted from queue
-  // We need to track it separately - for now return null
-  return null;
+  return guildQueue.currentItem;
 }

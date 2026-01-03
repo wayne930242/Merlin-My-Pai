@@ -253,6 +253,7 @@ uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml
 | `uv run pai ssh setup` | 設定 SSH config |
 | `uv run pai google auth` | Google OAuth2 授權 |
 | `uv run pai google token` | 取得 Google access token |
+| `uv run pai youtube upload-cookies` | 上傳 YouTube cookies 到 VPS（用於音樂播放）|
 
 ## Bot 指令
 

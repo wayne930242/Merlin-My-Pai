@@ -27,7 +27,7 @@ import {
   formatMemoriesForPrompt,
 } from "../../memory";
 import { bindChannel, unbindChannel, isChannelBound, getBoundChannels } from "./channels";
-import { joinChannel, leaveChannel, playMusic, skip, stop as stopVoice, getQueue, isInVoiceChannel, getVoiceChannelInfo } from "./voice";
+import { joinChannel, leaveChannel, playMusic, skip, stop as stopVoice, getQueue, isInVoiceChannel, getVoiceChannelInfo, getNowPlaying } from "./voice";
 import { transcribeAudio } from "../../services/transcription";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -932,6 +932,21 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       }
 
       await interaction.reply(`📋 **播放佇列** (${queue.length} 首):\n${lines.join("\n")}`);
+      break;
+    }
+
+    case "np": {
+      if (!interaction.guildId) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      const nowPlaying = getNowPlaying(interaction.guildId);
+      if (nowPlaying) {
+        await interaction.reply(`🎵 正在播放: **${nowPlaying.title}** [${nowPlaying.duration}]`);
+      } else {
+        await interaction.reply({ content: "目前沒有播放中的歌曲", ephemeral: true });
+      }
       break;
     }
 

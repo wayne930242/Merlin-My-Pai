@@ -18,6 +18,19 @@ const slashCommands = [
   new SlashCommandBuilder().setName("status").setDescription("查看狀態"),
   new SlashCommandBuilder().setName("stop").setDescription("中斷當前任務"),
   new SlashCommandBuilder().setName("hq").setDescription("設定為管理中心"),
+  // Voice commands
+  new SlashCommandBuilder().setName("join").setDescription("加入語音頻道"),
+  new SlashCommandBuilder().setName("leave").setDescription("離開語音頻道"),
+  new SlashCommandBuilder()
+    .setName("play")
+    .setDescription("播放 YouTube 音樂")
+    .addStringOption(option =>
+      option.setName("query").setDescription("搜尋關鍵字或 YouTube URL").setRequired(true)
+    ),
+  new SlashCommandBuilder().setName("skip").setDescription("跳過目前歌曲"),
+  new SlashCommandBuilder().setName("vstop").setDescription("停止播放並清空佇列"),
+  new SlashCommandBuilder().setName("queue").setDescription("查看播放佇列"),
+  new SlashCommandBuilder().setName("np").setDescription("顯示正在播放的歌曲"),
 ].map(cmd => cmd.toJSON());
 
 /**
