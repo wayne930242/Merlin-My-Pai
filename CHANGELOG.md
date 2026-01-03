@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.21.1 (2026-01-03)
+
+### Bug Fixes
+
+- **discord**: Show roll result in ephemeral message
+  ([`2f746fd`](https://github.com/wayne930242/weihung-pai/commit/2f746fd10316ccc99de5aaa97f8f7031ac409085))
+
+
 ## v1.21.0 (2026-01-03)
 
 ### Features
