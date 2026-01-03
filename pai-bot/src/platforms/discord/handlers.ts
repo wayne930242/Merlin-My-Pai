@@ -27,6 +27,7 @@ import {
   formatMemoriesForPrompt,
 } from "../../memory";
 import { bindChannel, unbindChannel, isChannelBound, getBoundChannels } from "./channels";
+import { joinChannel, leaveChannel, playMusic, skip, stop as stopVoice, getQueue, isInVoiceChannel, getVoiceChannelInfo } from "./voice";
 import { transcribeAudio } from "../../services/transcription";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -173,7 +174,8 @@ async function prepareTask(
   prompt: string,
   isChannelMode: boolean = false,
   channel?: TextBasedChannel,
-  messageId?: string
+  messageId?: string,
+  guildId?: string
 ): Promise<QueuedTask> {
   // Use channel-based session key for channel mode, user-based for DM
   const sessionKey = isChannelMode ? hashToNumeric(channelId) : toNumericId(discordUserId);
@@ -211,7 +213,8 @@ async function prepareTask(
 
   // Build session context for Claude
   const sessionType = isChannelMode ? "channel" : "dm";
-  const sessionContext = buildSessionContext(sessionKey, "discord", sessionType);
+  const voiceContext = guildId ? getVoiceChannelInfo(guildId) : undefined;
+  const sessionContext = buildSessionContext(sessionKey, "discord", sessionType, { voice: voiceContext });
 
   // Combine all context: session + memory + conversation history + channel context
   let fullHistory = `${sessionContext}\n${history}`;
@@ -272,7 +275,7 @@ export async function handleMessage(message: Message, isChannelMode: boolean = f
   }
 
   // Prepare task
-  const task = await prepareTask(discordUserId, channelId, text, text, isChannelMode, message.channel, message.id);
+  const task = await prepareTask(discordUserId, channelId, text, text, isChannelMode, message.channel, message.id, guildId);
 
   // Check if there's an active process
   const isProcessing = queueManager.isProcessing(sessionKey) || hasActiveProcess(sessionKey);
@@ -787,6 +790,151 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       break;
     }
 
+    // Voice commands
+    case "join": {
+      if (!interaction.guild) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      const member = await interaction.guild.members.fetch(discordUserId);
+      const voiceChannel = member.voice.channel;
+
+      if (!voiceChannel) {
+        await interaction.reply({ content: "請先加入一個語音頻道", ephemeral: true });
+        return;
+      }
+
+      await interaction.deferReply();
+      const result = await joinChannel(voiceChannel);
+
+      if (result.ok) {
+        await interaction.editReply(`🎵 已加入 **${voiceChannel.name}**`);
+      } else {
+        await interaction.editReply(`❌ 無法加入語音頻道: ${result.error}`);
+      }
+      break;
+    }
+
+    case "leave": {
+      if (!interaction.guildId) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      if (!isInVoiceChannel(interaction.guildId)) {
+        await interaction.reply({ content: "Bot 不在語音頻道中", ephemeral: true });
+        return;
+      }
+
+      leaveChannel(interaction.guildId);
+      await interaction.reply("👋 已離開語音頻道");
+      break;
+    }
+
+    case "play": {
+      if (!interaction.guildId) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      const query = interaction.options.getString("query", true);
+
+      // Auto-join if not in voice channel
+      if (!isInVoiceChannel(interaction.guildId)) {
+        const member = await interaction.guild!.members.fetch(discordUserId);
+        const voiceChannel = member.voice.channel;
+
+        if (!voiceChannel) {
+          await interaction.reply({ content: "請先加入一個語音頻道，或使用 /join", ephemeral: true });
+          return;
+        }
+
+        await interaction.deferReply();
+        const joinResult = await joinChannel(voiceChannel);
+        if (!joinResult.ok) {
+          await interaction.editReply(`❌ 無法加入語音頻道: ${joinResult.error}`);
+          return;
+        }
+      } else {
+        await interaction.deferReply();
+      }
+
+      const result = await playMusic(interaction.guildId, query);
+
+      if (result.ok) {
+        const queue = getQueue(interaction.guildId);
+        const queueInfo = queue.length > 0 ? ` (佇列: ${queue.length} 首)` : "";
+        await interaction.editReply(`🎵 已加入播放: **${result.item.title}** [${result.item.duration}]${queueInfo}`);
+      } else {
+        await interaction.editReply(`❌ ${result.error}`);
+      }
+      break;
+    }
+
+    case "skip": {
+      if (!interaction.guildId) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      if (!isInVoiceChannel(interaction.guildId)) {
+        await interaction.reply({ content: "Bot 不在語音頻道中", ephemeral: true });
+        return;
+      }
+
+      if (skip(interaction.guildId)) {
+        await interaction.reply("⏭️ 已跳過");
+      } else {
+        await interaction.reply({ content: "沒有正在播放的歌曲", ephemeral: true });
+      }
+      break;
+    }
+
+    case "vstop": {
+      if (!interaction.guildId) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      if (!isInVoiceChannel(interaction.guildId)) {
+        await interaction.reply({ content: "Bot 不在語音頻道中", ephemeral: true });
+        return;
+      }
+
+      if (stopVoice(interaction.guildId)) {
+        await interaction.reply("⏹️ 已停止播放並清空佇列");
+      } else {
+        await interaction.reply({ content: "沒有正在播放的歌曲", ephemeral: true });
+      }
+      break;
+    }
+
+    case "queue": {
+      if (!interaction.guildId) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      const queue = getQueue(interaction.guildId);
+
+      if (queue.length === 0) {
+        await interaction.reply("📋 播放佇列為空");
+        return;
+      }
+
+      const lines = queue.slice(0, 10).map((item, i) =>
+        `${i + 1}. **${item.title}** [${item.duration}]`
+      );
+
+      if (queue.length > 10) {
+        lines.push(`\n...還有 ${queue.length - 10} 首`);
+      }
+
+      await interaction.reply(`📋 **播放佇列** (${queue.length} 首):\n${lines.join("\n")}`);
+      break;
+    }
+
     default:
       await interaction.reply("Unknown command");
   }
@@ -798,6 +946,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
 export async function handleAttachment(message: Message, isChannelMode: boolean = false): Promise<void> {
   const discordUserId = message.author.id;
   const channelId = message.channel.id;
+  const guildId = message.guild?.id;
   const sessionKey = isChannelMode ? hashToNumeric(channelId) : toNumericId(discordUserId);
   const userId = toNumericId(discordUserId); // For logging
 
@@ -830,7 +979,7 @@ export async function handleAttachment(message: Message, isChannelMode: boolean 
         await message.reply(`🎤 ${result.text}`);
 
         // Process as message
-        const task = await prepareTask(discordUserId, channelId, `[語音訊息] ${result.text}`, result.text, isChannelMode, message.channel, message.id);
+        const task = await prepareTask(discordUserId, channelId, `[語音訊息] ${result.text}`, result.text, isChannelMode, message.channel, message.id, guildId);
 
         if (!isSendableChannel(message.channel)) return;
 
