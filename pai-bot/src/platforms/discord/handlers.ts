@@ -19,6 +19,7 @@ import { abortUserProcess, hasActiveProcess } from "../../claude/client";
 import { queueManager, type QueuedTask } from "../../claude/queue-manager";
 import { contextManager } from "../../context/manager";
 import { logger } from "../../utils/logger";
+import { buildSessionContext } from "../../utils/session";
 import { config } from "../../config";
 import {
   memoryManager,
@@ -210,11 +211,7 @@ async function prepareTask(
 
   // Build session context for Claude
   const sessionType = isChannelMode ? "channel" : "dm";
-  const sessionContext = `[Session]
-session_id: ${sessionKey}
-platform: discord
-type: ${sessionType}
-`;
+  const sessionContext = buildSessionContext(sessionKey, "discord", sessionType);
 
   // Combine all context: session + memory + conversation history + channel context
   let fullHistory = `${sessionContext}\n${history}`;

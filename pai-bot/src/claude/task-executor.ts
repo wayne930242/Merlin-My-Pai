@@ -8,6 +8,7 @@ import { queueManager, type QueuedTask } from "./queue-manager";
 import { contextManager } from "../context/manager";
 import { logger } from "../utils/logger";
 import { escapeMarkdownV2 } from "../utils/telegram";
+import { buildSessionContext } from "../utils/session";
 import { config } from "../config";
 import {
   memoryManager,
@@ -175,11 +176,11 @@ export async function prepareTask(
   }
 
   // Build session context for Claude
-  const sessionContext = `[Session]
-session_id: ${session.sessionId}
-platform: ${session.platform}
-type: ${session.sessionType}
-`;
+  const sessionContext = buildSessionContext(
+    session.sessionId,
+    session.platform as "telegram" | "discord",
+    session.sessionType as "dm" | "channel"
+  );
 
   // Combine memory context with history
   const fullHistory = memoryContext

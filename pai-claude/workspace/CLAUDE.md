@@ -20,6 +20,7 @@
 session_id: 123456789
 platform: telegram
 type: dm
+time: 2024/01/15 星期一 09:30
 ```
 
 | 欄位 | 說明 |
@@ -27,6 +28,7 @@ type: dm
 | `session_id` | 對話識別碼，用於 `notify_user` 通知 |
 | `platform` | telegram 或 discord |
 | `type` | dm（私訊）或 channel（頻道） |
+| `time` | 當前時間（台北時區），包含星期幾 |
 
 **重要**：長任務通知時，使用對話開頭的 `session_id` 確保通知送達正確的平台和對話。
 
