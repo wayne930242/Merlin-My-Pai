@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.20.0 (2026-01-03)
+
+### Features
+
+- **discord**: Add dice accumulation with per-user panels
+  ([`9b000ed`](https://github.com/wayne930242/weihung-pai/commit/9b000edfc5748f0dcad666cd7036b123e840f1ae))
+
+### Refactoring
+
+- **discord**: Simplify /panel command syntax
+  ([`20e510a`](https://github.com/wayne930242/weihung-pai/commit/20e510a74002e549d1ee9e5f5c5299ffb1cadd36))
+
+
 ## v1.19.0 (2026-01-03)
 
 ### Features
