@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v1.13.0 (2026-01-03)
+
+### Features
+
+- **ansible**: Add Python and uv to VPS setup
+  ([`84d6831`](https://github.com/wayne930242/weihung-pai/commit/84d683151dc288a01f25a66c9a00d91394b8fee5))
+
+- **bot**: Add Garmin Connect integration
+  ([`25bf8b4`](https://github.com/wayne930242/weihung-pai/commit/25bf8b48ed88400d72addc52e278fda78d4e1172))
+
+- **skills**: Refactor daily skill to life management system
+  ([`3963664`](https://github.com/wayne930242/weihung-pai/commit/39636647a95651a5a5a2bf846842d6d999d743f7))
+
+
 ## v1.12.0 (2026-01-03)
 
 ### Features
