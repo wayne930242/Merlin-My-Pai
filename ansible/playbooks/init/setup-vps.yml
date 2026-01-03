@@ -55,7 +55,34 @@
           - unzip
           - git
           - build-essential
+          - python3
+          - python3-venv
         state: present
+
+    # Python uv - Fast Python package manager
+    - name: Check if uv is installed
+      ansible.builtin.stat:
+        path: "{{ home_dir }}/.local/bin/uv"
+      register: uv_installed
+
+    - name: Install uv
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+        executable: /bin/bash
+      become: true
+      become_user: "{{ app_user }}"
+      when: not uv_installed.stat.exists
+      changed_when: true
+
+    - name: Add uv to PATH in .bashrc
+      ansible.builtin.lineinfile:
+        path: "{{ home_dir }}/.bashrc"
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
+        state: present
+      become: true
+      become_user: "{{ app_user }}"
 
     - name: Check if Bun is installed
       ansible.builtin.stat:
