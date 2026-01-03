@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.11.0 (2026-01-03)
+
+### Features
+
+- **bot**: Add session tracking and HQ notification system
+  ([`60470a7`](https://github.com/wayne930242/weihung-pai/commit/60470a7232a87ec84c988544927ffea5ab4e3b63))
+
+
 ## v1.10.0 (2026-01-02)
 
 ### Features
