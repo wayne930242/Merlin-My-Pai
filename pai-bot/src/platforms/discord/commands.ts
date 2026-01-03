@@ -31,6 +31,12 @@ const slashCommands = [
   new SlashCommandBuilder().setName("vstop").setDescription("停止播放並清空佇列"),
   new SlashCommandBuilder().setName("queue").setDescription("查看播放佇列"),
   new SlashCommandBuilder().setName("np").setDescription("顯示正在播放的歌曲"),
+  new SlashCommandBuilder()
+    .setName("say")
+    .setDescription("讓 Bot 在語音頻道說話（TTS）")
+    .addStringOption(option =>
+      option.setName("text").setDescription("要說的文字").setRequired(true)
+    ),
 ].map(cmd => cmd.toJSON());
 
 /**

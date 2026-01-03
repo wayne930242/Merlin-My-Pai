@@ -73,6 +73,26 @@
         mode: "0755"
       when: not ytdlp_installed.stat.exists
 
+    # edge-tts - Text-to-Speech using Microsoft Edge
+    - name: Install pipx
+      ansible.builtin.apt:
+        name: pipx
+        state: present
+
+    - name: Ensure pipx path for user
+      ansible.builtin.command:
+        cmd: pipx ensurepath
+      become: true
+      become_user: "{{ app_user }}"
+      changed_when: false
+
+    - name: Install edge-tts via pipx
+      ansible.builtin.command:
+        cmd: pipx install edge-tts
+        creates: "{{ home_dir }}/.local/bin/edge-tts"
+      become: true
+      become_user: "{{ app_user }}"
+
     - name: Schedule weekly yt-dlp update
       ansible.builtin.cron:
         name: "Update yt-dlp"

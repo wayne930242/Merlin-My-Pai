@@ -27,7 +27,24 @@ import {
   formatMemoriesForPrompt,
 } from "../../memory";
 import { bindChannel, unbindChannel, isChannelBound, getBoundChannels } from "./channels";
-import { joinChannel, leaveChannel, playMusic, skip, stop as stopVoice, getQueue, isInVoiceChannel, getVoiceChannelInfo, getNowPlaying } from "./voice";
+import {
+  joinChannel,
+  leaveChannel,
+  playMusic,
+  skip,
+  stop as stopVoice,
+  getQueue,
+  isInVoiceChannel,
+  getVoiceChannelInfo,
+  getNowPlaying,
+  setControlPanel,
+  getControlPanel,
+  clearControlPanel,
+  getGuildControlPanels,
+  setOnTrackChange,
+  speakTts,
+  type QueueItem,
+} from "./voice";
 import { transcribeAudio } from "../../services/transcription";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -53,6 +70,81 @@ const pendingDecisions = new Map<string, {
  */
 export function initializeTaskExecutor(client: Client): void {
   discordClient = client;
+
+  // 設定歌曲切換回調，重新發送控制面板（移到最下方）
+  setOnTrackChange(async (guildId, item) => {
+    const panels = getGuildControlPanels(guildId);
+    for (const { userId, panel } of panels) {
+      try {
+        const channel = await client.channels.fetch(panel.channelId);
+        if (channel?.isTextBased() && "messages" in channel && "send" in channel) {
+          // 刪除舊訊息
+          try {
+            const oldMessage = await channel.messages.fetch(panel.messageId);
+            await oldMessage.delete();
+          } catch {
+            // 忽略刪除錯誤
+          }
+
+          // 發送新訊息
+          const content = buildControlPanelContent(guildId);
+          const buttons = buildMusicButtons(guildId);
+          const newMessage = await channel.send({ content, components: [buttons] });
+
+          // 更新記錄
+          setControlPanel(userId, {
+            messageId: newMessage.id,
+            channelId: panel.channelId,
+            guildId,
+          });
+        }
+      } catch (error) {
+        logger.debug({ error, panel }, "Failed to update control panel");
+      }
+    }
+  });
+}
+
+/**
+ * 建立音樂控制按鈕
+ */
+function buildMusicButtons(guildId: string): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`music:skip:${guildId}`)
+      .setLabel("Skip")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`music:stop:${guildId}`)
+      .setLabel("Stop")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`music:queue:${guildId}`)
+      .setLabel("Queue")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`music:leave:${guildId}`)
+      .setLabel("Leave")
+      .setStyle(ButtonStyle.Secondary)
+  );
+}
+
+/**
+ * 建立控制面板內容
+ */
+function buildControlPanelContent(guildId: string): string {
+  const nowPlaying = getNowPlaying(guildId);
+  const queue = getQueue(guildId);
+
+  if (nowPlaying) {
+    let content = `**${nowPlaying.title}**`;
+    if (queue.length > 0) {
+      content += `\n${queue.length} in queue`;
+    }
+    return content;
+  }
+
+  return "Ready to play";
 }
 
 /**
@@ -546,6 +638,15 @@ export async function handleInteraction(interaction: ButtonInteraction): Promise
   const discordUserId = interaction.user.id;
   const userId = toNumericId(discordUserId);
 
+  // Parse callback data: action:param or music:action:guildId
+  const parts = data.split(":");
+
+  // Handle music buttons
+  if (parts[0] === "music" && parts.length === 3) {
+    await handleMusicButton(interaction, parts[1], parts[2]);
+    return;
+  }
+
   // Parse callback data: action:taskId
   const colonIndex = data.indexOf(":");
   if (colonIndex === -1) return;
@@ -614,6 +715,100 @@ export async function handleInteraction(interaction: ButtonInteraction): Promise
     }).catch((error) => {
       logger.error({ error, taskId }, "Queued task failed");
     });
+  }
+}
+
+/**
+ * Handle music button interactions
+ */
+async function handleMusicButton(
+  interaction: ButtonInteraction,
+  action: string,
+  guildId: string
+): Promise<void> {
+  const discordUserId = interaction.user.id;
+
+  switch (action) {
+    case "skip": {
+      if (skip(guildId)) {
+        await interaction.reply({ content: "⏭️ 已跳過", ephemeral: true });
+      } else {
+        await interaction.reply({ content: "沒有正在播放的歌曲", ephemeral: true });
+      }
+      break;
+    }
+
+    case "stop": {
+      if (stopVoice(guildId)) {
+        await interaction.reply({ content: "⏹️ 已停止播放並清空佇列", ephemeral: true });
+        // 更新控制面板
+        await updateControlPanelMessage(interaction, guildId);
+      } else {
+        await interaction.reply({ content: "沒有正在播放的歌曲", ephemeral: true });
+      }
+      break;
+    }
+
+    case "queue": {
+      const queue = getQueue(guildId);
+      const nowPlaying = getNowPlaying(guildId);
+
+      let content = "";
+      if (nowPlaying) {
+        content += `🎵 正在播放: **${nowPlaying.title}** [${nowPlaying.duration}]\n\n`;
+      }
+
+      if (queue.length === 0) {
+        content += "📋 播放佇列為空";
+      } else {
+        const lines = queue.slice(0, 10).map((item, i) =>
+          `${i + 1}. **${item.title}** [${item.duration}]`
+        );
+        if (queue.length > 10) {
+          lines.push(`\n...還有 ${queue.length - 10} 首`);
+        }
+        content += `📋 **播放佇列** (${queue.length} 首):\n${lines.join("\n")}`;
+      }
+
+      await interaction.reply({ content, ephemeral: true });
+      break;
+    }
+
+    case "leave": {
+      leaveChannel(guildId);
+      // 清除此 Guild 所有使用者的控制面板
+      const panels = getGuildControlPanels(guildId);
+      for (const { userId } of panels) {
+        clearControlPanel(userId);
+      }
+      await interaction.reply({ content: "👋 已離開語音頻道", ephemeral: true });
+      // 刪除控制面板訊息
+      try {
+        await interaction.message.delete();
+      } catch {
+        // 忽略刪除錯誤
+      }
+      break;
+    }
+
+    default:
+      await interaction.reply({ content: "未知操作", ephemeral: true });
+  }
+}
+
+/**
+ * 更新控制面板訊息
+ */
+async function updateControlPanelMessage(
+  interaction: ButtonInteraction,
+  guildId: string
+): Promise<void> {
+  try {
+    const content = buildControlPanelContent(guildId);
+    const buttons = buildMusicButtons(guildId);
+    await interaction.message.edit({ content, components: [buttons] });
+  } catch (error) {
+    logger.debug({ error, guildId }, "Failed to update control panel message");
   }
 }
 
@@ -806,12 +1001,44 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       }
 
       await interaction.deferReply();
+
+      // 檢查用戶是否在其他 Guild 有控制面板，若有則離開該語音頻道
+      const existingPanel = getControlPanel(discordUserId);
+      if (existingPanel && existingPanel.guildId !== interaction.guildId) {
+        // 離開舊的語音頻道
+        leaveChannel(existingPanel.guildId);
+        // 刪除舊控制面板訊息
+        try {
+          const oldChannel = await discordClient?.channels.fetch(existingPanel.channelId);
+          if (oldChannel?.isTextBased() && "messages" in oldChannel) {
+            const oldMessage = await oldChannel.messages.fetch(existingPanel.messageId);
+            await oldMessage.delete();
+          }
+        } catch {
+          // 忽略刪除錯誤
+        }
+        clearControlPanel(discordUserId);
+      }
+
       const result = await joinChannel(voiceChannel);
 
       if (result.ok) {
-        await interaction.editReply(`🎵 已加入 **${voiceChannel.name}**`);
+        // 發送控制面板
+        const content = buildControlPanelContent(interaction.guildId!);
+        const buttons = buildMusicButtons(interaction.guildId!);
+        const reply = await interaction.editReply({
+          content,
+          components: [buttons],
+        });
+
+        // 記錄控制面板
+        setControlPanel(discordUserId, {
+          messageId: reply.id,
+          channelId: interaction.channelId,
+          guildId: interaction.guildId!,
+        });
       } else {
-        await interaction.editReply(`❌ 無法加入語音頻道: ${result.error}`);
+        await interaction.editReply(`無法加入: ${result.error}`);
       }
       break;
     }
@@ -827,6 +1054,12 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         return;
       }
 
+      // 清除此 Guild 所有使用者的控制面板
+      const panels = getGuildControlPanels(interaction.guildId);
+      for (const { userId } of panels) {
+        clearControlPanel(userId);
+      }
+
       leaveChannel(interaction.guildId);
       await interaction.reply("👋 已離開語音頻道");
       break;
@@ -839,6 +1072,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       }
 
       const query = interaction.options.getString("query", true);
+      let needControlPanel = false;
 
       // Auto-join if not in voice channel
       if (!isInVoiceChannel(interaction.guildId)) {
@@ -851,11 +1085,29 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         }
 
         await interaction.deferReply();
+
+        // 檢查用戶是否在其他 Guild 有控制面板，若有則離開該語音頻道
+        const existingPanel = getControlPanel(discordUserId);
+        if (existingPanel && existingPanel.guildId !== interaction.guildId) {
+          leaveChannel(existingPanel.guildId);
+          try {
+            const oldChannel = await discordClient?.channels.fetch(existingPanel.channelId);
+            if (oldChannel?.isTextBased() && "messages" in oldChannel) {
+              const oldMessage = await oldChannel.messages.fetch(existingPanel.messageId);
+              await oldMessage.delete();
+            }
+          } catch {
+            // 忽略刪除錯誤
+          }
+          clearControlPanel(discordUserId);
+        }
+
         const joinResult = await joinChannel(voiceChannel);
         if (!joinResult.ok) {
           await interaction.editReply(`❌ 無法加入語音頻道: ${joinResult.error}`);
           return;
         }
+        needControlPanel = true;
       } else {
         await interaction.deferReply();
       }
@@ -865,9 +1117,26 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       if (result.ok) {
         const queue = getQueue(interaction.guildId);
         const queueInfo = queue.length > 0 ? ` (佇列: ${queue.length} 首)` : "";
-        await interaction.editReply(`🎵 已加入播放: **${result.item.title}** [${result.item.duration}]${queueInfo}`);
+
+        // 如果需要控制面板（auto-join 時）
+        if (needControlPanel) {
+          const content = buildControlPanelContent(interaction.guildId);
+          const buttons = buildMusicButtons(interaction.guildId);
+          const reply = await interaction.editReply({
+            content,
+            components: [buttons],
+          });
+
+          setControlPanel(discordUserId, {
+            messageId: reply.id,
+            channelId: interaction.channelId,
+            guildId: interaction.guildId,
+          });
+        } else {
+          await interaction.editReply(`Added: **${result.item.title}**${queueInfo}`);
+        }
       } else {
-        await interaction.editReply(`❌ ${result.error}`);
+        await interaction.editReply(`Error: ${result.error}`);
       }
       break;
     }
@@ -946,6 +1215,30 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         await interaction.reply(`🎵 正在播放: **${nowPlaying.title}** [${nowPlaying.duration}]`);
       } else {
         await interaction.reply({ content: "目前沒有播放中的歌曲", ephemeral: true });
+      }
+      break;
+    }
+
+    case "say": {
+      if (!interaction.guildId) {
+        await interaction.reply({ content: "此指令只能在伺服器中使用", ephemeral: true });
+        return;
+      }
+
+      if (!isInVoiceChannel(interaction.guildId)) {
+        await interaction.reply({ content: "Bot 不在語音頻道中，請先使用 /join", ephemeral: true });
+        return;
+      }
+
+      const text = interaction.options.getString("text", true);
+      await interaction.deferReply();
+
+      const result = await speakTts(interaction.guildId, text);
+
+      if (result.ok) {
+        await interaction.editReply(`🎙️ 已說出: "${text.slice(0, 100)}${text.length > 100 ? "..." : ""}"`);
+      } else {
+        await interaction.editReply(`❌ TTS 播放失敗: ${result.error}`);
       }
       break;
     }

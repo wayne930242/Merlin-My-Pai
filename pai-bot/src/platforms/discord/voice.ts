@@ -21,7 +21,11 @@ import { logger } from "../../utils/logger";
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
 const YOUTUBE_COOKIES_PATH = "/home/pai/youtube-cookies.txt";
 
-interface QueueItem {
+// TTS 設定
+const TTS_VOICE = "zh-TW-HsiaoChenNeural"; // 台灣女聲（曉臻）
+const TTS_TEMP_DIR = "/tmp/pai-tts";
+
+export interface QueueItem {
   url: string;
   title: string;
   duration: string;
@@ -38,6 +42,60 @@ interface GuildQueue {
 
 // Per-guild voice state
 const guildQueues = new Map<string, GuildQueue>();
+
+// 控制面板追蹤（每個使用者一個）
+interface ControlPanel {
+  messageId: string;
+  channelId: string;
+  guildId: string;
+}
+
+const userControlPanels = new Map<string, ControlPanel>();
+
+// 歌曲切換回調（用於更新控制面板）
+type TrackChangeCallback = (guildId: string, item: QueueItem | null) => void;
+let onTrackChangeCallback: TrackChangeCallback | null = null;
+
+/**
+ * 設定歌曲切換回調
+ */
+export function setOnTrackChange(callback: TrackChangeCallback): void {
+  onTrackChangeCallback = callback;
+}
+
+/**
+ * 設定使用者控制面板
+ */
+export function setControlPanel(userId: string, data: ControlPanel): void {
+  userControlPanels.set(userId, data);
+}
+
+/**
+ * 取得使用者控制面板
+ */
+export function getControlPanel(userId: string): ControlPanel | undefined {
+  return userControlPanels.get(userId);
+}
+
+/**
+ * 清除使用者控制面板
+ */
+export function clearControlPanel(userId: string): void {
+  userControlPanels.delete(userId);
+}
+
+/**
+ * 取得 Guild 中所有使用者的控制面板
+ */
+export function getGuildControlPanels(guildId: string): Array<{ userId: string; panel: ControlPanel }> {
+  const panels: Array<{ userId: string; panel: ControlPanel }> = [];
+  for (const [userId, panel] of userControlPanels) {
+    if (panel.guildId === guildId) {
+      panels.push({ userId, panel });
+    }
+  }
+  return panels;
+}
 
 /**
  * 加入語音頻道
@@ -65,6 +123,10 @@ export async function joinChannel(
       } else if (guildQueue) {
         guildQueue.playing = false;
         guildQueue.currentItem = null;
+        // 通知控制面板：播放結束
+        if (onTrackChangeCallback) {
+          onTrackChangeCallback(channel.guild.id, null);
+        }
       }
     });
 
@@ -286,6 +348,11 @@ async function playNext(guildId: string): Promise<void> {
 
     logger.info({ title: item.title }, "Now playing");
 
+    // 通知控制面板：新歌曲開始
+    if (onTrackChangeCallback) {
+      onTrackChangeCallback(guildId, item);
+    }
+
     // 監聯 yt-dlp 錯誤
     proc.exited.then(async (code) => {
       if (code !== 0 && proc.stderr) {
@@ -368,4 +435,112 @@ export function getNowPlaying(guildId: string): QueueItem | null {
     return null;
   }
   return guildQueue.currentItem;
+}
+
+/**
+ * 確保 TTS 暫存目錄存在
+ */
+async function ensureTtsTempDir(): Promise<void> {
+  const fs = await import("node:fs/promises");
+  try {
+    await fs.mkdir(TTS_TEMP_DIR, { recursive: true });
+  } catch {
+    // ignore if exists
+  }
+}
+
+/**
+ * 使用 edge-tts 生成語音並播放
+ */
+export async function speakTts(
+  guildId: string,
+  text: string,
+  options?: { voice?: string; interrupt?: boolean }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const guildQueue = guildQueues.get(guildId);
+  if (!guildQueue) {
+    return { ok: false, error: "Bot 不在語音頻道中" };
+  }
+
+  const voice = options?.voice || TTS_VOICE;
+  const interrupt = options?.interrupt ?? true;
+
+  try {
+    await ensureTtsTempDir();
+
+    // 生成唯一檔名
+    const filename = `${TTS_TEMP_DIR}/tts-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`;
+
+    // 使用 edge-tts 生成音頻
+    const proc = Bun.spawn([
+      "edge-tts",
+      "--voice", voice,
+      "--text", text,
+      "--write-media", filename,
+    ], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    const exitCode = await proc.exited;
+    if (exitCode !== 0) {
+      const stderr = await new Response(proc.stderr as ReadableStream).text();
+      logger.error({ stderr, exitCode }, "edge-tts failed");
+      return { ok: false, error: `TTS 生成失敗: ${stderr}` };
+    }
+
+    // 如果設定中斷，先暫停目前播放
+    const wasPlaying = guildQueue.playing;
+    const savedQueue = interrupt ? [...guildQueue.queue] : guildQueue.queue;
+    const savedCurrent = interrupt ? guildQueue.currentItem : null;
+
+    if (interrupt && wasPlaying) {
+      guildQueue.player.stop();
+      guildQueue.playing = false;
+    }
+
+    // 播放 TTS 音頻
+    const fs = await import("node:fs");
+    const readable = fs.createReadStream(filename);
+
+    const resource = createAudioResource(readable, {
+      inputType: StreamType.Arbitrary,
+    });
+
+    // 等待 TTS 播放完成
+    await new Promise<void>((resolve, reject) => {
+      const onIdle = () => {
+        guildQueue.player.off(AudioPlayerStatus.Idle, onIdle);
+        guildQueue.player.off("error", onError);
+        resolve();
+      };
+
+      const onError = (error: Error) => {
+        guildQueue.player.off(AudioPlayerStatus.Idle, onIdle);
+        guildQueue.player.off("error", onError);
+        reject(error);
+      };
+
+      guildQueue.player.on(AudioPlayerStatus.Idle, onIdle);
+      guildQueue.player.on("error", onError);
+      guildQueue.player.play(resource);
+    });
+
+    // 清理暫存檔
+    const fsPromises = await import("node:fs/promises");
+    await fsPromises.unlink(filename).catch(() => {});
+
+    // 如果之前有音樂在播放，恢復播放
+    if (interrupt && wasPlaying && savedCurrent) {
+      // 把之前的歌曲放回佇列開頭
+      guildQueue.queue = [savedCurrent, ...savedQueue];
+      await playNext(guildId);
+    }
+
+    logger.info({ text: text.slice(0, 50), voice }, "TTS played");
+    return { ok: true };
+  } catch (error) {
+    logger.error({ error, text }, "TTS playback failed");
+    return { ok: false, error: String(error) };
+  }
 }
