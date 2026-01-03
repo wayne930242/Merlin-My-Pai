@@ -1,5 +1,5 @@
 /**
- * Music Control Panel UI
+ * Player Panel (Music Control)
  */
 
 import {
@@ -9,12 +9,13 @@ import {
   StringSelectMenuBuilder,
   type MessageActionRowComponentBuilder,
 } from "discord.js";
-import { getQueue, getNowPlaying } from "../voice";
+import { getQueue, getNowPlaying } from "../../voice";
+import { buildModeSwitcher } from "./mode-switcher";
 
 /**
  * Build music control buttons
  */
-export function buildMusicButtons(guildId: string): ActionRowBuilder<ButtonBuilder> {
+export function buildPlayerButtons(guildId: string): ActionRowBuilder<ButtonBuilder> {
   const queue = getQueue(guildId);
   const nowPlaying = getNowPlaying(guildId);
 
@@ -67,35 +68,35 @@ export function buildQueueSelectMenu(
 
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId(`music:select:${guildId}`)
-    .setPlaceholder("選擇要播放的歌曲...")
+    .setPlaceholder("Select a song...")
     .addOptions(options);
 
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
 }
 
 /**
- * Build control panel content (message text)
+ * Build player panel content
  */
-export function buildControlPanelContent(guildId: string): string {
+export function buildPlayerContent(guildId: string): string {
   const nowPlaying = getNowPlaying(guildId);
   const queue = getQueue(guildId);
 
-  let content = "";
+  let content = "**[Player]**\n\n";
 
   if (nowPlaying) {
-    content += `Now Playing: **${truncateTitle(nowPlaying.title, 60)}**`;
+    content += `Now Playing: **${truncateTitle(nowPlaying.title, 50)}**`;
     if (nowPlaying.duration !== "?:??") {
       content += ` [${nowPlaying.duration}]`;
     }
   } else {
-    content += "Ready";
+    content += "Not playing";
   }
 
   if (queue.length > 0) {
-    content += `\n\n**Queue** (${queue.length}):\n`;
+    content += `\n\nQueue (${queue.length}):\n`;
     const displayQueue = queue.slice(0, 5);
     content += displayQueue
-      .map((item, i) => `${i + 1}. ${truncateTitle(item.title, 50)}`)
+      .map((item, i) => `${i + 1}. ${truncateTitle(item.title, 40)}`)
       .join("\n");
     if (queue.length > 5) {
       content += `\n... +${queue.length - 5} more`;
@@ -106,21 +107,24 @@ export function buildControlPanelContent(guildId: string): string {
 }
 
 /**
- * Build all components for control panel
+ * Build all components for player panel
  */
-export function buildControlPanelComponents(
+export function buildPlayerComponents(
   guildId: string
 ): ActionRowBuilder<MessageActionRowComponentBuilder>[] {
   const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [];
 
-  // Add select menu if queue has items
+  // Mode switcher (top)
+  components.push(buildModeSwitcher(guildId, "player") as ActionRowBuilder<MessageActionRowComponentBuilder>);
+
+  // Queue select menu
   const selectMenu = buildQueueSelectMenu(guildId);
   if (selectMenu) {
     components.push(selectMenu as ActionRowBuilder<MessageActionRowComponentBuilder>);
   }
 
-  // Add control buttons
-  components.push(buildMusicButtons(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>);
+  // Control buttons
+  components.push(buildPlayerButtons(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>);
 
   return components;
 }

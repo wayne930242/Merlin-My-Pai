@@ -119,34 +119,33 @@ async function handleMusicButton(
   switch (action) {
     case "prev": {
       if (previous(guildId)) {
-        await interaction.reply({ content: "⏮️ 重播目前歌曲", ephemeral: true });
+        await interaction.reply({ content: "Replaying current track", ephemeral: true });
         await updateControlPanelMessage(interaction, guildId);
       } else {
-        await interaction.reply({ content: "沒有正在播放的歌曲", ephemeral: true });
+        await interaction.reply({ content: "Nothing playing", ephemeral: true });
       }
       break;
     }
 
     case "skip": {
       if (skip(guildId)) {
-        await interaction.reply({ content: "⏭️ 已跳過", ephemeral: true });
+        await interaction.reply({ content: "Skipped", ephemeral: true });
         await updateControlPanelMessage(interaction, guildId);
       } else {
-        await interaction.reply({ content: "沒有正在播放的歌曲", ephemeral: true });
+        await interaction.reply({ content: "Nothing playing", ephemeral: true });
       }
       break;
     }
 
     case "stop": {
       if (stopVoice(guildId)) {
-        await interaction.reply({ content: "⏹️ 已停止播放並清空佇列", ephemeral: true });
+        await interaction.reply({ content: "Stopped and cleared queue", ephemeral: true });
         await updateControlPanelMessage(interaction, guildId);
       } else {
-        await interaction.reply({ content: "沒有正在播放的歌曲", ephemeral: true });
+        await interaction.reply({ content: "Nothing playing", ephemeral: true });
       }
       break;
     }
-
 
     case "leave": {
       leaveChannel(guildId);
@@ -154,7 +153,7 @@ async function handleMusicButton(
       for (const { userId } of panels) {
         clearControlPanel(userId);
       }
-      await interaction.reply({ content: "👋 已離開語音頻道", ephemeral: true });
+      await interaction.reply({ content: "Left voice channel", ephemeral: true });
       try {
         await interaction.message.delete();
       } catch {
@@ -184,12 +183,12 @@ export async function handleSelectMenuInteraction(
 
     if (playAt(guildId, selectedIndex)) {
       await interaction.reply({
-        content: `⏭️ 跳到第 ${selectedIndex + 1} 首`,
+        content: `Jumping to track ${selectedIndex + 1}`,
         ephemeral: true,
       });
       await updateControlPanelFromSelect(interaction, guildId);
     } else {
-      await interaction.reply({ content: "操作失敗", ephemeral: true });
+      await interaction.reply({ content: "Failed", ephemeral: true });
     }
   }
 }
