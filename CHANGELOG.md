@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.14.0 (2026-01-03)
+
+### Features
+
+- **bot**: Add time context to session prompt
+  ([`f2db31f`](https://github.com/wayne930242/weihung-pai/commit/f2db31ffdf60b716524fa176a43d8f82ee663c2d))
+
+
 ## v1.13.0 (2026-01-03)
 
 ### Features
