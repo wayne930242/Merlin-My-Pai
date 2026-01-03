@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.25.0 (2026-01-03)
+
+### Bug Fixes
+
+- **discord**: Add handleDiceSelectMenu for game system selection
+  ([`54cb5d3`](https://github.com/wayne930242/weihung-pai/commit/54cb5d3030daa04a91ae001d70ad091467e5afc0))
+
+### Features
+
+- **discord**: Replace YouTube with Spotify Connect
+  ([`a55a601`](https://github.com/wayne930242/weihung-pai/commit/a55a601e2d9f92153b6d25e96dc9c81b5ecfebb2))
+
+
 ## v1.24.1 (2026-01-03)
 
 ### Bug Fixes
