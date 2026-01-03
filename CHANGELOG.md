@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.12.0 (2026-01-03)
+
+### Features
+
+- **bot**: Inject session context into Claude prompts
+  ([`8698f9b`](https://github.com/wayne930242/weihung-pai/commit/8698f9b8d5a4219c6c014abc374e4b5f20cb2530))
+
+
 ## v1.11.0 (2026-01-03)
 
 ### Features
