@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.17.0 (2026-01-03)
+
+### Features
+
+- **discord**: Improve music panel with queue display and track selection
+  ([`16268f5`](https://github.com/wayne930242/weihung-pai/commit/16268f56c4f5bf241ab0c337027b4422602d0694))
+
+### Refactoring
+
+- **discord**: Split handlers.ts into modular structure
+  ([`ed3643f`](https://github.com/wayne930242/weihung-pai/commit/ed3643ffe549c8c6f03f3e9d04d8a0830eb5df5b))
+
+
 ## v1.16.0 (2026-01-03)
 
 ### Chores
