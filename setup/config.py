@@ -216,18 +216,6 @@ OPTIONAL_FEATURES: list[FeatureDef] = [
             },
         ],
     },
-    {
-        "name": "youtube",
-        "description": "YouTube 音樂播放功能",
-        "vars": [
-            {
-                "key": "vault_youtube_api_key",
-                "prompt": "YouTube API Key",
-                "help": "從 Google Cloud Console 取得（啟用 YouTube Data API v3）",
-                "secret": True,
-            },
-        ],
-    },
 ]
 
 # Playbooks
