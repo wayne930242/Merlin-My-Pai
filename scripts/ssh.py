@@ -72,6 +72,44 @@ def ssh_to_vps(command: str | None = None) -> int:
             pass
 
 
+def get_ssh_command() -> list[str] | None:
+    """
+    取得 SSH 命令列表（用於其他腳本調用）
+
+    Returns:
+        SSH 命令列表，失敗時返回 None
+    """
+    vault = decrypt_vault()
+    ssh_key = extract_ssh_private_key(vault)
+    server_ip = vault.get("vault_server_ip")
+
+    if not server_ip:
+        return None
+
+    # 寫入臨時 key 檔案
+    fd, key_file = tempfile.mkstemp(prefix=".pai_ssh_", text=True)
+    os.write(fd, ssh_key.encode())
+    os.close(fd)
+    os.chmod(key_file, 0o600)
+
+    def cleanup() -> None:
+        try:
+            os.unlink(key_file)
+        except OSError:
+            pass
+
+    atexit.register(cleanup)
+
+    return [
+        "ssh",
+        "-i",
+        key_file,
+        "-o",
+        "StrictHostKeyChecking=no",
+        f"pai@{server_ip}",
+    ]
+
+
 def setup_ssh_config() -> int:
     """
     設定 SSH config（從 vault 提取 key 和 IP）
