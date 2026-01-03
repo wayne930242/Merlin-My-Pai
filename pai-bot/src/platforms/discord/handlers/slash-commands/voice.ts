@@ -17,7 +17,7 @@ import {
   getGuildControlPanels,
   speakTts,
 } from "../../voice";
-import { buildPanelContent, buildPanelComponents, parseAndRoll, type PanelMode } from "../panels";
+import { buildPanelContent, buildPanelComponents, parseAndRoll, setDicePanel, type PanelMode } from "../panels";
 
 // Discord client reference (set by index.ts)
 let discordClient: Client | null = null;
@@ -261,17 +261,23 @@ export async function handlePanel(
 
   // Dice mode doesn't require voice channel
   if (mode === "dice") {
-    const member = interaction.member;
-    const displayName = member && "displayName" in member
-      ? member.displayName
-      : interaction.user.displayName;
+    // Send history message first
+    const historyMsg = await interaction.reply({ content: "**擲骰歷史**\n—", fetchReply: true });
 
-    const content = buildPanelContent(mode, interaction.guildId, { userId: discordUserId, displayName });
-    const components = buildPanelComponents(mode, interaction.guildId, { userId: discordUserId });
-    const reply = await interaction.reply({ content, components, fetchReply: true });
+    // Send panel message
+    const content = buildPanelContent(mode, interaction.guildId);
+    const components = buildPanelComponents(mode, interaction.guildId);
+    const panelMsg = await interaction.followUp({ content, components, fetchReply: true });
+
+    // Track the dice panel
+    setDicePanel(interaction.channelId, {
+      historyMessageId: historyMsg.id,
+      panelMessageId: panelMsg.id,
+      channelId: interaction.channelId,
+    });
 
     setControlPanel(discordUserId, {
-      messageId: reply.id,
+      messageId: panelMsg.id,
       channelId: interaction.channelId,
       guildId: interaction.guildId,
       mode,

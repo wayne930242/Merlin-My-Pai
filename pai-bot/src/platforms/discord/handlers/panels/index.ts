@@ -22,25 +22,25 @@ export {
   undoLastDie,
   clearDiceState,
   rollAccumulatedDice,
+  formatAccumulatedDice,
   getDiceState,
+  setDicePanel,
+  getDicePanel,
+  clearDicePanel,
   type DiceResult,
   type DiceType,
+  type DicePanel,
 } from "./dice";
-
-export interface PanelOptions {
-  userId?: string;
-  displayName?: string;
-}
 
 /**
  * Build panel content based on mode
  */
-export function buildPanelContent(mode: PanelMode, guildId: string, options?: PanelOptions): string {
+export function buildPanelContent(mode: PanelMode, guildId: string): string {
   switch (mode) {
     case "player":
       return buildPlayerContent(guildId);
     case "dice":
-      return buildDiceContent(options?.userId || "", options?.displayName);
+      return buildDiceContent();
   }
 }
 
@@ -49,13 +49,12 @@ export function buildPanelContent(mode: PanelMode, guildId: string, options?: Pa
  */
 export function buildPanelComponents(
   mode: PanelMode,
-  guildId: string,
-  options?: PanelOptions
+  guildId: string
 ): ActionRowBuilder<MessageActionRowComponentBuilder>[] {
   switch (mode) {
     case "player":
       return buildPlayerComponents(guildId);
     case "dice":
-      return buildDiceComponents(guildId, options?.userId || "");
+      return buildDiceComponents(guildId);
   }
 }

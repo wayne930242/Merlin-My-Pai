@@ -26,6 +26,27 @@ export interface DiceState {
 
 const userDiceStates = new Map<string, DiceState>();
 
+// Per-channel dice history message tracking
+export interface DicePanel {
+  historyMessageId: string;
+  panelMessageId: string;
+  channelId: string;
+}
+
+const dicePanels = new Map<string, DicePanel>(); // channelId -> DicePanel
+
+export function setDicePanel(channelId: string, panel: DicePanel): void {
+  dicePanels.set(channelId, panel);
+}
+
+export function getDicePanel(channelId: string): DicePanel | undefined {
+  return dicePanels.get(channelId);
+}
+
+export function clearDicePanel(channelId: string): void {
+  dicePanels.delete(channelId);
+}
+
 /**
  * Get user's dice state
  */
@@ -281,11 +302,11 @@ export function formatResult(result: DiceResult): string {
 /**
  * Build dice buttons row 1 (d4-d12)
  */
-function buildDiceRow1(guildId: string, userId: string): ActionRowBuilder<ButtonBuilder> {
+function buildDiceRow1(guildId: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     ...DICE_ROW_1.map((dice) =>
       new ButtonBuilder()
-        .setCustomId(`dice:add:${dice}:${guildId}:${userId}`)
+        .setCustomId(`dice:add:${dice}:${guildId}`)
         .setLabel(dice.toUpperCase())
         .setStyle(ButtonStyle.Secondary)
     )
@@ -295,64 +316,54 @@ function buildDiceRow1(guildId: string, userId: string): ActionRowBuilder<Button
 /**
  * Build dice buttons row 2 (d20, d100, Undo)
  */
-function buildDiceRow2(guildId: string, userId: string, hasAccumulated: boolean): ActionRowBuilder<ButtonBuilder> {
+function buildDiceRow2(guildId: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     ...DICE_ROW_2.map((dice) =>
       new ButtonBuilder()
-        .setCustomId(`dice:add:${dice}:${guildId}:${userId}`)
+        .setCustomId(`dice:add:${dice}:${guildId}`)
         .setLabel(dice.toUpperCase())
         .setStyle(dice === "d20" ? ButtonStyle.Primary : ButtonStyle.Secondary)
     ),
     new ButtonBuilder()
-      .setCustomId(`dice:undo:${guildId}:${userId}`)
+      .setCustomId(`dice:undo:${guildId}`)
       .setLabel("↩ Undo")
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!hasAccumulated)
   );
 }
 
 /**
  * Build action row with Roll and Clear buttons
  */
-function buildDiceActionRow(guildId: string, userId: string, hasAccumulated: boolean): ActionRowBuilder<ButtonBuilder> {
+function buildDiceActionRow(guildId: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`dice:roll:${guildId}:${userId}`)
+      .setCustomId(`dice:roll:${guildId}`)
       .setLabel("🎲 Roll")
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(!hasAccumulated),
+      .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
-      .setCustomId(`dice:clear:${guildId}:${userId}`)
+      .setCustomId(`dice:clear:${guildId}`)
       .setLabel("Clear")
       .setStyle(ButtonStyle.Danger)
-      .setDisabled(!hasAccumulated)
   );
 }
 
 /**
  * Build dice panel content
  */
-export function buildDiceContent(userId: string, displayName?: string): string {
-  const state = getDiceState(userId);
-  const accumulated = state ? formatAccumulatedDice(state) : "—";
-  const nameLabel = displayName ? ` (${displayName})` : "";
-  return `**[Dice]**${nameLabel}\n累計: ${accumulated}`;
+export function buildDiceContent(): string {
+  return "**[Dice]** 點擊骰子累積，Roll 擲出";
 }
 
 /**
  * Build all components for dice panel
  */
 export function buildDiceComponents(
-  guildId: string,
-  userId: string
+  guildId: string
 ): ActionRowBuilder<MessageActionRowComponentBuilder>[] {
-  const state = getDiceState(userId);
-  const hasAccumulated = state ? state.dice.size > 0 : false;
-
   return [
     buildModeSwitcher(guildId, "dice") as ActionRowBuilder<MessageActionRowComponentBuilder>,
-    buildDiceRow1(guildId, userId) as ActionRowBuilder<MessageActionRowComponentBuilder>,
-    buildDiceRow2(guildId, userId, hasAccumulated) as ActionRowBuilder<MessageActionRowComponentBuilder>,
-    buildDiceActionRow(guildId, userId, hasAccumulated) as ActionRowBuilder<MessageActionRowComponentBuilder>,
+    buildDiceRow1(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>,
+    buildDiceRow2(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>,
+    buildDiceActionRow(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>,
   ];
 }

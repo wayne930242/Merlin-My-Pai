@@ -25,6 +25,8 @@ import {
   undoLastDie,
   clearDiceState,
   rollAccumulatedDice,
+  formatAccumulatedDice,
+  getDicePanel,
   type PanelMode,
   type DiceType,
 } from "./panels";
@@ -150,14 +152,9 @@ async function handlePanelSwitch(
     // Ignore delete errors
   }
 
-  // Get display name for dice panel
-  const displayName = interaction.member && "displayName" in interaction.member
-    ? interaction.member.displayName
-    : interaction.user.displayName;
-
   // Send new message at bottom
-  const content = buildPanelContent(mode, guildId, { userId: discordUserId, displayName });
-  const components = buildPanelComponents(mode, guildId, { userId: discordUserId });
+  const content = buildPanelContent(mode, guildId);
+  const components = buildPanelComponents(mode, guildId);
   const newMessage = await channel.send({ content, components });
 
   // Update panel record
@@ -248,10 +245,10 @@ async function handleMusicButton(
 /**
  * Handle dice button interactions
  * Formats:
- * - dice:add:diceType:guildId:userId - add a die
- * - dice:roll:guildId:userId - roll all accumulated dice
- * - dice:clear:guildId:userId - clear accumulated dice
- * - dice:undo:guildId:userId - undo last added die
+ * - dice:add:diceType:guildId - add a die
+ * - dice:roll:guildId - roll all accumulated dice
+ * - dice:clear:guildId - clear accumulated dice
+ * - dice:undo:guildId - undo last added die
  */
 async function handleDiceButton(
   interaction: ButtonInteraction,
@@ -267,76 +264,82 @@ async function handleDiceButton(
     ? interaction.member.displayName
     : interaction.user.displayName;
 
-  let guildId: string;
-  let resultMessage: string | null = null;
-
   switch (action) {
     case "add": {
-      // dice:add:diceType:guildId:userId
+      // dice:add:diceType:guildId
       const diceType = parts[2] as DiceType;
-      guildId = parts[3];
-      addDie(discordUserId, diceType, guildId);
-      break;
+      const guildId = parts[3];
+      const state = addDie(discordUserId, diceType, guildId);
+      const accumulated = formatAccumulatedDice(state);
+      await interaction.reply({ content: `你的累積: ${accumulated}`, ephemeral: true });
+      return;
     }
 
     case "roll": {
-      // dice:roll:guildId:userId
-      guildId = parts[2];
+      // dice:roll:guildId
       const rollResult = rollAccumulatedDice(discordUserId);
       if (!rollResult) {
         await interaction.reply({ content: "沒有累積的骰子", ephemeral: true });
         return;
       }
-      resultMessage = `**${displayName}** 擲骰:\n${rollResult}`;
-      break;
+
+      // Try to edit history message
+      const dicePanel = getDicePanel(interaction.channelId);
+      if (dicePanel && channel && "messages" in channel) {
+        try {
+          const historyMsg = await channel.messages.fetch(dicePanel.historyMessageId);
+          const currentContent = historyMsg.content;
+          const newEntry = `<@${discordUserId}> ${rollResult.replace(/\n\n\*\*Total:.*\*\*$/, "").replace(/\n/g, " | ")}`;
+
+          // Check if near Discord's 2000 char limit
+          if (currentContent.length + newEntry.length + 2 > 1900) {
+            await interaction.reply({
+              content: "歷史訊息已滿，請使用 `/panel dice` 重新建立面板",
+              ephemeral: true
+            });
+            return;
+          }
+
+          const newContent = currentContent === "**擲骰歷史**\n—"
+            ? `**擲骰歷史**\n${newEntry}`
+            : `${currentContent}\n${newEntry}`;
+
+          await historyMsg.edit(newContent);
+          await interaction.reply({ content: "已擲出！", ephemeral: true });
+          return;
+        } catch {
+          // History message not found, fall back to normal reply
+        }
+      }
+
+      // Fallback: send as new message
+      await interaction.reply(`<@${discordUserId}> 擲骰:\n${rollResult}`);
+      return;
     }
 
     case "clear": {
-      // dice:clear:guildId:userId
-      guildId = parts[2];
+      // dice:clear:guildId
       clearDiceState(discordUserId);
-      break;
+      await interaction.reply({ content: "已清除累積", ephemeral: true });
+      return;
     }
 
     case "undo": {
-      // dice:undo:guildId:userId
-      guildId = parts[2];
-      if (!undoLastDie(discordUserId)) {
+      // dice:undo:guildId
+      const state = undoLastDie(discordUserId);
+      if (!state) {
         await interaction.reply({ content: "沒有可撤銷的骰子", ephemeral: true });
         return;
       }
-      break;
+      const accumulated = formatAccumulatedDice(state);
+      await interaction.reply({ content: `你的累積: ${accumulated}`, ephemeral: true });
+      return;
     }
 
     default:
       await interaction.reply({ content: "Unknown action", ephemeral: true });
       return;
   }
-
-  // Delete old panel message
-  try {
-    await interaction.message.delete();
-  } catch {
-    // Ignore delete errors
-  }
-
-  // Send dice result if any
-  if (resultMessage) {
-    await channel.send(resultMessage);
-  }
-
-  // Send new panel at bottom
-  const content = buildPanelContent("dice", guildId, { userId: discordUserId, displayName });
-  const components = buildPanelComponents("dice", guildId, { userId: discordUserId });
-  const newMessage = await channel.send({ content, components });
-
-  // Update panel record
-  setControlPanel(discordUserId, {
-    messageId: newMessage.id,
-    channelId: interaction.channelId,
-    guildId,
-    mode: "dice",
-  });
 }
 
 /**
