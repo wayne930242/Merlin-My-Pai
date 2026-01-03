@@ -305,7 +305,7 @@ async function handleDiceButton(
             : `${currentContent}\n${newEntry}`;
 
           await historyMsg.edit(newContent);
-          await interaction.reply({ content: "已擲出！", ephemeral: true });
+          await interaction.reply({ content: `你的結果:\n${rollResult}`, ephemeral: true });
           return;
         } catch {
           // History message not found, fall back to normal reply
