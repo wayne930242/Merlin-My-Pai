@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.17.1 (2026-01-03)
+
+### Bug Fixes
+
+- **discord**: Improve voice connection state tracking
+  ([`fdae86d`](https://github.com/wayne930242/weihung-pai/commit/fdae86d1e3eeeb1ac6305601163358b199bdaf9d))
+
+### Refactoring
+
+- **discord**: Remove emojis from music panel UI
+  ([`607ee09`](https://github.com/wayne930242/weihung-pai/commit/607ee094631ec1bf9dd5964832dca2b769f3d09b))
+
+
 ## v1.17.0 (2026-01-03)
 
 ### Features
