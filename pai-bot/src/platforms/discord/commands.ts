@@ -39,17 +39,9 @@ const slashCommands = [
     ),
   new SlashCommandBuilder()
     .setName("panel")
-    .setDescription("顯示控制面板")
+    .setDescription("顯示控制面板 (player/sound/dice)")
     .addStringOption(option =>
-      option
-        .setName("mode")
-        .setDescription("面板模式")
-        .setRequired(false)
-        .addChoices(
-          { name: "Player - 音樂播放器", value: "player" },
-          { name: "Sound - 音效板", value: "soundboard" },
-          { name: "Dice - TRPG 骰子", value: "dice" }
-        )
+      option.setName("mode").setDescription("player / sound / dice").setRequired(false)
     ),
 ].map(cmd => cmd.toJSON());
 

@@ -254,8 +254,11 @@ export async function handlePanel(
     return;
   }
 
-  const modeOption = interaction.options.getString("mode") as PanelMode | null;
-  const mode: PanelMode = modeOption ?? "dice";
+  const modeInput = interaction.options.getString("mode")?.toLowerCase();
+  let mode: PanelMode = "dice";
+  if (modeInput === "player" || modeInput === "p") mode = "player";
+  else if (modeInput === "sound" || modeInput === "soundboard" || modeInput === "s") mode = "soundboard";
+  else if (modeInput === "dice" || modeInput === "d") mode = "dice";
 
   // Dice mode doesn't require voice channel
   if (mode === "dice") {
