@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.16.0 (2026-01-03)
+
+### Chores
+
+- Add YouTube API key to vault
+  ([`e75841b`](https://github.com/wayne930242/weihung-pai/commit/e75841bb2be747ed1d088a78d04b52909918b9f8))
+
+### Features
+
+- **discord**: Add music control panel and MCP tools
+  ([`bd032f1`](https://github.com/wayne930242/weihung-pai/commit/bd032f1a484cf65758af477aa338183a9fe7b6b9))
+
+
 ## v1.15.0 (2026-01-03)
 
 ### Features
