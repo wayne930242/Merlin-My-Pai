@@ -302,16 +302,15 @@ export async function startSpotifyConnect(
           errorCount++;
           logger.warn({ line: line.trim(), errorCount }, "Librespot auth error");
 
-          // Auto-recover: clear cache and restart after 3 consecutive errors
+          // Auto-recover: clear audio cache (not credentials) and restart after 3 consecutive errors
           if (errorCount >= 3) {
-            logger.info({ guildId }, "Too many auth errors, clearing cache and restarting");
+            logger.info({ guildId }, "Too many auth errors, clearing audio cache and restarting");
             proc.kill();
 
-            // Clear cache
+            // Clear only audio cache (files/), keep credentials.json
             const fs = await import("node:fs/promises");
             try {
-              await fs.rm(LIBRESPOT_CACHE, { recursive: true, force: true });
-              await fs.mkdir(LIBRESPOT_CACHE, { recursive: true });
+              await fs.rm(`${LIBRESPOT_CACHE}/files`, { recursive: true, force: true });
             } catch {
               // ignore
             }
