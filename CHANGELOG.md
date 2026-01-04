@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.28.2 (2026-01-04)
+
+### Bug Fixes
+
+- **voice**: Cancel stale reconnect when new join happens
+  ([`255927b`](https://github.com/wayne930242/weihung-pai/commit/255927b2af9662a2487d9b4c8f1d7c949b7de036))
+
+
 ## v1.28.1 (2026-01-04)
 
 ### Bug Fixes
