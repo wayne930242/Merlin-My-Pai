@@ -165,7 +165,7 @@ export async function startSpotifyConnect(
       "--name", SPOTIFY_DEVICE_NAME,
       "--cache", LIBRESPOT_CACHE,
       "--backend", "pipe",
-      "--initial-volume", "50",
+      "--initial-volume", "75",
       "--enable-volume-normalisation",
       "--format", "S16",
       "--bitrate", "320",

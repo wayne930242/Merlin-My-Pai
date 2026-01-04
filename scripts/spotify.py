@@ -48,11 +48,12 @@ def do_auth() -> int:
     print()
     print("-" * 50)
 
-    # Run librespot OAuth
+    # Run librespot OAuth (使用 pipe backend 避免 ALSA 錯誤)
     exit_code = ssh_to_vps(
         f"{LIBRESPOT_PATH} "
         f"--name '{DEVICE_NAME}' "
         f"--cache {CACHE_DIR} "
+        "--backend pipe "
         "--enable-oauth "
         "--oauth-port 0"
     )
