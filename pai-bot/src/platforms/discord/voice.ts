@@ -27,76 +27,17 @@ const SPOTIFY_DEVICE_NAME = "Merlin DJ";
 const TTS_VOICE = "zh-TW-HsiaoChenNeural"; // 台灣女聲（曉臻）
 const TTS_TEMP_DIR = "/tmp/pai-tts";
 
-export interface QueueItem {
-  url: string;
-  title: string;
-  duration: string;
-}
-
 interface GuildQueue {
   connection: VoiceConnection;
   player: AudioPlayer;
-  queue: QueueItem[];
   playing: boolean;
   channelId: string;
-  currentItem: QueueItem | null;
   librespotProc: ReturnType<typeof Bun.spawn> | null;
   spotifyConnected: boolean;
 }
 
 // Per-guild voice state
 const guildQueues = new Map<string, GuildQueue>();
-
-// 控制面板追蹤（每個使用者一個）
-import type { ControlPanel } from "./handlers/panels/types";
-export type { ControlPanel } from "./handlers/panels/types";
-
-const userControlPanels = new Map<string, ControlPanel>();
-
-// 歌曲切換回調（用於更新控制面板）
-type TrackChangeCallback = (guildId: string, item: QueueItem | null) => void;
-let onTrackChangeCallback: TrackChangeCallback | null = null;
-
-/**
- * 設定歌曲切換回調
- */
-export function setOnTrackChange(callback: TrackChangeCallback): void {
-  onTrackChangeCallback = callback;
-}
-
-/**
- * 設定使用者控制面板
- */
-export function setControlPanel(userId: string, data: ControlPanel): void {
-  userControlPanels.set(userId, data);
-}
-
-/**
- * 取得使用者控制面板
- */
-export function getControlPanel(userId: string): ControlPanel | undefined {
-  return userControlPanels.get(userId);
-}
-
-/**
- * 清除使用者控制面板
- */
-export function clearControlPanel(userId: string): void {
-  userControlPanels.delete(userId);
-}
-
-/**
- * 取得 Guild 中所有使用者的控制面板
- */
-export function getGuildControlPanels(guildId: string): Array<{ userId: string; panel: ControlPanel }> {
-  const panels: Array<{ userId: string; panel: ControlPanel }> = [];
-  for (const [userId, panel] of userControlPanels) {
-    if (panel.guildId === guildId) {
-      panels.push({ userId, panel });
-    }
-  }
-  return panels;
-}
 
 /**
  * 加入語音頻道
@@ -121,11 +62,6 @@ export async function joinChannel(
       const guildQueue = guildQueues.get(channel.guild.id);
       if (guildQueue) {
         guildQueue.playing = false;
-        guildQueue.currentItem = null;
-        // 通知控制面板：播放結束
-        if (onTrackChangeCallback) {
-          onTrackChangeCallback(channel.guild.id, null);
-        }
       }
     });
 
@@ -162,10 +98,8 @@ export async function joinChannel(
     guildQueues.set(channel.guild.id, {
       connection,
       player,
-      queue: [],
       playing: false,
       channelId: channel.id,
-      currentItem: null,
       librespotProc: null,
       spotifyConnected: false,
     });
