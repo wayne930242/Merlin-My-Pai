@@ -247,7 +247,7 @@ export async function startSpotifyConnect(
         "--format",
         "S16",
         "--bitrate",
-        "320",
+        "160",
       ],
       {
         stdout: "pipe",
