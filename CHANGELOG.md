@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.28.0 (2026-01-04)
+
+### Bug Fixes
+
+- **spotify**: Increase default volume to 100%
+  ([`2a51bcf`](https://github.com/wayne930242/weihung-pai/commit/2a51bcf2def7e7578be609771fa978048ce2b2d6))
+
+### Features
+
+- **discord**: Add volume control panel for Spotify
+  ([`fa7978f`](https://github.com/wayne930242/weihung-pai/commit/fa7978f3103972793c789dcfa7feb8aaa7e0daa6))
+
+
 ## v1.27.1 (2026-01-04)
 
 ### Bug Fixes
