@@ -8,6 +8,17 @@ import { startScheduler, stopScheduler, type Schedule, type TaskResult } from ".
 import { callClaude } from "./claude/client";
 import type { Client } from "discord.js";
 
+// 全局錯誤處理 - 確保所有錯誤都記錄到 error log
+process.on("uncaughtException", (error) => {
+  logger.fatal({ error: error.message, stack: error.stack }, "Uncaught exception");
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  const error = reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason;
+  logger.error({ error, promise: String(promise) }, "Unhandled promise rejection");
+});
+
 async function main() {
   try {
     // Validate configuration
