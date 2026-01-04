@@ -44,6 +44,12 @@ Personal AI Infrastructure - Merlin 專案開發環境。
 - 範例：`uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml`
 - 此 wrapper 會自動從 vault 解密 SSH key
 - ansible.cfg 在專案根目錄，已設定 inventory 和 vault_password_file
+
+**Law 10: TOON 格式**
+- 結構化資料輸出優先使用 TOON 格式（省 30-60% tokens）
+- 使用 `toon-py` 套件：`from toon_py import encode, decode`
+- 適用場景：索引、配置、API 回應等重複結構資料
+- 參考：https://github.com/toon-format/toon
 </law>
 
 ## 專案結構

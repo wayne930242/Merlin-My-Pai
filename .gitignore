@@ -37,6 +37,7 @@ logs/
 
 # ===== Mutagen =====
 mutagen.yml.lock
+local.yml
 
 # ===== Temporary =====
 tmp/

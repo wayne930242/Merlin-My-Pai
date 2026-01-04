@@ -1,0 +1,22 @@
+# 個人設定（複製為 local.yml 後編輯）
+# 此檔案不會被 commit 到 git
+
+# ===== Mutagen 同步 =====
+sync:
+  # Obsidian vault 同步
+  obsidian:
+    # 本地 vault 路徑（必填）
+    local_path: ~/Documents/MyVault
+
+    # VPS 上的路徑（選填，預設 ~/obsidian）
+    remote_path: ~/obsidian
+
+    # 同步模式（選填，預設 one-way-replica）
+    # one-way-replica: 本地 → VPS（推薦，保護本地資料）
+    # two-way-resolved: 雙向同步
+    mode: one-way-replica
+
+# ===== 未來可擴充 =====
+# 例如：
+# notifications:
+#   slack_webhook: https://hooks.slack.com/...
