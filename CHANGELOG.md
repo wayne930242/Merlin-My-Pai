@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v1.43.2 (2026-01-05)
+
+### Bug Fixes
+
+- Add missing logs and settings components
+  ([`fe333a7`](https://github.com/wayne930242/weihung-pai/commit/fe333a7681a20f371d4e36079d40239c4e823630))
+
+- **gitignore**: Allow src/components/logs directory
+  ([`97e1079`](https://github.com/wayne930242/weihung-pai/commit/97e107916d47fb2920ddbfc1eb7f893fbb85dd4e))
+
+
 ## v1.43.1 (2026-01-05)
 
 ### Bug Fixes
