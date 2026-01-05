@@ -440,6 +440,41 @@ export function startApiServer(port = 3000) {
           return Response.json({ memories });
         }
 
+        // History - list
+        if (path === "/api/history/list" && method === "GET") {
+          const { listHistory } = await import("../mcp/tools/history-utils");
+          const type = url.searchParams.get("type") || "all";
+          const limit = parseInt(url.searchParams.get("limit") || "20", 10);
+          const items = await listHistory(type as any, limit);
+          return Response.json({ items }, { headers: corsHeaders });
+        }
+
+        // History - search
+        if (path === "/api/history/search" && method === "GET") {
+          const { searchHistory } = await import("../mcp/tools/history-utils");
+          const query = url.searchParams.get("query");
+          if (!query) {
+            return Response.json({ error: "query required" }, { status: 400 });
+          }
+          const type = url.searchParams.get("type") || "all";
+          const limit = parseInt(url.searchParams.get("limit") || "10", 10);
+          const items = await searchHistory(query, type as any, limit);
+          return Response.json({ items }, { headers: corsHeaders });
+        }
+
+        // History - read
+        if (path.startsWith("/api/history/read/") && method === "GET") {
+          const { readHistory } = await import("../mcp/tools/history-utils");
+          const parts = path.split("/");
+          const type = parts[4];
+          const filename = parts.slice(5).join("/");
+          if (!type || !filename) {
+            return Response.json({ error: "type and filename required" }, { status: 400 });
+          }
+          const content = await readHistory(type as any, filename);
+          return Response.json({ content }, { headers: corsHeaders });
+        }
+
         // 404
         return Response.json({ error: "Not found" }, { status: 404, headers: corsHeaders });
       } catch (error) {

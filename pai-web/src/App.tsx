@@ -1,9 +1,21 @@
 import { useCallback, useRef, useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { ChatView } from '@/components/chat/chat-view'
+import { MemoryView } from '@/components/memory/memory-view'
+import { HistoryView } from '@/components/history/history-view'
 import { useWs, type WsEvent } from '@/hooks/use-websocket'
 import { Separator } from '@/components/ui/separator'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+})
 
 interface Message {
   id: string
@@ -98,49 +110,43 @@ function App() {
   }, [sendChat])
 
   return (
-    <SidebarProvider>
-      <AppSidebar
-        isConnected={isConnected}
-        currentView={currentView}
-        onViewChange={setCurrentView}
-      />
-      <SidebarInset>
-        <header className="flex h-12 sm:h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <h1 className="text-base sm:text-lg font-semibold capitalize">{currentView}</h1>
-        </header>
+    <QueryClientProvider client={queryClient}>
+      <SidebarProvider>
+        <AppSidebar
+          isConnected={isConnected}
+          currentView={currentView}
+          onViewChange={setCurrentView}
+        />
+        <SidebarInset>
+          <header className="flex h-12 sm:h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <h1 className="text-base sm:text-lg font-semibold capitalize">{currentView}</h1>
+          </header>
 
-        <main className="flex-1 overflow-hidden">
-          {currentView === 'chat' && (
-            <ChatView
-              messages={messages}
-              isLoading={isLoading}
-              currentResponse={currentResponse}
-              onSendMessage={handleSendMessage}
-            />
-          )}
+          <main className="flex-1 overflow-hidden">
+            {currentView === 'chat' && (
+              <ChatView
+                messages={messages}
+                isLoading={isLoading}
+                currentResponse={currentResponse}
+                onSendMessage={handleSendMessage}
+              />
+            )}
 
-          {currentView === 'memory' && (
-            <div className="p-4 text-center text-muted-foreground">
-              Memory Manager (Coming Soon)
-            </div>
-          )}
+            {currentView === 'memory' && <MemoryView />}
 
-          {currentView === 'history' && (
-            <div className="p-4 text-center text-muted-foreground">
-              History Browser (Coming Soon)
-            </div>
-          )}
+            {currentView === 'history' && <HistoryView />}
 
-          {currentView === 'settings' && (
-            <div className="p-4 text-center text-muted-foreground">
-              Settings (Coming Soon)
-            </div>
-          )}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+            {currentView === 'settings' && (
+              <div className="p-4 text-center text-muted-foreground">
+                Settings (Coming Soon)
+              </div>
+            )}
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </QueryClientProvider>
   )
 }
 
