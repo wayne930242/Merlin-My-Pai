@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.43.4 (2026-01-05)
+
+### Bug Fixes
+
+- **chat**: Properly handle local commands with response messages
+  ([`8264ebe`](https://github.com/wayne930242/weihung-pai/commit/8264ebe9b1fe1b6a99fadbde0e1f330b44db70f3))
+
+
 ## v1.43.3 (2026-01-05)
 
 ### Bug Fixes
