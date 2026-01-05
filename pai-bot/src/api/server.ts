@@ -383,7 +383,7 @@ export function startApiServer(port = 3000) {
           if (!content) {
             return Response.json(
               { error: "content required" },
-              { status: 400 }
+              { status: 400, headers: corsHeaders }
             );
           }
 
@@ -392,7 +392,7 @@ export function startApiServer(port = 3000) {
           if (!userId) {
             return Response.json(
               { error: "No user configured" },
-              { status: 500 }
+              { status: 500, headers: corsHeaders }
             );
           }
 
@@ -403,9 +403,9 @@ export function startApiServer(port = 3000) {
             importance,
           });
           if (id === null) {
-            return Response.json({ success: true, duplicate: true });
+            return Response.json({ success: true, duplicate: true }, { headers: corsHeaders });
           }
-          return Response.json({ success: true, id });
+          return Response.json({ success: true, id }, { headers: corsHeaders });
         }
 
         // Memory - list
@@ -415,29 +415,29 @@ export function startApiServer(port = 3000) {
           if (!userId) {
             return Response.json(
               { error: "No user configured" },
-              { status: 500 }
+              { status: 500, headers: corsHeaders }
             );
           }
           const memories = memoryManager.getRecent(userId, limit);
-          return Response.json({ memories });
+          return Response.json({ memories }, { headers: corsHeaders });
         }
 
         // Memory - search
         if (path === "/api/memory/search" && method === "GET") {
           const query = url.searchParams.get("query");
           if (!query) {
-            return Response.json({ error: "query required" }, { status: 400 });
+            return Response.json({ error: "query required" }, { status: 400, headers: corsHeaders });
           }
           const limit = parseInt(url.searchParams.get("limit") || "5", 10);
           const userId = allowedUserIds[0];
           if (!userId) {
             return Response.json(
               { error: "No user configured" },
-              { status: 500 }
+              { status: 500, headers: corsHeaders }
             );
           }
           const memories = memoryManager.search(userId, query, limit);
-          return Response.json({ memories });
+          return Response.json({ memories }, { headers: corsHeaders });
         }
 
         // History - list
