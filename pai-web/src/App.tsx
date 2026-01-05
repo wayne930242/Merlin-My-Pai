@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/app-sidebar'
@@ -38,6 +38,26 @@ const routeTitles: Record<string, string> = {
   '/settings': 'Settings',
 }
 
+// Browser notification helper
+function showBrowserNotification(title: string, body: string) {
+  if (Notification.permission !== 'granted') return
+  if (document.hasFocus()) return // 頁面有焦點時不顯示
+
+  const notification = new Notification(title, {
+    body,
+    icon: '/favicon.ico',
+    tag: 'merlin-notify', // 相同 tag 會取代舊的
+  })
+
+  notification.onclick = () => {
+    window.focus()
+    notification.close()
+  }
+
+  // 5 秒後自動關閉
+  setTimeout(() => notification.close(), 5000)
+}
+
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -49,6 +69,13 @@ function App() {
   const [notifications, setNotifications] = useState<Notification[]>([])
 
   const responseRef = useRef('')
+
+  // 請求瀏覽器通知權限
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
 
   // 從路徑取得當前 view
   const currentView = location.pathname === '/' ? 'chat' : location.pathname.slice(1) as 'chat' | 'memory' | 'history' | 'workspace' | 'logs' | 'settings'
@@ -118,19 +145,29 @@ function App() {
         })
         break
 
-      case 'notify:message':
+      case 'notify:message': {
+        const message = event.message as string
+        const platform = event.platform as string | undefined
+
         setNotifications((prev) => {
           const newNotif: Notification = {
             id: crypto.randomUUID(),
             sessionId: event.sessionId as number | undefined,
-            platform: event.platform as string | undefined,
-            message: event.message as string,
+            platform,
+            message,
             timestamp: event.timestamp as number,
           }
           const updated = [...prev, newNotif]
           return updated.slice(-MAX_NOTIFICATIONS)
         })
+
+        // 觸發瀏覽器通知
+        showBrowserNotification(
+          platform ? `Merlin (${platform})` : 'Merlin',
+          message
+        )
         break
+      }
 
       case 'log:init':
         setLogs(
