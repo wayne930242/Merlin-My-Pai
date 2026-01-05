@@ -4,20 +4,42 @@
  * Session Stop Hook
  *
  * 功能：
- * 1. 分析 Claude 回應內容
- * 2. 自動分類（session / learning / decision）
+ * 1. 使用 Gemini Flash 2.5 分析 Claude 回應
+ * 2. 自動分類（learning / decision / session）
  * 3. 保存到對應的 history 目錄
+ * 4. 提取值得記住的事實，保存到 Memory
  *
  * 參考：PAI (Personal AI Infrastructure) 的 Stop Hook 設計
- * - 自動捕捉工作脈絡，零手動成本
- * - 基於關鍵字分析自動分類
  */
 
-import { classifyResponse, saveToHistory, extractSummary } from "./lib/history";
+import { saveToHistory } from "./lib/history";
+import { classifyWithLLM } from "./lib/llm";
+
+const PAI_API_URL = process.env.PAI_API_URL || "http://127.0.0.1:3000";
 
 interface StopEvent {
   stop_response?: string;
   session_id?: string;
+}
+
+/**
+ * 保存記憶到 pai-bot API
+ */
+async function saveMemory(
+  content: string,
+  category: string,
+  importance: number
+): Promise<boolean> {
+  try {
+    const response = await fetch(`${PAI_API_URL}/api/memory/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, category, importance }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 async function main() {
@@ -29,37 +51,39 @@ async function main() {
   try {
     data = JSON.parse(input);
   } catch {
-    // 無法解析 JSON
     return;
   }
 
   const response = data.stop_response;
-  if (!response || response.length < 100) {
-    // 回應太短，不值得保存
+  if (!response || response.length < 50) {
+    // 回應太短，跳過
     return;
   }
 
-  // 分析回應類型
-  const { type, confidence } = classifyResponse(response);
+  // 使用 LLM 分類
+  const result = await classifyWithLLM(response);
 
-  // 只保存有意義的內容（confidence >= 0.5 或類型不是 sessions）
-  if (type === "sessions" && confidence < 0.5) {
-    return;
+  // 保存 History（如果有意義）
+  if (result.historyType !== "none" && result.summary) {
+    try {
+      const filePath = await saveToHistory(result.historyType, response, {
+        summary: result.summary,
+        session_id: data.session_id || "unknown",
+      });
+      console.log(`[History] Saved ${result.historyType}: ${filePath.split("/").pop()}`);
+    } catch (error) {
+      console.error(`[History] Failed to save: ${error}`);
+    }
   }
 
-  // 提取摘要
-  const summary = extractSummary(response, 1000);
-
-  // 保存到 history
-  try {
-    const filePath = await saveToHistory(type, summary, {
-      session_id: data.session_id || "unknown",
-      confidence: String(confidence.toFixed(2)),
-    });
-
-    console.log(`[History] Saved ${type}: ${filePath.split("/").pop()}`);
-  } catch (error) {
-    console.error(`[History] Failed to save: ${error}`);
+  // 保存 Memory（如果有提取到）
+  if (result.memories.length > 0) {
+    for (const mem of result.memories) {
+      const saved = await saveMemory(mem.content, mem.category, mem.importance);
+      if (saved) {
+        console.log(`[Memory] Saved: ${mem.content.slice(0, 50)}...`);
+      }
+    }
   }
 }
 

@@ -4,6 +4,7 @@
  */
 
 import type { Client as DiscordClient, TextChannel } from "discord.js";
+import { memoryManager } from "../memory";
 import * as google from "../services/google";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
@@ -31,7 +32,10 @@ export function setDiscordClient(client: DiscordClient) {
 /**
  * 透過 session 發送通知
  */
-async function notifyBySession(session: Session, message: string): Promise<void> {
+async function notifyBySession(
+  session: Session,
+  message: string
+): Promise<void> {
   if (session.platform === "telegram") {
     if (!telegramBot || !session.chat_id) {
       throw new Error("Telegram bot not configured or missing chat_id");
@@ -90,9 +94,16 @@ export function startApiServer(port = 3000) {
           if (hqSession) {
             try {
               await notifyBySession(hqSession, formattedMessage);
-              return Response.json({ success: true, target: "hq", platform: hqSession.platform });
+              return Response.json({
+                success: true,
+                target: "hq",
+                platform: hqSession.platform,
+              });
             } catch (error) {
-              logger.warn({ error }, "Failed to notify HQ, falling back to default");
+              logger.warn(
+                { error },
+                "Failed to notify HQ, falling back to default"
+              );
             }
           }
 
@@ -100,7 +111,7 @@ export function startApiServer(port = 3000) {
           if (!telegramBot || allowedUserIds.length === 0) {
             return Response.json(
               { error: "No HQ configured and Telegram bot not available" },
-              { status: 500 },
+              { status: 500 }
             );
           }
 
@@ -111,15 +122,22 @@ export function startApiServer(port = 3000) {
         // Session-based notify API
         if (path === "/api/notify/session" && method === "POST") {
           const body = await req.json();
-          const { sessionId, message }: { sessionId: number; message: string } = body;
+          const { sessionId, message }: { sessionId: number; message: string } =
+            body;
 
           if (!sessionId || !message) {
-            return Response.json({ error: "Missing sessionId or message" }, { status: 400 });
+            return Response.json(
+              { error: "Missing sessionId or message" },
+              { status: 400 }
+            );
           }
 
           const session = sessionService.get(sessionId);
           if (!session) {
-            return Response.json({ error: "Session not found" }, { status: 404 });
+            return Response.json(
+              { error: "Session not found" },
+              { status: 404 }
+            );
           }
 
           await notifyBySession(session, message);
@@ -139,11 +157,17 @@ export function startApiServer(port = 3000) {
         if (path.startsWith("/api/sessions/") && method === "GET") {
           const id = parseInt(path.split("/").pop()!, 10);
           if (Number.isNaN(id)) {
-            return Response.json({ error: "Invalid session ID" }, { status: 400 });
+            return Response.json(
+              { error: "Invalid session ID" },
+              { status: 400 }
+            );
           }
           const session = sessionService.get(id);
           if (!session) {
-            return Response.json({ error: "Session not found" }, { status: 404 });
+            return Response.json(
+              { error: "Session not found" },
+              { status: 404 }
+            );
           }
           return Response.json({ session });
         }
@@ -167,7 +191,10 @@ export function startApiServer(port = 3000) {
             const calendarId = url.searchParams.get("calendarId") || "primary";
             const timeMin = url.searchParams.get("timeMin") || undefined;
             const timeMax = url.searchParams.get("timeMax") || undefined;
-            const maxResults = parseInt(url.searchParams.get("maxResults") || "10", 10);
+            const maxResults = parseInt(
+              url.searchParams.get("maxResults") || "10",
+              10
+            );
             const q = url.searchParams.get("q") || undefined;
 
             const events = await google.calendar.listEvents(calendarId, {
@@ -181,7 +208,10 @@ export function startApiServer(port = 3000) {
           if (method === "POST") {
             const body = await req.json();
             const { event, calendarId = "primary" } = body;
-            const created = await google.calendar.createEvent(event, calendarId);
+            const created = await google.calendar.createEvent(
+              event,
+              calendarId
+            );
             return Response.json({ event: created });
           }
         }
@@ -190,7 +220,10 @@ export function startApiServer(port = 3000) {
         if (path === "/api/google/drive/files" && method === "GET") {
           const q = url.searchParams.get("q") || undefined;
           const folderId = url.searchParams.get("folderId") || undefined;
-          const pageSize = parseInt(url.searchParams.get("pageSize") || "20", 10);
+          const pageSize = parseInt(
+            url.searchParams.get("pageSize") || "20",
+            10
+          );
 
           const files = await google.drive.listFiles({ q, folderId, pageSize });
           return Response.json({ files });
@@ -223,7 +256,10 @@ export function startApiServer(port = 3000) {
         // Gmail - list messages
         if (path === "/api/google/gmail/messages" && method === "GET") {
           const q = url.searchParams.get("q") || undefined;
-          const maxResults = parseInt(url.searchParams.get("maxResults") || "10", 10);
+          const maxResults = parseInt(
+            url.searchParams.get("maxResults") || "10",
+            10
+          );
 
           const messages = await google.gmail.listMessages({ q, maxResults });
           return Response.json({ messages });
@@ -241,15 +277,26 @@ export function startApiServer(port = 3000) {
           const body = await req.json();
           const { to, subject, body: messageBody, cc, bcc } = body;
           if (!to || !subject || !messageBody) {
-            return Response.json({ error: "to, subject, body required" }, { status: 400 });
+            return Response.json(
+              { error: "to, subject, body required" },
+              { status: 400 }
+            );
           }
-          const result = await google.gmail.sendMessage(to, subject, messageBody, { cc, bcc });
+          const result = await google.gmail.sendMessage(
+            to,
+            subject,
+            messageBody,
+            { cc, bcc }
+          );
           return Response.json({ result });
         }
 
         // Contacts - list
         if (path === "/api/google/contacts" && method === "GET") {
-          const pageSize = parseInt(url.searchParams.get("pageSize") || "100", 10);
+          const pageSize = parseInt(
+            url.searchParams.get("pageSize") || "100",
+            10
+          );
           const result = await google.contacts.listContacts({ pageSize });
           return Response.json(result);
         }
@@ -262,6 +309,73 @@ export function startApiServer(port = 3000) {
           }
           const contacts = await google.contacts.searchContacts(query);
           return Response.json({ contacts });
+        }
+
+        // === Memory APIs ===
+
+        // Memory - save
+        if (path === "/api/memory/save" && method === "POST") {
+          const body = await req.json();
+          const { content, category = "general", importance = 3 } = body;
+
+          if (!content) {
+            return Response.json(
+              { error: "content required" },
+              { status: 400 }
+            );
+          }
+
+          // 使用預設 user_id
+          const userId = allowedUserIds[0];
+          if (!userId) {
+            return Response.json(
+              { error: "No user configured" },
+              { status: 500 }
+            );
+          }
+
+          const id = await memoryManager.save({
+            userId,
+            content,
+            category,
+            importance,
+          });
+          if (id === null) {
+            return Response.json({ success: true, duplicate: true });
+          }
+          return Response.json({ success: true, id });
+        }
+
+        // Memory - list
+        if (path === "/api/memory/list" && method === "GET") {
+          const limit = parseInt(url.searchParams.get("limit") || "20", 10);
+          const userId = allowedUserIds[0];
+          if (!userId) {
+            return Response.json(
+              { error: "No user configured" },
+              { status: 500 }
+            );
+          }
+          const memories = memoryManager.getRecent(userId, limit);
+          return Response.json({ memories });
+        }
+
+        // Memory - search
+        if (path === "/api/memory/search" && method === "GET") {
+          const query = url.searchParams.get("query");
+          if (!query) {
+            return Response.json({ error: "query required" }, { status: 400 });
+          }
+          const limit = parseInt(url.searchParams.get("limit") || "5", 10);
+          const userId = allowedUserIds[0];
+          if (!userId) {
+            return Response.json(
+              { error: "No user configured" },
+              { status: 500 }
+            );
+          }
+          const memories = memoryManager.search(userId, query, limit);
+          return Response.json({ memories });
         }
 
         // 404

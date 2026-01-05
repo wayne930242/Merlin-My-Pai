@@ -1,6 +1,9 @@
 {
   "name": "pai-claude",
   "type": "module",
+  "dependencies": {
+    "@google/genai": "^1.0.0"
+  },
   "devDependencies": {
     "bun-types": "latest"
   }
