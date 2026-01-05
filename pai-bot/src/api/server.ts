@@ -1,13 +1,21 @@
 /**
  * HTTP API Server
- * 提供基本的 API endpoints
+ * 提供 REST API + WebSocket endpoints
  */
 
 import type { Client as DiscordClient, TextChannel } from "discord.js";
+import type { ServerWebSocket } from "bun";
 import { memoryManager } from "../memory";
 import * as google from "../services/google";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
+import {
+  type WsClientData,
+  handleOpen,
+  handleMessage,
+  handleClose,
+  initEventBroadcast,
+} from "./websocket";
 
 // Telegram bot 實例（稍後注入）
 let telegramBot: {
@@ -54,21 +62,52 @@ async function notifyBySession(
 }
 
 /**
- * 啟動 HTTP API server
+ * 啟動 HTTP API server（含 WebSocket）
  */
 export function startApiServer(port = 3000) {
-  const server = Bun.serve({
+  // 初始化事件廣播
+  initEventBroadcast();
+
+  const server = Bun.serve<WsClientData>({
     port,
-    hostname: "127.0.0.1", // 只監聽本機，不暴露到公網
-    async fetch(req) {
+    hostname: "0.0.0.0", // 監聽所有介面（透過 Cloudflare 保護）
+    async fetch(req, server) {
       const url = new URL(req.url);
       const path = url.pathname;
       const method = req.method;
 
       try {
+        // WebSocket 升級
+        if (path === "/ws") {
+          const clientId = crypto.randomUUID();
+          const upgraded = server.upgrade(req, {
+            data: {
+              id: clientId,
+              subscribedChannels: new Set<string>(),
+              connectedAt: Date.now(),
+            },
+          });
+          if (upgraded) {
+            return undefined;
+          }
+          return new Response("WebSocket upgrade failed", { status: 400 });
+        }
+
+        // CORS headers
+        const corsHeaders = {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        };
+
+        // Preflight
+        if (method === "OPTIONS") {
+          return new Response(null, { status: 204, headers: corsHeaders });
+        }
+
         // Health check
         if (path === "/health" && method === "GET") {
-          return Response.json({ status: "ok" });
+          return Response.json({ status: "ok" }, { headers: corsHeaders });
         }
 
         // Notify API - sends to HQ session (fallback to allowedUserIds[0])
@@ -379,14 +418,27 @@ export function startApiServer(port = 3000) {
         }
 
         // 404
-        return Response.json({ error: "Not found" }, { status: 404 });
+        return Response.json({ error: "Not found" }, { status: 404, headers: corsHeaders });
       } catch (error) {
         logger.error({ error, path }, "API error");
         return Response.json({ error: String(error) }, { status: 500 });
       }
     },
+
+    // WebSocket handlers
+    websocket: {
+      open(ws: ServerWebSocket<WsClientData>) {
+        handleOpen(ws);
+      },
+      message(ws: ServerWebSocket<WsClientData>, message: string | Buffer) {
+        handleMessage(ws, message);
+      },
+      close(ws: ServerWebSocket<WsClientData>) {
+        handleClose(ws);
+      },
+    },
   });
 
-  logger.info({ port }, "API server started");
+  logger.info({ port }, "API server started (HTTP + WebSocket)");
   return server;
 }

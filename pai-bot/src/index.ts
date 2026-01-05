@@ -4,6 +4,7 @@ import { callClaude } from "./claude/client";
 import { config, isDiscordEnabled, isTelegramEnabled, validateConfig } from "./config";
 import { createDiscordBot, startDiscordBot, stopDiscordBot } from "./platforms/discord";
 import { createTelegramBot, setupBotCommands } from "./platforms/telegram/bot";
+import { initWebPlatform } from "./platforms/web";
 import {
   type Schedule,
   startScheduler,
@@ -41,6 +42,9 @@ async function main() {
     // Start API server for MCP integration
     const apiPort = parseInt(process.env.API_PORT || "3000", 10);
     const apiServer = startApiServer(apiPort);
+
+    // Initialize Web platform (handles WebSocket chat)
+    initWebPlatform();
 
     // Initialize Telegram if configured
     if (isTelegramEnabled()) {

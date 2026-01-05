@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { spawn } from "bun";
 import { config } from "../config";
+import { emitEvent } from "../events";
 import { logger } from "../utils/logger";
 import { processManager } from "./process-manager";
 
@@ -33,6 +34,8 @@ interface ClaudeOptions {
   conversationHistory?: string;
   userId?: number;
   signal?: AbortSignal;
+  platform?: string;
+  sessionId?: string;
 }
 
 // Streaming version - yields events as they come
@@ -49,6 +52,19 @@ export async function* streamClaude(
   const projectDir = resolve(process.cwd(), config.claude.projectDir);
 
   logger.debug({ promptLength: fullPrompt.length, cwd: projectDir }, "Streaming Claude call");
+
+  // 生成或使用提供的 sessionId
+  const sessionId = options?.sessionId || crypto.randomUUID();
+
+  // 發射 claude:start 事件
+  if (options?.userId) {
+    emitEvent("claude:start", {
+      sessionId,
+      platform: options.platform || "unknown",
+      userId: options.userId,
+      prompt: prompt.slice(0, 500), // 只發送前 500 字
+    });
+  }
 
   const proc = spawn({
     cmd: [
@@ -124,17 +140,26 @@ export async function* streamClaude(
                 // Only yield if thinking content changed
                 if (block.thinking !== lastThinking) {
                   lastThinking = block.thinking;
+                  emitEvent("claude:thinking", { sessionId, content: block.thinking });
                   yield { type: "thinking", content: block.thinking };
                 }
               } else if (block.type === "text" && block.text) {
                 // Only yield if text content changed
                 if (block.text !== lastText) {
                   lastText = block.text;
+                  emitEvent("claude:text", { sessionId, content: block.text });
                   yield { type: "text", content: block.text };
                 }
+              } else if (block.type === "tool_use") {
+                emitEvent("claude:tool", {
+                  sessionId,
+                  tool: block.name || "unknown",
+                  input: block.input,
+                });
               }
             }
           } else if (event.type === "result") {
+            emitEvent("claude:done", { sessionId, response: event.result || "" });
             yield { type: "done", content: event.result || "" };
           }
         } catch (parseError) {
@@ -169,6 +194,7 @@ export async function* streamClaude(
       { error: errorMessage, stack: errorStack, stderr: stderrBuffer, exitCode: proc.exitCode },
       "Stream error",
     );
+    emitEvent("claude:error", { sessionId, error: errorMessage });
     yield { type: "error", content: errorMessage };
   } finally {
     // Unregister process when done

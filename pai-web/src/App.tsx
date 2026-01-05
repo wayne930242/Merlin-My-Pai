@@ -1,0 +1,141 @@
+import { useCallback, useState } from 'react'
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/layout/app-sidebar'
+import { ChatView } from '@/components/chat/chat-view'
+import { useWebSocket, type WsEvent } from '@/hooks/use-websocket'
+import { Separator } from '@/components/ui/separator'
+
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: number
+}
+
+// WebSocket URL（開發時可調整）
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws'
+
+function App() {
+  const [currentView, setCurrentView] = useState<'chat' | 'memory' | 'history' | 'settings'>('chat')
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [currentResponse, setCurrentResponse] = useState('')
+
+  const handleWsMessage = useCallback((event: WsEvent) => {
+    switch (event.type) {
+      case 'chat:start':
+        setIsLoading(true)
+        setCurrentResponse('')
+        break
+
+      case 'chat:text':
+        setCurrentResponse(event.content as string)
+        break
+
+      case 'claude:text':
+        // 即時更新回應（來自廣播）
+        setCurrentResponse(event.content as string)
+        break
+
+      case 'chat:done':
+        if (currentResponse) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: currentResponse,
+              timestamp: Date.now(),
+            },
+          ])
+        }
+        setIsLoading(false)
+        setCurrentResponse('')
+        break
+
+      case 'chat:error':
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: `Error: ${event.error}`,
+            timestamp: Date.now(),
+          },
+        ])
+        setIsLoading(false)
+        setCurrentResponse('')
+        break
+    }
+  }, [currentResponse])
+
+  const { isConnected, sendChat } = useWebSocket({
+    url: WS_URL,
+    onMessage: handleWsMessage,
+  })
+
+  const handleSendMessage = useCallback((content: string) => {
+    // 添加用戶訊息
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content,
+        timestamp: Date.now(),
+      },
+    ])
+
+    // 發送到 WebSocket
+    sendChat(content)
+    setIsLoading(true)
+  }, [sendChat])
+
+  return (
+    <SidebarProvider>
+      <AppSidebar
+        isConnected={isConnected}
+        currentView={currentView}
+        onViewChange={setCurrentView}
+      />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <h1 className="text-lg font-semibold capitalize">{currentView}</h1>
+        </header>
+
+        <main className="flex-1 overflow-hidden">
+          {currentView === 'chat' && (
+            <ChatView
+              messages={messages}
+              isLoading={isLoading}
+              currentResponse={currentResponse}
+              onSendMessage={handleSendMessage}
+            />
+          )}
+
+          {currentView === 'memory' && (
+            <div className="p-4 text-center text-muted-foreground">
+              Memory Manager (Coming Soon)
+            </div>
+          )}
+
+          {currentView === 'history' && (
+            <div className="p-4 text-center text-muted-foreground">
+              History Browser (Coming Soon)
+            </div>
+          )}
+
+          {currentView === 'settings' && (
+            <div className="p-4 text-center text-muted-foreground">
+              Settings (Coming Soon)
+            </div>
+          )}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
+
+export default App
