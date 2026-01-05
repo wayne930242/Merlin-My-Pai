@@ -12,6 +12,7 @@
  * 參考：PAI (Personal AI Infrastructure) 的 Stop Hook 設計
  */
 
+import { isMemoryEnabled } from "./lib/config";
 import { saveToHistory } from "./lib/history";
 import { classifyWithLLM } from "./lib/llm";
 
@@ -43,6 +44,11 @@ async function saveMemory(
 }
 
 async function main() {
+  // 檢查 memory 功能是否啟用
+  if (!isMemoryEnabled()) {
+    return;
+  }
+
   // 從 stdin 讀取事件資料
   const input = await Bun.stdin.text();
   if (!input.trim()) return;
