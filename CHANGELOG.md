@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.33.0 (2026-01-05)
+
+### Features
+
+- **hooks**: Check memory config before LLM classification
+  ([`2e0b88d`](https://github.com/wayne930242/weihung-pai/commit/2e0b88decb65bc67531f2fa38ff7e0808c09b7c0))
+
+
 ## v1.32.0 (2026-01-05)
 
 ### Features
