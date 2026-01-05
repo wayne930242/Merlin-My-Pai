@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.38.1 (2026-01-05)
+
+### Bug Fixes
+
+- Add CORS headers to Memory API endpoints
+  ([`7bbed90`](https://github.com/wayne930242/weihung-pai/commit/7bbed901f6a2c55816aa49053fe31ec229b70ccd))
+
+
 ## v1.38.0 (2026-01-05)
 
 ### Features
