@@ -17,6 +17,12 @@ export interface WsClientData {
 // 所有連接的 clients
 const clients = new Map<string, ServerWebSocket<WsClientData>>();
 
+// Log buffer（保留最近 N 筆）
+const MAX_LOG_BUFFER = 200;
+const MAX_NOTIFICATION_BUFFER = 50;
+const logBuffer: PaiEvents["log:entry"][] = [];
+const notificationBuffer: PaiEvents["notify:message"][] = [];
+
 // Client → Server 訊息格式
 interface WsCommand {
   type: "subscribe" | "unsubscribe" | "chat" | "ping";
@@ -41,6 +47,25 @@ export function handleOpen(ws: ServerWebSocket<WsClientData>): void {
       timestamp: Date.now(),
     })
   );
+
+  // 發送現有的 logs 和 notifications
+  if (logBuffer.length > 0) {
+    ws.send(
+      JSON.stringify({
+        type: "log:init",
+        logs: logBuffer,
+      })
+    );
+  }
+
+  if (notificationBuffer.length > 0) {
+    ws.send(
+      JSON.stringify({
+        type: "notify:init",
+        notifications: notificationBuffer,
+      })
+    );
+  }
 }
 
 /**
@@ -159,10 +184,25 @@ export function initEventBroadcast(): void {
     "claude:done",
     "claude:error",
     "system:status",
+    "notify:message",
+    "log:entry",
   ];
 
   for (const event of events) {
     paiEvents.on(event, (data) => {
+      // 特別處理：儲存到 buffer
+      if (event === "log:entry") {
+        logBuffer.push(data as PaiEvents["log:entry"]);
+        if (logBuffer.length > MAX_LOG_BUFFER) {
+          logBuffer.shift();
+        }
+      } else if (event === "notify:message") {
+        notificationBuffer.push(data as PaiEvents["notify:message"]);
+        if (notificationBuffer.length > MAX_NOTIFICATION_BUFFER) {
+          notificationBuffer.shift();
+        }
+      }
+
       broadcast(event, data);
     });
   }

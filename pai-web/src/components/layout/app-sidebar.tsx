@@ -11,9 +11,9 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
-import { Brain, FolderOpen, History, MessageSquare, Settings, Sparkles } from 'lucide-react'
+import { Brain, FolderOpen, History, MessageSquare, ScrollText, Settings, Sparkles } from 'lucide-react'
 
-type ViewType = 'chat' | 'memory' | 'history' | 'workspace' | 'settings'
+type ViewType = 'chat' | 'memory' | 'history' | 'workspace' | 'logs' | 'settings'
 
 interface AppSidebarProps {
   isConnected: boolean
@@ -26,6 +26,7 @@ const menuItems: { id: ViewType; label: string; icon: typeof MessageSquare }[] =
   { id: 'memory', label: 'Memory', icon: Brain },
   { id: 'history', label: 'History', icon: History },
   { id: 'workspace', label: 'Workspace', icon: FolderOpen },
+  { id: 'logs', label: 'Logs', icon: ScrollText },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 

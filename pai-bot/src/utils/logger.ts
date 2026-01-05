@@ -1,5 +1,38 @@
 import pino from "pino";
+import { Writable } from "node:stream";
 import { config } from "../config";
+import { paiEvents } from "../events";
+
+// 自訂 stream：發送 log 到 WebSocket
+class EventEmitterStream extends Writable {
+  _write(
+    chunk: Buffer,
+    _encoding: string,
+    callback: (error?: Error | null) => void
+  ): void {
+    try {
+      const log = JSON.parse(chunk.toString());
+      const levelMap: Record<number, "debug" | "info" | "warn" | "error" | "fatal"> = {
+        10: "debug",
+        20: "debug",
+        30: "info",
+        40: "warn",
+        50: "error",
+        60: "fatal",
+      };
+
+      paiEvents.emit("log:entry", {
+        level: levelMap[log.level] || "info",
+        msg: log.msg || "",
+        context: log.context,
+        timestamp: Date.now(),
+      });
+    } catch {
+      // ignore parse errors
+    }
+    callback();
+  }
+}
 
 // 使用 pino.multistream 分流：error+ 到 stderr，其他到 stdout
 const streams: pino.StreamEntry[] = [
@@ -26,6 +59,11 @@ const streams: pino.StreamEntry[] = [
         destination: 2, // stderr
       },
     }),
+  },
+  // 發送到 WebSocket
+  {
+    level: "info",
+    stream: new EventEmitterStream(),
   },
 ];
 

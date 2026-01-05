@@ -5,6 +5,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { emitEvent } from "../../events";
 
 const API_BASE = process.env.API_BASE || "http://127.0.0.1:3000";
 
@@ -35,6 +36,13 @@ export function registerNotifyTools(server: McpServer): void {
             isError: true,
           };
         }
+
+        // 廣播通知事件到 web
+        emitEvent("notify:message", {
+          sessionId,
+          platform: data.platform,
+          message,
+        });
 
         return {
           content: [{ type: "text", text: `已發送通知至 ${data.platform}` }],

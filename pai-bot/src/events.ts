@@ -70,6 +70,22 @@ export interface PaiEvents {
     content: string;
     timestamp: number;
   };
+
+  // 通知事件（來自 HQ）
+  "notify:message": {
+    sessionId?: number;
+    platform?: string;
+    message: string;
+    timestamp: number;
+  };
+
+  // Log 事件（bot 日誌串流）
+  "log:entry": {
+    level: "debug" | "info" | "warn" | "error" | "fatal";
+    msg: string;
+    context?: string;
+    timestamp: number;
+  };
 }
 
 // 型別安全的 EventEmitter

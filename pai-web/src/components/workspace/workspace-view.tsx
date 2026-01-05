@@ -214,9 +214,9 @@ export function WorkspaceView() {
   }
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-full">
+    <ResizablePanelGroup orientation="horizontal" className="h-full">
       {/* 左側檔案樹 */}
-      <ResizablePanel defaultSize={25} minSize={15} maxSize={50}>
+      <ResizablePanel defaultSize={30} minSize={15}>
         <div className="flex flex-col h-full border-r">
           <div className="flex items-center justify-between px-3 py-2 border-b">
             <span className="text-xs font-semibold uppercase text-muted-foreground">
@@ -263,7 +263,7 @@ export function WorkspaceView() {
       <ResizableHandle withHandle />
 
       {/* 右側內容 */}
-      <ResizablePanel defaultSize={75}>
+      <ResizablePanel defaultSize={70} minSize={30}>
         <div className="flex flex-col h-full">
           {selectedFile ? (
             <>
