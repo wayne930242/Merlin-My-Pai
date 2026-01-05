@@ -6,6 +6,7 @@
 import type { Client as DiscordClient, TextChannel } from "discord.js";
 import type { ServerWebSocket } from "bun";
 import { memoryManager } from "../memory";
+import { contextManager } from "../context/manager";
 import * as google from "../services/google";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
@@ -373,6 +374,26 @@ export function startApiServer(port = 3000) {
           }
           const contacts = await google.contacts.searchContacts(query);
           return Response.json({ contacts });
+        }
+
+        // === Chat History API ===
+        if (path === "/api/chat/history" && method === "GET") {
+          // 驗證 API Key
+          if (!validateApiKey(req)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+
+          const userId = allowedUserIds[0];
+          if (!userId) {
+            return Response.json(
+              { error: "No user configured" },
+              { status: 500, headers: corsHeaders }
+            );
+          }
+
+          const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+          const messages = contextManager.getMessages(userId, limit);
+          return Response.json({ messages }, { headers: corsHeaders });
         }
 
         // === Memory APIs ===

@@ -95,6 +95,32 @@ export class ContextManager {
       .get(userId);
     return result?.count || 0;
   }
+
+  // Get raw messages for display (with timestamps)
+  getMessages(
+    userId: number,
+    limit = 50
+  ): Array<{ role: "user" | "assistant"; content: string; timestamp: number }> {
+    const db = getDb();
+    const messages = db
+      .query<Message, [number, number]>(
+        `
+        SELECT role, content, created_at
+        FROM conversations
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      `
+      )
+      .all(userId, limit);
+
+    // Return oldest first with timestamp
+    return messages.reverse().map((m) => ({
+      role: m.role,
+      content: m.content,
+      timestamp: new Date(m.created_at).getTime(),
+    }));
+  }
 }
 
 export const contextManager = new ContextManager();
