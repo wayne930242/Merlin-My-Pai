@@ -20,6 +20,7 @@ interface Message {
 
 // WebSocket URL
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const API_KEY = import.meta.env.VITE_API_KEY || ''
 const WS_URL = API_KEY ? `${WS_BASE_URL}?key=${API_KEY}` : WS_BASE_URL
 
@@ -75,6 +76,36 @@ function App() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission()
     }
+  }, [])
+
+  // 載入聊天歷史
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const url = new URL('/api/chat/history', API_BASE_URL)
+        if (API_KEY) url.searchParams.set('key', API_KEY)
+        url.searchParams.set('limit', '50')
+
+        const res = await fetch(url.toString())
+        if (!res.ok) return
+
+        const data = await res.json()
+        if (data.messages && data.messages.length > 0) {
+          setMessages(
+            data.messages.map((m: { role: 'user' | 'assistant'; content: string; timestamp: number }) => ({
+              id: crypto.randomUUID(),
+              role: m.role,
+              content: m.content,
+              timestamp: m.timestamp,
+            }))
+          )
+        }
+      } catch (err) {
+        console.error('[App] Failed to load chat history:', err)
+      }
+    }
+
+    loadHistory()
   }, [])
 
   // 從路徑取得當前 view
