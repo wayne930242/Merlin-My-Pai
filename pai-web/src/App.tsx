@@ -171,6 +171,18 @@ function App() {
     setIsLoading(true)
   }, [sendChat])
 
+  const handleAddMessage = useCallback((content: string, role: 'user' | 'assistant') => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role,
+        content,
+        timestamp: Date.now(),
+      },
+    ])
+  }, [])
+
   return (
     <SidebarProvider>
       <AppSidebar
@@ -196,6 +208,7 @@ function App() {
                   currentResponse={currentResponse}
                   onSendMessage={handleSendMessage}
                   onClearMessages={() => setMessages([])}
+                  onAddMessage={handleAddMessage}
                 />
               }
             />
@@ -208,6 +221,7 @@ function App() {
                   currentResponse={currentResponse}
                   onSendMessage={handleSendMessage}
                   onClearMessages={() => setMessages([])}
+                  onAddMessage={handleAddMessage}
                 />
               }
             />

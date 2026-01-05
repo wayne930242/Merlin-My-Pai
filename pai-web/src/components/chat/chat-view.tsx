@@ -23,13 +23,34 @@ interface ChatViewProps {
   currentResponse: string
   onSendMessage: (content: string) => void
   onClearMessages?: () => void
+  onAddMessage?: (content: string, role: 'user' | 'assistant') => void
 }
 
 // 本地指令定義
 const LOCAL_COMMANDS = [
   { name: '/clear', description: '清除對話紀錄' },
   { name: '/help', description: '顯示可用指令' },
+  { name: '/new', description: '開始新對話' },
+  { name: '/export', description: '匯出對話紀錄' },
 ] as const
+
+// 幫助訊息
+const HELP_MESSAGE = `## 可用指令
+
+| 指令 | 說明 |
+|------|------|
+| \`/clear\` | 清除對話紀錄 |
+| \`/new\` | 開始新對話（同 /clear） |
+| \`/help\` | 顯示此幫助訊息 |
+| \`/export\` | 匯出對話為 JSON |
+
+## 功能
+
+- 📎 **附件**: 點擊迴紋針按鈕上傳檔案
+- 📝 **Markdown**: 訊息支援完整 Markdown 語法
+- 💻 **程式碼**: 自動語法高亮
+- ⌨️ **快捷鍵**: Enter 發送、Shift+Enter 換行
+`
 
 // 上傳檔案的類型
 interface AttachedFile {
@@ -43,7 +64,7 @@ interface AttachedFile {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const API_KEY = import.meta.env.VITE_API_KEY || ''
 
-export function ChatView({ messages, isLoading, currentResponse, onSendMessage, onClearMessages }: ChatViewProps) {
+export function ChatView({ messages, isLoading, currentResponse, onSendMessage, onClearMessages, onAddMessage }: ChatViewProps) {
   const [input, setInput] = useState('')
   const [showCommands, setShowCommands] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
@@ -63,22 +84,54 @@ export function ChatView({ messages, isLoading, currentResponse, onSendMessage, 
     setShowCommands(input.startsWith('/') && input.length < 10)
   }, [input])
 
-  // 處理本地指令
-  const handleCommand = (command: string): boolean => {
+  // 新增本地訊息的輔助函式
+  const addLocalMessage = useCallback((content: string, role: 'user' | 'assistant' = 'assistant') => {
+    // 透過父元件的 callback 無法直接加入訊息，需要透過 onSendMessage 模擬
+    // 但這裡我們需要一個新的 prop 來處理本地訊息
+    // 暫時用 onSendMessage 帶特殊前綴
+  }, [])
+
+  // 匯出對話
+  const exportChat = useCallback(() => {
+    const data = {
+      exported_at: new Date().toISOString(),
+      messages: messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        timestamp: new Date(m.timestamp).toISOString(),
+      })),
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `chat-export-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [messages])
+
+  // 處理本地指令 - 返回要顯示的訊息（如果有）
+  const handleCommand = (command: string): { handled: boolean; response?: string } => {
     const cmd = command.toLowerCase().trim()
 
-    if (cmd === '/clear') {
+    if (cmd === '/clear' || cmd === '/new') {
       onClearMessages?.()
-      return true
+      return { handled: true }
     }
 
     if (cmd === '/help') {
-      // 顯示幫助訊息
-      onSendMessage('/help')
-      return true
+      return { handled: true, response: HELP_MESSAGE }
     }
 
-    return false // 非本地指令，交給後端處理
+    if (cmd === '/export') {
+      if (messages.length === 0) {
+        return { handled: true, response: '⚠️ 沒有對話可匯出' }
+      }
+      exportChat()
+      return { handled: true, response: `✅ 已匯出 ${messages.length} 則訊息` }
+    }
+
+    return { handled: false } // 非本地指令，交給後端處理
   }
 
   // 上傳檔案
@@ -157,7 +210,12 @@ export function ChatView({ messages, isLoading, currentResponse, onSendMessage, 
 
     // 嘗試處理本地指令（只有純指令，沒有附件）
     if (trimmed.startsWith('/') && !hasFiles) {
-      if (handleCommand(trimmed)) {
+      const result = handleCommand(trimmed)
+      if (result.handled) {
+        // 如果有回應訊息，加入對話
+        if (result.response && onAddMessage) {
+          onAddMessage(result.response, 'assistant')
+        }
         setInput('')
         return
       }
