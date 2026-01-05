@@ -195,6 +195,7 @@ function App() {
                   isLoading={isLoading}
                   currentResponse={currentResponse}
                   onSendMessage={handleSendMessage}
+                  onClearMessages={() => setMessages([])}
                 />
               }
             />
@@ -206,6 +207,7 @@ function App() {
                   isLoading={isLoading}
                   currentResponse={currentResponse}
                   onSendMessage={handleSendMessage}
+                  onClearMessages={() => setMessages([])}
                 />
               }
             />

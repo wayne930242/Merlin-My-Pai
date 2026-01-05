@@ -475,6 +475,66 @@ export function startApiServer(port = 3000) {
           return Response.json({ content }, { headers: corsHeaders });
         }
 
+        // === File Upload API ===
+        if (path === "/api/upload" && method === "POST") {
+          // 驗證 API Key
+          if (!validateApiKey(req)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+
+          const formData = await req.formData();
+          const file = formData.get("file") as File | null;
+
+          if (!file) {
+            return Response.json(
+              { error: "No file provided" },
+              { status: 400, headers: corsHeaders }
+            );
+          }
+
+          // 限制檔案大小（10MB）
+          const MAX_SIZE = 10 * 1024 * 1024;
+          if (file.size > MAX_SIZE) {
+            return Response.json(
+              { error: "File too large (max 10MB)" },
+              { status: 400, headers: corsHeaders }
+            );
+          }
+
+          // 儲存到 workspace/uploads
+          const { join, basename } = await import("node:path");
+          const { mkdir, writeFile } = await import("node:fs/promises");
+
+          const uploadsDir = join(
+            process.env.WORKSPACE_ROOT ||
+              join(process.env.HOME || "", "merlin", "workspace"),
+            "uploads"
+          );
+
+          await mkdir(uploadsDir, { recursive: true });
+
+          // 產生唯一檔名
+          const timestamp = Date.now();
+          const safeName = basename(file.name).replace(/[^a-zA-Z0-9._-]/g, "_");
+          const filename = `${timestamp}_${safeName}`;
+          const filepath = join(uploadsDir, filename);
+
+          // 寫入檔案
+          const buffer = await file.arrayBuffer();
+          await writeFile(filepath, Buffer.from(buffer));
+
+          return Response.json(
+            {
+              success: true,
+              filename,
+              path: `uploads/${filename}`,
+              size: file.size,
+              type: file.type,
+            },
+            { headers: corsHeaders }
+          );
+        }
+
         // === Workspace File Browser APIs ===
         const WORKSPACE_ROOT =
           process.env.WORKSPACE_ROOT ||
