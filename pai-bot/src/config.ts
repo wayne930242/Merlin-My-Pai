@@ -47,6 +47,10 @@ export const config = {
   logging: {
     level: process.env.LOG_LEVEL || "info",
   },
+  api: {
+    /** Web API Key（用於保護 WebSocket 和 API 端點） */
+    key: process.env.PAI_API_KEY || "",
+  },
   rateLimit: {
     requests: parseInt(process.env.RATE_LIMIT_REQUESTS || "20", 10),
     window: parseInt(process.env.RATE_LIMIT_WINDOW || "60000", 10),

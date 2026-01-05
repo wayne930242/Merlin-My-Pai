@@ -37,6 +37,8 @@ def main() -> None:
         run_spotify_command(args)
     elif command == "git":
         run_git_command(args)
+    elif command == "web":
+        run_web_command(args)
     else:
         print(f"未知命令: {command}")
         print()
@@ -154,6 +156,28 @@ def run_spotify_command(args: list[str]) -> None:
         sys.exit(1)
 
 
+def run_web_command(args: list[str]) -> None:
+    from .web import run_bot, run_both, run_frontend
+
+    if not args:
+        print("用法: uv run pai web <subcommand>")
+        print("  dev       同時啟動 pai-bot + pai-web 開發伺服器")
+        print("  bot       只啟動 pai-bot API 伺服器")
+        print("  frontend  只啟動 pai-web 前端伺服器")
+        sys.exit(1)
+
+    subcommand = args[0]
+    if subcommand == "dev":
+        sys.exit(run_both())
+    elif subcommand == "bot":
+        sys.exit(run_bot())
+    elif subcommand == "frontend":
+        sys.exit(run_frontend())
+    else:
+        print(f"未知子命令: {subcommand}")
+        sys.exit(1)
+
+
 def run_git_command(args: list[str]) -> None:
     from .git import commit_with_restore, list_skipped, track, untrack
 
@@ -212,12 +236,16 @@ def print_help() -> None:
     print("  spotify test          測試 Spotify 認證狀態")
     print("  git skip list         列出被忽略的檔案")
     print("  git skip commit       互動式 commit 被忽略的檔案")
+    print("  web dev               同時啟動 pai-bot + pai-web 開發伺服器")
+    print("  web bot               只啟動 pai-bot API 伺服器")
+    print("  web frontend          只啟動 pai-web 前端伺服器")
     print()
     print("範例:")
     print("  uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml")
     print("  uv run pai ssh connect")
     print("  uv run pai bot status")
     print("  uv run pai google auth")
+    print("  uv run pai web dev")
 
 
 if __name__ == "__main__":

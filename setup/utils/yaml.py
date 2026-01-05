@@ -36,6 +36,7 @@ def build_vault_yaml(variables: dict[str, Any]) -> str:
             ],
         ),
         ("Mutagen 同步（可選）", ["vault_use_mutagen_sync"]),
+        ("Web API 認證（可選）", ["vault_pai_api_key"]),
     ]
 
     for section_name, keys in sections:

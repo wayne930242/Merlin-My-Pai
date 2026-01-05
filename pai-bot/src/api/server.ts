@@ -9,6 +9,7 @@ import { memoryManager } from "../memory";
 import * as google from "../services/google";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
+import { config } from "../config";
 import {
   type WsClientData,
   handleOpen,
@@ -16,6 +17,23 @@ import {
   handleClose,
   initEventBroadcast,
 } from "./websocket";
+
+/**
+ * 驗證 API Key
+ */
+function validateApiKey(req: Request): boolean {
+  // 如果沒有設定 API Key，允許所有請求（開發模式）
+  if (!config.api.key) {
+    return true;
+  }
+
+  // 從 query param 或 header 取得 API Key
+  const url = new URL(req.url);
+  const queryKey = url.searchParams.get("key");
+  const headerKey = req.headers.get("Authorization")?.replace("Bearer ", "");
+
+  return queryKey === config.api.key || headerKey === config.api.key;
+}
 
 // Telegram bot 實例（稍後注入）
 let telegramBot: {
@@ -79,6 +97,11 @@ export function startApiServer(port = 3000) {
       try {
         // WebSocket 升級
         if (path === "/ws") {
+          // 驗證 API Key
+          if (!validateApiKey(req)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+
           const clientId = crypto.randomUUID();
           const upgraded = server.upgrade(req, {
             data: {

@@ -216,6 +216,19 @@ OPTIONAL_FEATURES: list[FeatureDef] = [
             },
         ],
     },
+    {
+        "name": "web_api",
+        "description": "Web API 認證（保護 WebSocket 和 API 端點）",
+        "vars": [
+            {
+                "key": "vault_pai_api_key",
+                "prompt": "PAI API Key",
+                "help": "用於保護 Web API 端點（留空則自動產生）",
+                "secret": True,
+                "auto_generate": True,
+            },
+        ],
+    },
 ]
 
 # Playbooks

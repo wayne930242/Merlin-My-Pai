@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { ChatView } from '@/components/chat/chat-view'
-import { useWebSocket, type WsEvent } from '@/hooks/use-websocket'
+import { useWs, type WsEvent } from '@/hooks/use-websocket'
 import { Separator } from '@/components/ui/separator'
 
 interface Message {
@@ -13,7 +13,9 @@ interface Message {
 }
 
 // WebSocket URL（開發時可調整）
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws'
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws'
+const API_KEY = import.meta.env.VITE_API_KEY || ''
+const WS_URL = API_KEY ? `${WS_BASE_URL}?key=${API_KEY}` : WS_BASE_URL
 
 function App() {
   const [currentView, setCurrentView] = useState<'chat' | 'memory' | 'history' | 'settings'>('chat')
@@ -21,36 +23,39 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [currentResponse, setCurrentResponse] = useState('')
 
+  // 使用 ref 追蹤最新的回應內容（解決 closure 問題）
+  const responseRef = useRef('')
+
   const handleWsMessage = useCallback((event: WsEvent) => {
     switch (event.type) {
       case 'chat:start':
         setIsLoading(true)
         setCurrentResponse('')
+        responseRef.current = ''
         break
 
       case 'chat:text':
-        setCurrentResponse(event.content as string)
-        break
-
       case 'claude:text':
-        // 即時更新回應（來自廣播）
+        // 更新回應
+        responseRef.current = event.content as string
         setCurrentResponse(event.content as string)
         break
 
       case 'chat:done':
-        if (currentResponse) {
+        if (responseRef.current) {
           setMessages((prev) => [
             ...prev,
             {
               id: crypto.randomUUID(),
               role: 'assistant',
-              content: currentResponse,
+              content: responseRef.current,
               timestamp: Date.now(),
             },
           ])
         }
         setIsLoading(false)
         setCurrentResponse('')
+        responseRef.current = ''
         break
 
       case 'chat:error':
@@ -65,11 +70,12 @@ function App() {
         ])
         setIsLoading(false)
         setCurrentResponse('')
+        responseRef.current = ''
         break
     }
-  }, [currentResponse])
+  }, [])
 
-  const { isConnected, sendChat } = useWebSocket({
+  const { isConnected, sendChat } = useWs({
     url: WS_URL,
     onMessage: handleWsMessage,
   })
@@ -99,10 +105,10 @@ function App() {
         onViewChange={setCurrentView}
       />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-12 sm:h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <h1 className="text-lg font-semibold capitalize">{currentView}</h1>
+          <h1 className="text-base sm:text-lg font-semibold capitalize">{currentView}</h1>
         </header>
 
         <main className="flex-1 overflow-hidden">

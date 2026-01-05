@@ -1,120 +1,53 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback } from 'react'
+import useWebSocket, { ReadyState } from 'react-use-websocket'
 
 export interface WsEvent {
   type: string
   [key: string]: unknown
 }
 
-interface UseWebSocketOptions {
+interface UseWsOptions {
   url: string
   onMessage?: (event: WsEvent) => void
-  onConnect?: () => void
-  onDisconnect?: () => void
-  reconnectInterval?: number
 }
 
-export function useWebSocket({
-  url,
-  onMessage,
-  onConnect,
-  onDisconnect,
-  reconnectInterval = 3000,
-}: UseWebSocketOptions) {
-  const wsRef = useRef<WebSocket | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
-  const [clientId, setClientId] = useState<string | null>(null)
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const shouldReconnectRef = useRef(true)
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return
-
-    try {
-      const ws = new WebSocket(url)
-
-      ws.onopen = () => {
-        setIsConnected(true)
-        onConnect?.()
+export function useWs({ url, onMessage }: UseWsOptions) {
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(url, {
+    share: true, // 共享連線
+    shouldReconnect: () => true, // 自動重連
+    reconnectAttempts: 50,
+    reconnectInterval: 3000,
+    onMessage: (event) => {
+      try {
+        const data = JSON.parse(event.data) as WsEvent
+        onMessage?.(data)
+      } catch {
+        console.error('[WS] Failed to parse message')
       }
+    },
+    onOpen: () => console.log('[WS] Connected'),
+    onClose: () => console.log('[WS] Disconnected'),
+    onError: (error) => console.error('[WS] Error:', error),
+  })
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data) as WsEvent
-
-          // 處理連接確認
-          if (data.type === 'connected' && data.clientId) {
-            setClientId(data.clientId as string)
-          }
-
-          onMessage?.(data)
-        } catch {
-          console.error('Failed to parse WebSocket message')
-        }
-      }
-
-      ws.onclose = () => {
-        setIsConnected(false)
-        setClientId(null)
-        wsRef.current = null
-        onDisconnect?.()
-
-        // 自動重連
-        if (shouldReconnectRef.current) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect()
-          }, reconnectInterval)
-        }
-      }
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
-      }
-
-      wsRef.current = ws
-    } catch (error) {
-      console.error('Failed to create WebSocket:', error)
-
-      // 重試
-      if (shouldReconnectRef.current) {
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect()
-        }, reconnectInterval)
-      }
-    }
-  }, [url, onMessage, onConnect, onDisconnect, reconnectInterval])
-
-  const disconnect = useCallback(() => {
-    shouldReconnectRef.current = false
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-      reconnectTimeoutRef.current = null
-    }
-    wsRef.current?.close()
-    wsRef.current = null
-  }, [])
-
-  const send = useCallback((data: unknown) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data))
-    }
-  }, [])
+  const isConnected = readyState === ReadyState.OPEN
 
   const sendChat = useCallback((content: string) => {
-    send({ type: 'chat', content })
-  }, [send])
+    sendJsonMessage({ type: 'chat', content })
+  }, [sendJsonMessage])
 
-  useEffect(() => {
-    shouldReconnectRef.current = true
-    connect()
-    return () => disconnect()
-  }, [connect, disconnect])
+  // 從 lastJsonMessage 取得 clientId
+  const msg = lastJsonMessage as WsEvent | null
+  const clientId = msg?.type === 'connected' ? (msg.clientId as string) : null
 
   return {
     isConnected,
     clientId,
-    send,
+    send: sendJsonMessage,
     sendChat,
-    disconnect,
-    reconnect: connect,
+    readyState,
   }
 }
+
+// Re-export for convenience
+export { ReadyState }

@@ -1,11 +1,17 @@
 """變數收集"""
 
+import secrets
 from typing import Any
 
 from .. import ui
 from ..config import OPTIONAL_FEATURES, REQUIRED_VARS
 from ..state import SetupState
 from ..utils import generate_ssh_key
+
+
+def generate_api_key() -> str:
+    """產生隨機 API Key（64 字元 hex）"""
+    return secrets.token_hex(32)
 
 
 def collect_required_vars(state: SetupState) -> bool:
@@ -85,6 +91,16 @@ def collect_optional_vars(state: SetupState) -> bool:
                     # 處理 bool 類型變數
                     if v.get("type") == "bool":
                         variables[v["key"]] = ui.ask_yes_no("  啟用？", v.get("default", False))
+                    elif v.get("auto_generate"):
+                        # 自動產生的變數（如 API Key）
+                        str_value = ui.get_input(
+                            "  輸入值（留空自動產生）", None, v.get("secret", False)
+                        )
+                        if str_value:
+                            variables[v["key"]] = str_value
+                        else:
+                            variables[v["key"]] = generate_api_key()
+                            ui.success("已自動產生")
                     else:
                         str_value = ui.get_input(
                             "  輸入值", v.get("default"), v.get("secret", False)
