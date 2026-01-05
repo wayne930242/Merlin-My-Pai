@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.43.3 (2026-01-05)
+
+### Bug Fixes
+
+- **ws**: Improve reconnection with visibility change and exponential backoff
+  ([`af9aeff`](https://github.com/wayne930242/weihung-pai/commit/af9aeff5704870dd18aabb3c9a7e9c2bf02fec2e))
+
+
 ## v1.43.2 (2026-01-05)
 
 ### Bug Fixes
