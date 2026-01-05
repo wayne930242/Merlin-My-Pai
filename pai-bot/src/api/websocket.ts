@@ -132,11 +132,28 @@ export function handleClose(ws: ServerWebSocket<WsClientData>): void {
 
 /**
  * 廣播事件到所有客戶端
+ * @param addToBuffer 是否加入 buffer（供新連線使用）
  */
 export function broadcast<K extends keyof PaiEvents>(
   event: K,
-  data: PaiEvents[K]
+  data: PaiEvents[K],
+  addToBuffer = false
 ): void {
+  // 加入 buffer（如果需要）
+  if (addToBuffer) {
+    if (event === "log:entry") {
+      logBuffer.push(data as PaiEvents["log:entry"]);
+      if (logBuffer.length > MAX_LOG_BUFFER) {
+        logBuffer.shift();
+      }
+    } else if (event === "notify:message") {
+      notificationBuffer.push(data as PaiEvents["notify:message"]);
+      if (notificationBuffer.length > MAX_NOTIFICATION_BUFFER) {
+        notificationBuffer.shift();
+      }
+    }
+  }
+
   const message = JSON.stringify({ type: event, ...data });
 
   for (const [, ws] of clients) {

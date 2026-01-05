@@ -674,8 +674,9 @@ export function startApiServer(port = 3000) {
             return Response.json({ error: "event and data required" }, { status: 400 });
           }
 
-          // 廣播事件到所有 WebSocket 客戶端
-          broadcast(event, data);
+          // 廣播事件到所有 WebSocket 客戶端（加入 buffer 供新連線使用）
+          broadcast(event, data, true);
+          logger.debug({ event, data }, "Internal broadcast");
 
           return Response.json({ success: true });
         }
