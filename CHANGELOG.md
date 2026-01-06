@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.47.0 (2026-01-06)
+
+### Chores
+
+- Extract web/api endpoints to vault config
+  ([`ade8f8e`](https://github.com/wayne930242/weihung-pai/commit/ade8f8eff40a0d77a027f7e92be94c91bafd0aff))
+
+### Features
+
+- **web**: Display tool calls in logs view
+  ([`56eb38c`](https://github.com/wayne930242/weihung-pai/commit/56eb38cadd8f9fdd3f604b1397b50c0a13338a1d))
+
+
 ## v1.46.0 (2026-01-05)
 
 ### Features
