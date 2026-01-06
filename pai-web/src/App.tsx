@@ -162,6 +162,21 @@ function App() {
         responseRef.current = ''
         break
 
+      case 'claude:tool':
+        // 工具調用事件 - 顯示在日誌中
+        setLogs((prev) => {
+          const newLog: LogEntry = {
+            id: crypto.randomUUID(),
+            level: 'info',
+            msg: `Tool: ${event.tool}`,
+            context: JSON.stringify(event.input, null, 2),
+            timestamp: event.timestamp as number,
+          }
+          const updated = [...prev, newLog]
+          return updated.slice(-MAX_LOGS)
+        })
+        break
+
       case 'log:entry':
         setLogs((prev) => {
           const newLog: LogEntry = {
