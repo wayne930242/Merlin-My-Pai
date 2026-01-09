@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.49.7 (2026-01-09)
+
+### Bug Fixes
+
+- **rag**: Fix LangGraph grade node to return dict
+  ([`034b3dc`](https://github.com/wayne930242/weihung-pai/commit/034b3dc553d32b1277e85eb884f213da24492e86))
+
+
 ## v1.49.6 (2026-01-09)
 
 ### Bug Fixes
