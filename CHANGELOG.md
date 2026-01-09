@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.49.5 (2026-01-09)
+
+### Bug Fixes
+
+- **db**: Sync memories schema with manager.ts
+  ([`d766039`](https://github.com/wayne930242/weihung-pai/commit/d7660396e1ebb35f99105e6ec146c74855332193))
+
+
 ## v1.49.4 (2026-01-09)
 
 ### Bug Fixes
