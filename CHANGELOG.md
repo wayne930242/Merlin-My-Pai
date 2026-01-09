@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.48.0 (2026-01-09)
+
+### Chores
+
+- Disable spotify connect functionality
+  ([`f27c03a`](https://github.com/wayne930242/weihung-pai/commit/f27c03ae4cd0964f3321453a1c52856ca72be0b5))
+
+### Features
+
+- **rag**: Implement agentic RAG with LangGraph
+  ([`0075c47`](https://github.com/wayne930242/weihung-pai/commit/0075c476eaca1072456675c81812f56f0ede528f))
+
+
 ## v1.47.0 (2026-01-06)
 
 ### Chores
