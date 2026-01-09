@@ -93,19 +93,24 @@ def get_openai_embedding_function() -> EmbeddingFunction[Embeddable]:
 class ObsidianRAG:
     """Obsidian RAG 索引管理器"""
 
-    def __init__(self, vault_path: str | Path, db_path: str | Path | None = None):
+    def __init__(self, vault_path: str | Path, db_path: str | Path | None = None, readonly: bool = False):
         self.vault_path = Path(vault_path).expanduser()
         self.db_path = Path(db_path).expanduser() if db_path else DB_PATH
         self.db_path.mkdir(parents=True, exist_ok=True)
 
         self.client = chromadb.PersistentClient(path=str(self.db_path))
-        self.embedding_fn = get_openai_embedding_function()
 
-        self.collection = self.client.get_or_create_collection(
-            name="obsidian_vault",
-            metadata={"hnsw:space": "cosine"},
-            embedding_function=self.embedding_fn,
-        )
+        if readonly:
+            # Stats only - no embedding needed
+            self.embedding_fn = None
+            self.collection = self.client.get_or_create_collection(name="obsidian_vault")
+        else:
+            self.embedding_fn = get_openai_embedding_function()
+            self.collection = self.client.get_or_create_collection(
+                name="obsidian_vault",
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=self.embedding_fn,
+            )
 
         self.meta_collection = self.client.get_or_create_collection(name="obsidian_meta")
 
@@ -253,7 +258,9 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    rag = ObsidianRAG(args.vault, args.db)
+    # stats 不需要 API key，使用 readonly 模式
+    readonly = args.command == "stats"
+    rag = ObsidianRAG(args.vault, args.db, readonly=readonly)
 
     if args.command == "sync":
         if not args.json:

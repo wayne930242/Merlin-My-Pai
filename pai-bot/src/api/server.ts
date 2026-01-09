@@ -500,12 +500,13 @@ export function startApiServer(port = 3000) {
 
         // === RAG APIs ===
         const VAULT_PATH = process.env.OBSIDIAN_VAULT || "~/obsidian";
+        const PYTHON_PATH = process.env.RAG_PYTHON || `${process.env.HOME}/.venv/bin/python`;
 
         // RAG - stats
         if (path === "/api/rag/stats" && method === "GET") {
           const { $ } = await import("bun");
           const ragScript = new URL("../rag/obsidian_rag.py", import.meta.url).pathname;
-          const result = await $`python ${ragScript} stats --vault ${VAULT_PATH} --json`.json();
+          const result = await $`${PYTHON_PATH} ${ragScript} stats --vault ${VAULT_PATH} --json`.json();
           return Response.json(result, { headers: corsHeaders });
         }
 
@@ -519,7 +520,7 @@ export function startApiServer(port = 3000) {
 
           const { $ } = await import("bun");
           const ragScript = new URL("../rag/agentic_rag.py", import.meta.url).pathname;
-          const result = await $`python ${ragScript} query -q ${question} --vault ${VAULT_PATH} -r ${max_retries} --json`.json();
+          const result = await $`${PYTHON_PATH} ${ragScript} query -q ${question} --vault ${VAULT_PATH} -r ${max_retries} --json`.json();
           return Response.json(result, { headers: corsHeaders });
         }
 
@@ -533,7 +534,7 @@ export function startApiServer(port = 3000) {
 
           const { $ } = await import("bun");
           const ragScript = new URL("../rag/obsidian_rag.py", import.meta.url).pathname;
-          const result = await $`python ${ragScript} search -q ${query} --vault ${VAULT_PATH} -k ${top_k} --json`.json();
+          const result = await $`${PYTHON_PATH} ${ragScript} search -q ${query} --vault ${VAULT_PATH} -k ${top_k} --json`.json();
           return Response.json({ results: result }, { headers: corsHeaders });
         }
 
@@ -541,7 +542,7 @@ export function startApiServer(port = 3000) {
         if (path === "/api/rag/sync" && method === "POST") {
           const { $ } = await import("bun");
           const ragScript = new URL("../rag/obsidian_rag.py", import.meta.url).pathname;
-          const result = await $`python ${ragScript} sync --vault ${VAULT_PATH} --json`.json();
+          const result = await $`${PYTHON_PATH} ${ragScript} sync --vault ${VAULT_PATH} --json`.json();
           return Response.json(result, { headers: corsHeaders });
         }
 
