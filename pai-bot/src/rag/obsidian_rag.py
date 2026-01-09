@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -110,7 +110,7 @@ class ObsidianRAG:
         self.meta_collection = self.client.get_or_create_collection(name="obsidian_meta")
 
     def _get_file_mtime(self, file_path: Path) -> str:
-        return datetime.fromtimestamp(file_path.stat().st_mtime, tz=UTC).isoformat()
+        return datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).isoformat()
 
     def _get_stored_mtime(self, rel_path: str) -> str | None:
         result = self.meta_collection.get(ids=[rel_path])
@@ -122,7 +122,7 @@ class ObsidianRAG:
     def _update_stored_mtime(self, rel_path: str, mtime: str) -> None:
         self.meta_collection.upsert(
             ids=[rel_path],
-            metadatas=[{"mtime": mtime, "indexed_at": datetime.now(tz=UTC).isoformat()}],
+            metadatas=[{"mtime": mtime, "indexed_at": datetime.now(tz=timezone.utc).isoformat()}],
             documents=[rel_path],
         )
 
