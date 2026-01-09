@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.49.4 (2026-01-09)
+
+### Bug Fixes
+
+- Add EnvironmentFile to pai-bot service for API keys
+  ([`064beab`](https://github.com/wayne930242/weihung-pai/commit/064beab03da5fbddb99e3ca18cdbfbb457106d87))
+
+
 ## v1.49.3 (2026-01-09)
 
 ### Bug Fixes
