@@ -19,7 +19,7 @@ import {
   initEventBroadcast,
   broadcast,
 } from "./websocket";
-import type { PaiEvents } from "../events";
+import { paiEvents, type PaiEvents } from "../events";
 
 /**
  * 驗證 API Key
@@ -153,6 +153,12 @@ export function startApiServer(port = 3000) {
           };
           const icon = icons[level] || icons.info;
           const formattedMessage = `${icon} ${message}`;
+
+          // 廣播到 WebSocket（讓 WebUI 即時顯示）
+          paiEvents.emit("notify:message", {
+            message: formattedMessage,
+            timestamp: Date.now(),
+          });
 
           // Try HQ session first
           const hqSession = sessionService.getHQ();
