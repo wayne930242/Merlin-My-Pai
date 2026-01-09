@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v1.49.8 (2026-01-09)
+
+### Bug Fixes
+
+- **api**: Broadcast notify events to websocket for webui
+  ([`189e5d7`](https://github.com/wayne930242/weihung-pai/commit/189e5d7229a508d950d9bb3c2952b7e2b45545a5))
+
+- **rag**: Redirect debug prints to stderr for clean JSON output
+  ([`6ea182c`](https://github.com/wayne930242/weihung-pai/commit/6ea182c19034414b47bdb503f59f8391d2e2c07d))
+
+
 ## v1.49.7 (2026-01-09)
 
 ### Bug Fixes
