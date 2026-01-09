@@ -1,22 +1,22 @@
 ---
-# Setup Obsidian RAG (Optional)
-# 設定 Obsidian 語意搜尋功能
+# Setup Obsidian Agentic RAG
+# 設定 Obsidian 語意搜尋功能（使用 OpenAI embedding + LangGraph）
 #
 # 前置需求:
 # - Obsidian vault 已同步到 ~/obsidian
-# - Python venv 已建立 (~/.venv)
+# - vault.yml 已設定 vault_openai_api_key
 #
 # 使用方式:
 # uv run pai ansible ansible-playbook ansible/playbooks/setup-obsidian-rag.yml
 
-- name: Setup Obsidian RAG
+- name: Setup Obsidian Agentic RAG
   hosts: pai-server
   become: false
 
   vars:
     home_dir: "/home/{{ ansible_user }}"
     venv_path: "{{ home_dir }}/.venv"
-    scripts_dir: "{{ home_dir }}/merlin/scripts"
+    scripts_dir: "{{ home_dir }}/pai-bot/src/rag"
     vault_path: "{{ home_dir }}/obsidian"
 
   tasks:
@@ -31,9 +31,14 @@
         creates: "{{ venv_path }}/bin/python"
       when: not venv_exists.stat.exists
 
-    - name: Install ChromaDB in venv
+    - name: Install dependencies in venv
       ansible.builtin.pip:
-        name: chromadb
+        name:
+          - chromadb
+          - langgraph
+          - langchain
+          - langchain-openai
+          - langchain-anthropic
         virtualenv: "{{ venv_path }}"
         state: present
 
@@ -57,9 +62,11 @@
         msg: "RAG script not found at {{ scripts_dir }}. Please sync pai-claude first."
       when: not script_exists.stat.exists
 
-    - name: Run initial RAG sync
+    - name: Run RAG sync with OpenAI embedding
       ansible.builtin.command:
         cmd: "{{ venv_path }}/bin/python {{ scripts_dir }}/obsidian_rag.py sync --vault {{ vault_path }}"
+      environment:
+        OPENAI_API_KEY: "{{ vault_openai_api_key }}"
       register: rag_sync
       changed_when: "'added' in rag_sync.stdout or 'updated' in rag_sync.stdout"
 
@@ -72,17 +79,19 @@
         name: "Obsidian RAG sync"
         minute: "0"
         hour: "*/4"
-        job: "{{ venv_path }}/bin/python {{ scripts_dir }}/obsidian_rag.py sync --vault {{ vault_path }} > /dev/null 2>&1"
+        job: "OPENAI_API_KEY={{ vault_openai_api_key }} {{ venv_path }}/bin/python {{ scripts_dir }}/obsidian_rag.py sync --vault {{ vault_path }} > /dev/null 2>&1"
         user: "{{ ansible_user }}"
 
     - name: Print next steps
       ansible.builtin.debug:
         msg: |
-          Obsidian RAG setup complete!
+          Obsidian Agentic RAG setup complete!
 
-          你可以使用以下 MCP tools:
-          - obsidian_search: 語意搜尋 Obsidian 筆記
+          MCP tools:
+          - obsidian_agent_query: AI Agent 智能查詢（推薦）
+          - obsidian_search: 簡單語意搜尋
           - obsidian_stats: 查看索引統計
           - obsidian_sync: 手動同步索引
 
-          自動同步已設定為每 4 小時執行一次。
+          Embedding: OpenAI text-embedding-3-small
+          自動同步: 每 4 小時

@@ -80,3 +80,7 @@ vault_google_refresh_token: "YOUR_REFRESH_TOKEN"
 # 用於取得步數、睡眠、心率等健康數據
 vault_garmin_email: "YOUR_GARMIN_EMAIL"
 vault_garmin_password: "YOUR_GARMIN_PASSWORD"
+
+# === OpenAI API（用於 Agentic RAG embedding）===
+# 取得方式: https://platform.openai.com/api-keys
+vault_openai_api_key: "sk-YOUR_OPENAI_API_KEY"

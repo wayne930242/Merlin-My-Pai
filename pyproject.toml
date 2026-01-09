@@ -20,6 +20,11 @@ dependencies = [
     "ruff>=0.8.0",
     "toon-py>=1.0.2",
     "chromadb>=1.4.0",
+    # Agentic RAG
+    "langgraph>=0.2.0",
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-anthropic>=0.3.0",
 ]
 
 [project.scripts]

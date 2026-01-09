@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
-"""Obsidian RAG 索引工具 - 使用 ChromaDB 內建 embedding"""
+"""Obsidian RAG 索引工具 - 使用 OpenAI embedding"""
+
+from __future__ import annotations
 
 import hashlib
+import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import chromadb
+from chromadb.api.types import Embeddable, EmbeddingFunction
 
 # 設定
-CHUNK_SIZE = 500  # 字元數
+CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
+DB_PATH = Path.home() / ".chromadb" / "obsidian"
 
 
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
@@ -44,7 +49,6 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     final_chunks = []
     for chunk in chunks:
         if len(chunk) > chunk_size * 2:
-            # 按句子切分
             sentences = re.split(r"(?<=[。！？.!?])\s*", chunk)
             sub_chunk = ""
             for sent in sentences:
@@ -59,7 +63,7 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
         else:
             final_chunks.append(chunk)
 
-    return [c for c in final_chunks if len(c) > 20]  # 過濾太短的
+    return [c for c in final_chunks if len(c) > 20]
 
 
 def generate_chunk_id(file_path: str, chunk_index: int) -> str:
@@ -67,38 +71,48 @@ def generate_chunk_id(file_path: str, chunk_index: int) -> str:
     return hashlib.md5(f"{file_path}:{chunk_index}".encode()).hexdigest()
 
 
+def get_openai_embedding_function() -> EmbeddingFunction[Embeddable]:
+    """取得 OpenAI embedding function"""
+    from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY 環境變數未設定")
+
+    # OpenAIEmbeddingFunction 只接受 list[str]，但 chromadb API 期望 Embeddable
+    # 實際使用時只會傳入 list[str]，所以這個 cast 是安全的
+    return cast(
+        EmbeddingFunction[Embeddable],
+        OpenAIEmbeddingFunction(
+            api_key=api_key,
+            model_name="text-embedding-3-small",
+        ),
+    )
+
+
 class ObsidianRAG:
-    """Obsidian RAG 索引管理器（使用 ChromaDB 內建 embedding）"""
+    """Obsidian RAG 索引管理器"""
 
-    def __init__(
-        self,
-        vault_path: str | Path,
-        db_path: str | Path | None = None,
-    ):
+    def __init__(self, vault_path: str | Path, db_path: str | Path | None = None):
         self.vault_path = Path(vault_path).expanduser()
-
-        # ChromaDB 設定
-        if db_path is None:
-            db_path = Path.home() / ".chromadb" / "obsidian"
-        self.db_path = Path(db_path).expanduser()
+        self.db_path = Path(db_path).expanduser() if db_path else DB_PATH
         self.db_path.mkdir(parents=True, exist_ok=True)
 
         self.client = chromadb.PersistentClient(path=str(self.db_path))
-        # 使用 ChromaDB 內建的 embedding function (all-MiniLM-L6-v2)
+        self.embedding_fn = get_openai_embedding_function()
+
         self.collection = self.client.get_or_create_collection(
             name="obsidian_vault",
             metadata={"hnsw:space": "cosine"},
+            embedding_function=self.embedding_fn,
         )
 
-        # 檔案狀態追蹤 collection
         self.meta_collection = self.client.get_or_create_collection(name="obsidian_meta")
 
     def _get_file_mtime(self, file_path: Path) -> str:
-        """取得檔案修改時間"""
         return datetime.fromtimestamp(file_path.stat().st_mtime, tz=UTC).isoformat()
 
     def _get_stored_mtime(self, rel_path: str) -> str | None:
-        """取得已儲存的修改時間"""
         result = self.meta_collection.get(ids=[rel_path])
         if result["metadatas"] and result["metadatas"][0]:
             mtime = result["metadatas"][0].get("mtime")
@@ -106,16 +120,13 @@ class ObsidianRAG:
         return None
 
     def _update_stored_mtime(self, rel_path: str, mtime: str) -> None:
-        """更新儲存的修改時間"""
         self.meta_collection.upsert(
             ids=[rel_path],
             metadatas=[{"mtime": mtime, "indexed_at": datetime.now(tz=UTC).isoformat()}],
-            documents=[rel_path],  # ChromaDB 需要 documents
+            documents=[rel_path],
         )
 
     def _delete_file_chunks(self, rel_path: str) -> int:
-        """刪除檔案的所有 chunks"""
-        # 找出這個檔案的所有 chunks
         results = self.collection.get(where={"file_path": rel_path})
         if results["ids"]:
             self.collection.delete(ids=results["ids"])
@@ -128,60 +139,41 @@ class ObsidianRAG:
         current_mtime = self._get_file_mtime(file_path)
         stored_mtime = self._get_stored_mtime(rel_path)
 
-        # 檢查是否需要更新
         if stored_mtime == current_mtime:
-            return 0  # 沒有變更
+            return 0
 
-        # 刪除舊的 chunks
         self._delete_file_chunks(rel_path)
 
-        # 讀取檔案
         try:
             content = file_path.read_text(encoding="utf-8")
         except Exception as e:
             print(f"  無法讀取 {rel_path}: {e}")
             return 0
 
-        # 切 chunks
         chunks = chunk_text(content)
         if not chunks:
             return 0
 
-        # 準備資料（ChromaDB 會自動產生 embeddings）
         ids = [generate_chunk_id(rel_path, i) for i in range(len(chunks))]
         metadatas = [
-            {
-                "file_path": rel_path,
-                "chunk_index": i,
-                "mtime": current_mtime,
-            }
+            {"file_path": rel_path, "chunk_index": i, "mtime": current_mtime}
             for i in range(len(chunks))
         ]
 
-        # 使用 ChromaDB 內建 embedding
-        self.collection.upsert(
-            ids=ids,
-            documents=chunks,
-            metadatas=metadatas,  # type: ignore[arg-type]
-        )
-
-        # 更新 meta
+        self.collection.upsert(ids=ids, documents=chunks, metadatas=metadatas)  # type: ignore[arg-type]
         self._update_stored_mtime(rel_path, current_mtime)
 
         return len(ids)
 
     def sync(self) -> dict[str, int]:
-        """同步整個 vault，回傳統計"""
+        """同步整個 vault"""
         stats = {"added": 0, "updated": 0, "deleted": 0, "unchanged": 0}
 
-        # 取得所有已索引的檔案
         all_meta = self.meta_collection.get()
         indexed_files = set(all_meta["ids"]) if all_meta["ids"] else set()
 
-        # 掃描 vault
         current_files = set()
         for md_file in self.vault_path.rglob("*.md"):
-            # 跳過隱藏資料夾
             if any(part.startswith(".") for part in md_file.parts):
                 continue
 
@@ -203,7 +195,6 @@ class ObsidianRAG:
             else:
                 stats["unchanged"] += 1
 
-        # 刪除不存在的檔案
         deleted_files = indexed_files - current_files
         for rel_path in deleted_files:
             deleted_chunks = self._delete_file_chunks(rel_path)
@@ -214,9 +205,9 @@ class ObsidianRAG:
         return stats
 
     def search(self, query: str, top_k: int = 5) -> list[dict[str, Any]]:
-        """語意搜尋（使用 ChromaDB 內建 embedding）"""
+        """語意搜尋"""
         results = self.collection.query(
-            query_texts=[query],  # ChromaDB 會自動產生 query embedding
+            query_texts=[query],
             n_results=top_k,
             include=["documents", "metadatas", "distances"],
         )
@@ -243,6 +234,7 @@ class ObsidianRAG:
             "total_chunks": self.collection.count(),
             "total_files": self.meta_collection.count(),
             "db_path": str(self.db_path),
+            "embedding": "text-embedding-3-small",
         }
 
 
@@ -261,7 +253,7 @@ def main() -> None:
     rag = ObsidianRAG(args.vault, args.db)
 
     if args.command == "sync":
-        print(f"同步 {args.vault} ...")
+        print(f"同步 {args.vault} (embedding: text-embedding-3-small) ...")
         stats = rag.sync()
         print(
             f"\n完成: +{stats['added']} *{stats['updated']} "
@@ -282,6 +274,7 @@ def main() -> None:
         print(f"檔案數: {s['total_files']}")
         print(f"Chunks: {s['total_chunks']}")
         print(f"DB 路徑: {s['db_path']}")
+        print(f"Embedding: {s['embedding']}")
 
 
 if __name__ == "__main__":
