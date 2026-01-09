@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal, TypedDict
 
@@ -155,7 +156,7 @@ def create_rag_graph(
     def retrieve(state: AgentState) -> dict[str, Any]:
         """從向量庫檢索文件"""
         query = state.get("rewritten_query") or state["question"]
-        print(f"  [retrieve] 查詢: {query}")
+        print(f"  [retrieve] 查詢: {query}", file=sys.stderr)
 
         results = rag.search(query, top_k=5)
 
@@ -167,7 +168,7 @@ def create_rag_graph(
             for r in results
         ]
 
-        print(f"  [retrieve] 找到 {len(documents)} 個文件")
+        print(f"  [retrieve] 找到 {len(documents)} 個文件", file=sys.stderr)
         return {"documents": documents}
 
     def grade_documents(state: AgentState) -> dict[str, str]:
@@ -178,9 +179,9 @@ def create_rag_graph(
 
         if not documents:
             if retry_count < max_retries:
-                print("  [grade] 無文件，重寫查詢")
+                print("  [grade] 無文件，重寫查詢", file=sys.stderr)
                 return {"grade_decision": "rewrite"}
-            print("  [grade] 無文件，直接生成")
+            print("  [grade] 無文件，直接生成", file=sys.stderr)
             return {"grade_decision": "generate"}
 
         doc = documents[0]
@@ -193,13 +194,13 @@ def create_rag_graph(
             score = result["binary_score"]  # type: ignore[index]
 
         if score == "yes":
-            print("  [grade] 文件相關，進入生成")
+            print("  [grade] 文件相關，進入生成", file=sys.stderr)
             return {"grade_decision": "generate"}
         elif retry_count < max_retries:
-            print(f"  [grade] 文件不相關，重寫查詢 (retry {retry_count + 1}/{max_retries})")
+            print(f"  [grade] 文件不相關，重寫查詢 (retry {retry_count + 1}/{max_retries})", file=sys.stderr)
             return {"grade_decision": "rewrite"}
         else:
-            print("  [grade] 達到重試上限，使用現有文件生成")
+            print("  [grade] 達到重試上限，使用現有文件生成", file=sys.stderr)
             return {"grade_decision": "generate"}
 
     def rewrite_question(state: AgentState) -> dict[str, Any]:
@@ -214,7 +215,7 @@ def create_rag_graph(
         else:
             new_query = result["query"]  # type: ignore[index]
 
-        print(f"  [rewrite] 新查詢: {new_query}")
+        print(f"  [rewrite] 新查詢: {new_query}", file=sys.stderr)
         return {"rewritten_query": new_query, "retry_count": retry_count + 1}
 
     def generate_answer(state: AgentState) -> dict[str, Any]:
@@ -238,7 +239,7 @@ def create_rag_graph(
         response = main_llm.invoke(generate_prompt.format(question=question, context=context))
         answer = response.content
 
-        print("  [generate] 生成完成")
+        print("  [generate] 生成完成", file=sys.stderr)
         return {"generation": answer, "messages": [AIMessage(content=str(answer))]}
 
     def direct_response(state: AgentState) -> dict[str, Any]:
@@ -319,8 +320,6 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "query":
-        import sys
-
         if not args.json:
             print(f"Agentic RAG 查詢: {args.question}", file=sys.stderr)
             print("-" * 50, file=sys.stderr)
