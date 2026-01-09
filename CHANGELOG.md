@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.49.3 (2026-01-09)
+
+### Bug Fixes
+
+- **rag**: Allow stats without API key (readonly mode)
+  ([`a68d1b5`](https://github.com/wayne930242/weihung-pai/commit/a68d1b5b296831595981901e6ab2d35cac7d31c2))
+
+
 ## v1.49.2 (2026-01-09)
 
 ### Bug Fixes
