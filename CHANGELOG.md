@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.55.1 (2026-01-10)
+
+### Bug Fixes
+
+- Lite prompts in English, lower threshold to 5, enforce Traditional Chinese in flash
+  ([`4c9abbe`](https://github.com/wayne930242/weihung-pai/commit/4c9abbe8e1a6a2dbde15097997c8ce769a70910f))
+
+
 ## v1.55.0 (2026-01-10)
 
 ### Bug Fixes
