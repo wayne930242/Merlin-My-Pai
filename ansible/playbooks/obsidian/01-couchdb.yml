@@ -2,7 +2,7 @@
 - name: Deploy Obsidian LiveSync (CouchDB)
   hosts: pai-server
   vars_files:
-    - ../inventory/group_vars/all/vault.yml
+    - ../../inventory/group_vars/all/vault.yml
 
   tasks:
     - name: Ensure livesync directory exists
@@ -15,7 +15,7 @@
 
     - name: Create docker-compose.yml
       ansible.builtin.template:
-        src: templates/livesync-couchdb.docker-compose.yml.j2
+        src: ../templates/livesync-couchdb.docker-compose.yml.j2
         dest: "/home/{{ ansible_user }}/livesync/docker-compose.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -51,27 +51,19 @@
       retries: 10
       delay: 3
 
-    - name: Check if LiveSync config exists in Caddyfile
-      ansible.builtin.shell: grep -q "{{ vault_livesync_domain }}" /etc/caddy/Caddyfile
-      register: livesync_in_caddyfile
-      changed_when: false
-      failed_when: false
+    - name: Ensure Caddy conf.d directory exists
+      ansible.builtin.file:
+        path: /etc/caddy/conf.d
+        state: directory
+        mode: "0755"
+      become: true
 
-    - name: Append LiveSync config to Caddyfile
-      ansible.builtin.blockinfile:
-        path: /etc/caddy/Caddyfile
-        marker: "# {mark} LIVESYNC MANAGED BLOCK"
-        block: |
-          {{ vault_livesync_domain }} {
-              encode gzip
-              reverse_proxy localhost:5984 {
-                  header_up Host {host}
-                  header_up X-Real-IP {remote}
-                  header_up X-Forwarded-For {remote}
-                  header_up X-Forwarded-Proto {scheme}
-              }
-          }
-      when: livesync_in_caddyfile.rc != 0
+    - name: Deploy LiveSync Caddy config
+      ansible.builtin.template:
+        src: ../templates/livesync.Caddyfile.j2
+        dest: /etc/caddy/conf.d/livesync.caddy
+        mode: "0644"
+      become: true
 
     - name: Reload Caddy
       ansible.builtin.systemd:

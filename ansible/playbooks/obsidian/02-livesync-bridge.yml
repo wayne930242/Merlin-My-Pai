@@ -2,7 +2,7 @@
 - name: Deploy LiveSync Bridge
   hosts: pai-server
   vars_files:
-    - ../inventory/group_vars/all/vault.yml
+    - ../../inventory/group_vars/all/vault.yml
 
   tasks:
     - name: Check if Deno is installed
@@ -62,7 +62,7 @@
 
     - name: Create config.json
       ansible.builtin.template:
-        src: templates/livesync-bridge.config.json.j2
+        src: ../templates/livesync-bridge.config.json.j2
         dest: "/home/{{ ansible_user }}/livesync-bridge/dat/config.json"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -79,7 +79,7 @@
 
     - name: Create systemd service
       ansible.builtin.template:
-        src: templates/livesync-bridge.service.j2
+        src: ../templates/livesync-bridge.service.j2
         dest: /etc/systemd/system/livesync-bridge.service
         mode: "0644"
       become: true

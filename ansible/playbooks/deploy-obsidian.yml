@@ -1,0 +1,20 @@
+---
+# Deploy Obsidian LiveSync + RAG
+# 完整部署 Obsidian 同步與語意搜尋
+#
+# 執行順序:
+# 1. CouchDB - 資料庫（LiveSync 後端）
+# 2. LiveSync Bridge - 同步 CouchDB 到檔案系統
+# 3. RAG - 語意搜尋索引
+#
+# 使用方式:
+# uv run pai ansible ansible-playbook ansible/playbooks/deploy-obsidian.yml
+
+- name: "Step 1: Deploy CouchDB"
+  ansible.builtin.import_playbook: obsidian/01-couchdb.yml
+
+- name: "Step 2: Deploy LiveSync Bridge"
+  ansible.builtin.import_playbook: obsidian/02-livesync-bridge.yml
+
+- name: "Step 3: Setup RAG"
+  ansible.builtin.import_playbook: obsidian/03-rag.yml

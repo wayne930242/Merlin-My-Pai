@@ -3,21 +3,21 @@
 # 設定 Obsidian 語意搜尋功能（使用 OpenAI embedding + LangGraph）
 #
 # 前置需求:
-# - Obsidian vault 已同步到 ~/obsidian
+# - Obsidian vault 已同步到 ~/obsidian-vault
 # - vault.yml 已設定 vault_openai_api_key
-#
-# 使用方式:
-# uv run pai ansible ansible-playbook ansible/playbooks/setup-obsidian-rag.yml
 
 - name: Setup Obsidian Agentic RAG
   hosts: pai-server
   become: false
 
+  vars_files:
+    - ../../inventory/group_vars/all/vault.yml
+
   vars:
     home_dir: "/home/{{ ansible_user }}"
     venv_path: "{{ home_dir }}/.venv"
     scripts_dir: "{{ home_dir }}/pai-bot/src/rag"
-    vault_path: "{{ home_dir }}/obsidian"
+    vault_path: "{{ home_dir }}/obsidian-vault"
 
   tasks:
     - name: Ensure Python venv exists
