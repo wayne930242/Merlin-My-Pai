@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v1.52.0 (2026-01-10)
+
+### Bug Fixes
+
+- Bun types
+  ([`a21f071`](https://github.com/wayne930242/weihung-pai/commit/a21f0719e476483c1791667c1c402c795f92e3fb))
+
+### Features
+
+- Add intel-feed service for daily news digest
+  ([`7978e64`](https://github.com/wayne930242/weihung-pai/commit/7978e641e6d043877d183232af14c07a707bad56))
+
+### Refactoring
+
+- Reorganize obsidian playbooks into subfolder
+  ([`04a4243`](https://github.com/wayne930242/weihung-pai/commit/04a42436dd7e10b9e0d654ca18e6c32142c0b38a))
+
+
 ## v1.51.0 (2026-01-10)
 
 ### Chores
