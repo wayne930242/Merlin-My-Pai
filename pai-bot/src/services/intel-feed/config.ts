@@ -31,4 +31,4 @@ export const REDDIT_LIMIT = 10;
 export const ITEMS_PER_CATEGORY = 3;
 
 // Minimum relevance score to keep (1-10)
-export const MIN_RELEVANCE_SCORE = 5;
+export const MIN_RELEVANCE_SCORE = 6;

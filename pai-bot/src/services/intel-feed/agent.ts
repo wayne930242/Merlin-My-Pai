@@ -19,7 +19,7 @@ const SCORE_PROMPT = `You are a content scoring assistant. Rate the relevance of
 Scoring criteria (1-10):
 - 1-3: Irrelevant or low quality (ads, duplicates, no substance)
 - 4-5: Generic content, no special value
-- 6-7: Valuable content, worth knowing
+- 6-7: Interesting, original, or valuable content worth knowing
 - 8-10: High value content, must read
 
 Reply with only a number (1-10), nothing else.
