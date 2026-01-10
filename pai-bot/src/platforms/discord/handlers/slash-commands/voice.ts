@@ -3,7 +3,6 @@
  */
 
 import {
-  ActivityType,
   type ChatInputCommandInteraction,
   type Client,
   MessageFlags,

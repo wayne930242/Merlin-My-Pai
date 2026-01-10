@@ -1,15 +1,11 @@
-import pino from "pino";
 import { Writable } from "node:stream";
+import pino from "pino";
 import { config } from "../config";
 import { paiEvents } from "../events";
 
 // 自訂 stream：發送 log 到 WebSocket
 class EventEmitterStream extends Writable {
-  _write(
-    chunk: Buffer,
-    _encoding: string,
-    callback: (error?: Error | null) => void
-  ): void {
+  _write(chunk: Buffer, _encoding: string, callback: (error?: Error | null) => void): void {
     try {
       const log = JSON.parse(chunk.toString());
       const levelMap: Record<number, "debug" | "info" | "warn" | "error" | "fatal"> = {

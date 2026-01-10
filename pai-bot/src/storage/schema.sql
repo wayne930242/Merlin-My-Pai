@@ -107,3 +107,24 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_platform ON sessions(platform);
 CREATE INDEX IF NOT EXISTS idx_sessions_hq ON sessions(is_hq);
+
+-- Intel Feed: seen items for deduplication
+CREATE TABLE IF NOT EXISTS intel_seen_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  title TEXT,
+  url TEXT,
+  seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(source, item_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_intel_seen_date ON intel_seen_items(seen_at);
+
+-- Intel Feed: digest records
+CREATE TABLE IF NOT EXISTS intel_digests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  digest_date DATE NOT NULL UNIQUE,
+  item_count INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

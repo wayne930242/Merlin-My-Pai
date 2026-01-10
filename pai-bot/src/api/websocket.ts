@@ -4,7 +4,7 @@
  */
 
 import type { ServerWebSocket } from "bun";
-import { paiEvents, type PaiEvents } from "../events";
+import { type PaiEvents, paiEvents } from "../events";
 
 // WebSocket 客戶端資料
 export interface WsClientData {
@@ -45,7 +45,7 @@ export function handleOpen(ws: ServerWebSocket<WsClientData>): void {
       type: "connected",
       clientId,
       timestamp: Date.now(),
-    })
+    }),
   );
 
   // 發送現有的 logs 和 notifications
@@ -54,7 +54,7 @@ export function handleOpen(ws: ServerWebSocket<WsClientData>): void {
       JSON.stringify({
         type: "log:init",
         logs: logBuffer,
-      })
+      }),
     );
   }
 
@@ -63,7 +63,7 @@ export function handleOpen(ws: ServerWebSocket<WsClientData>): void {
       JSON.stringify({
         type: "notify:init",
         notifications: notificationBuffer,
-      })
+      }),
     );
   }
 }
@@ -71,10 +71,7 @@ export function handleOpen(ws: ServerWebSocket<WsClientData>): void {
 /**
  * 處理 WebSocket 訊息
  */
-export function handleMessage(
-  ws: ServerWebSocket<WsClientData>,
-  message: string | Buffer
-): void {
+export function handleMessage(ws: ServerWebSocket<WsClientData>, message: string | Buffer): void {
   try {
     const data: WsCommand = JSON.parse(message.toString());
 
@@ -92,7 +89,7 @@ export function handleMessage(
             JSON.stringify({
               type: "subscribed",
               channels: Array.from(ws.data.subscribedChannels),
-            })
+            }),
           );
         }
         break;
@@ -137,7 +134,7 @@ export function handleClose(ws: ServerWebSocket<WsClientData>): void {
 export function broadcast<K extends keyof PaiEvents>(
   event: K,
   data: PaiEvents[K],
-  addToBuffer = false
+  addToBuffer = false,
 ): void {
   // 加入 buffer（如果需要）
   if (addToBuffer) {

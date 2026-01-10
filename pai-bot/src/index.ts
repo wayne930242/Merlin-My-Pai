@@ -5,6 +5,7 @@ import { config, isDiscordEnabled, isTelegramEnabled, validateConfig } from "./c
 import { createDiscordBot, startDiscordBot, stopDiscordBot } from "./platforms/discord";
 import { createTelegramBot, setupBotCommands } from "./platforms/telegram/bot";
 import { initWebPlatform } from "./platforms/web";
+import { generateDigest, initIntelFeedSchedule } from "./services/intel-feed";
 import {
   type Schedule,
   startScheduler,
@@ -93,6 +94,19 @@ async function main() {
           if (!sent) return { success: false, error: "No platform available" };
           return { success: true, result: "訊息已發送" };
         } else if (schedule.task_type === "prompt") {
+          // Special handling for /intel-digest
+          if (taskData === "/intel-digest") {
+            logger.info("Executing Intel Feed digest...");
+            const digestResult = await generateDigest();
+            if (digestResult.ok) {
+              return {
+                success: true,
+                result: `已推送 ${digestResult.categories.length} 個分類，共 ${digestResult.itemCount} 則`,
+              };
+            }
+            return { success: false, error: digestResult.error || "Digest generation failed" };
+          }
+
           const result = await callClaude(taskData);
           if (result.response) {
             const sent = await sendMessage(schedule.user_id, result.response);
@@ -136,6 +150,11 @@ async function main() {
 
     // Start scheduler
     startScheduler(executeScheduledTask);
+
+    // Initialize Intel Feed daily schedule
+    if (config.telegram.allowedUserIds.length > 0) {
+      await initIntelFeedSchedule(config.telegram.allowedUserIds[0]);
+    }
 
     // Start platforms
     // Discord first (non-blocking), then Telegram (blocking long-poll)

@@ -3,23 +3,23 @@
  * 提供 REST API + WebSocket endpoints
  */
 
-import type { Client as DiscordClient, TextChannel } from "discord.js";
 import type { ServerWebSocket } from "bun";
-import { memoryManager } from "../memory";
+import type { Client as DiscordClient, TextChannel } from "discord.js";
+import { config } from "../config";
 import { contextManager } from "../context/manager";
+import { type PaiEvents, paiEvents } from "../events";
+import { memoryManager } from "../memory";
 import * as google from "../services/google";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
-import { config } from "../config";
 import {
-  type WsClientData,
-  handleOpen,
-  handleMessage,
-  handleClose,
-  initEventBroadcast,
   broadcast,
+  handleClose,
+  handleMessage,
+  handleOpen,
+  initEventBroadcast,
+  type WsClientData,
 } from "./websocket";
-import { paiEvents, type PaiEvents } from "../events";
 
 /**
  * 驗證 API Key
@@ -61,10 +61,7 @@ export function setDiscordClient(client: DiscordClient) {
 /**
  * 透過 session 發送通知
  */
-async function notifyBySession(
-  session: Session,
-  message: string
-): Promise<void> {
+async function notifyBySession(session: Session, message: string): Promise<void> {
   if (session.platform === "telegram") {
     if (!telegramBot || !session.chat_id) {
       throw new Error("Telegram bot not configured or missing chat_id");
@@ -171,10 +168,7 @@ export function startApiServer(port = 3000) {
                 platform: hqSession.platform,
               });
             } catch (error) {
-              logger.warn(
-                { error },
-                "Failed to notify HQ, falling back to default"
-              );
+              logger.warn({ error }, "Failed to notify HQ, falling back to default");
             }
           }
 
@@ -182,7 +176,7 @@ export function startApiServer(port = 3000) {
           if (!telegramBot || allowedUserIds.length === 0) {
             return Response.json(
               { error: "No HQ configured and Telegram bot not available" },
-              { status: 500 }
+              { status: 500 },
             );
           }
 
@@ -193,22 +187,15 @@ export function startApiServer(port = 3000) {
         // Session-based notify API
         if (path === "/api/notify/session" && method === "POST") {
           const body = await req.json();
-          const { sessionId, message }: { sessionId: number; message: string } =
-            body;
+          const { sessionId, message }: { sessionId: number; message: string } = body;
 
           if (!sessionId || !message) {
-            return Response.json(
-              { error: "Missing sessionId or message" },
-              { status: 400 }
-            );
+            return Response.json({ error: "Missing sessionId or message" }, { status: 400 });
           }
 
           const session = sessionService.get(sessionId);
           if (!session) {
-            return Response.json(
-              { error: "Session not found" },
-              { status: 404 }
-            );
+            return Response.json({ error: "Session not found" }, { status: 404 });
           }
 
           await notifyBySession(session, message);
@@ -228,17 +215,11 @@ export function startApiServer(port = 3000) {
         if (path.startsWith("/api/sessions/") && method === "GET") {
           const id = parseInt(path.split("/").pop()!, 10);
           if (Number.isNaN(id)) {
-            return Response.json(
-              { error: "Invalid session ID" },
-              { status: 400 }
-            );
+            return Response.json({ error: "Invalid session ID" }, { status: 400 });
           }
           const session = sessionService.get(id);
           if (!session) {
-            return Response.json(
-              { error: "Session not found" },
-              { status: 404 }
-            );
+            return Response.json({ error: "Session not found" }, { status: 404 });
           }
           return Response.json({ session });
         }
@@ -262,10 +243,7 @@ export function startApiServer(port = 3000) {
             const calendarId = url.searchParams.get("calendarId") || "primary";
             const timeMin = url.searchParams.get("timeMin") || undefined;
             const timeMax = url.searchParams.get("timeMax") || undefined;
-            const maxResults = parseInt(
-              url.searchParams.get("maxResults") || "10",
-              10
-            );
+            const maxResults = parseInt(url.searchParams.get("maxResults") || "10", 10);
             const q = url.searchParams.get("q") || undefined;
 
             const events = await google.calendar.listEvents(calendarId, {
@@ -279,10 +257,7 @@ export function startApiServer(port = 3000) {
           if (method === "POST") {
             const body = await req.json();
             const { event, calendarId = "primary" } = body;
-            const created = await google.calendar.createEvent(
-              event,
-              calendarId
-            );
+            const created = await google.calendar.createEvent(event, calendarId);
             return Response.json({ event: created });
           }
         }
@@ -291,10 +266,7 @@ export function startApiServer(port = 3000) {
         if (path === "/api/google/drive/files" && method === "GET") {
           const q = url.searchParams.get("q") || undefined;
           const folderId = url.searchParams.get("folderId") || undefined;
-          const pageSize = parseInt(
-            url.searchParams.get("pageSize") || "20",
-            10
-          );
+          const pageSize = parseInt(url.searchParams.get("pageSize") || "20", 10);
 
           const files = await google.drive.listFiles({ q, folderId, pageSize });
           return Response.json({ files });
@@ -327,10 +299,7 @@ export function startApiServer(port = 3000) {
         // Gmail - list messages
         if (path === "/api/google/gmail/messages" && method === "GET") {
           const q = url.searchParams.get("q") || undefined;
-          const maxResults = parseInt(
-            url.searchParams.get("maxResults") || "10",
-            10
-          );
+          const maxResults = parseInt(url.searchParams.get("maxResults") || "10", 10);
 
           const messages = await google.gmail.listMessages({ q, maxResults });
           return Response.json({ messages });
@@ -348,26 +317,15 @@ export function startApiServer(port = 3000) {
           const body = await req.json();
           const { to, subject, body: messageBody, cc, bcc } = body;
           if (!to || !subject || !messageBody) {
-            return Response.json(
-              { error: "to, subject, body required" },
-              { status: 400 }
-            );
+            return Response.json({ error: "to, subject, body required" }, { status: 400 });
           }
-          const result = await google.gmail.sendMessage(
-            to,
-            subject,
-            messageBody,
-            { cc, bcc }
-          );
+          const result = await google.gmail.sendMessage(to, subject, messageBody, { cc, bcc });
           return Response.json({ result });
         }
 
         // Contacts - list
         if (path === "/api/google/contacts" && method === "GET") {
-          const pageSize = parseInt(
-            url.searchParams.get("pageSize") || "100",
-            10
-          );
+          const pageSize = parseInt(url.searchParams.get("pageSize") || "100", 10);
           const result = await google.contacts.listContacts({ pageSize });
           return Response.json(result);
         }
@@ -393,7 +351,7 @@ export function startApiServer(port = 3000) {
           if (!userId) {
             return Response.json(
               { error: "No user configured" },
-              { status: 500, headers: corsHeaders }
+              { status: 500, headers: corsHeaders },
             );
           }
 
@@ -412,7 +370,7 @@ export function startApiServer(port = 3000) {
           if (!content) {
             return Response.json(
               { error: "content required" },
-              { status: 400, headers: corsHeaders }
+              { status: 400, headers: corsHeaders },
             );
           }
 
@@ -421,7 +379,7 @@ export function startApiServer(port = 3000) {
           if (!userId) {
             return Response.json(
               { error: "No user configured" },
-              { status: 500, headers: corsHeaders }
+              { status: 500, headers: corsHeaders },
             );
           }
 
@@ -444,7 +402,7 @@ export function startApiServer(port = 3000) {
           if (!userId) {
             return Response.json(
               { error: "No user configured" },
-              { status: 500, headers: corsHeaders }
+              { status: 500, headers: corsHeaders },
             );
           }
           const memories = memoryManager.getRecent(userId, limit);
@@ -455,14 +413,17 @@ export function startApiServer(port = 3000) {
         if (path === "/api/memory/search" && method === "GET") {
           const query = url.searchParams.get("query");
           if (!query) {
-            return Response.json({ error: "query required" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { error: "query required" },
+              { status: 400, headers: corsHeaders },
+            );
           }
           const limit = parseInt(url.searchParams.get("limit") || "5", 10);
           const userId = allowedUserIds[0];
           if (!userId) {
             return Response.json(
               { error: "No user configured" },
-              { status: 500, headers: corsHeaders }
+              { status: 500, headers: corsHeaders },
             );
           }
           const memories = memoryManager.search(userId, query, limit);
@@ -527,7 +488,13 @@ export function startApiServer(port = 3000) {
 
         // RAG - stats
         if (path === "/api/rag/stats" && method === "GET") {
-          const result = await runPython([obsidianRagScript, "stats", "--vault", VAULT_PATH, "--json"]);
+          const result = await runPython([
+            obsidianRagScript,
+            "stats",
+            "--vault",
+            VAULT_PATH,
+            "--json",
+          ]);
           return Response.json(result, { headers: corsHeaders });
         }
 
@@ -536,9 +503,22 @@ export function startApiServer(port = 3000) {
           const body = await req.json();
           const { question, max_retries = 2 } = body;
           if (!question) {
-            return Response.json({ error: "question required" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { error: "question required" },
+              { status: 400, headers: corsHeaders },
+            );
           }
-          const result = await runPython([agenticRagScript, "query", "-q", question, "--vault", VAULT_PATH, "-r", String(max_retries), "--json"]);
+          const result = await runPython([
+            agenticRagScript,
+            "query",
+            "-q",
+            question,
+            "--vault",
+            VAULT_PATH,
+            "-r",
+            String(max_retries),
+            "--json",
+          ]);
           return Response.json(result, { headers: corsHeaders });
         }
 
@@ -547,15 +527,34 @@ export function startApiServer(port = 3000) {
           const body = await req.json();
           const { query, top_k = 5 } = body;
           if (!query) {
-            return Response.json({ error: "query required" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { error: "query required" },
+              { status: 400, headers: corsHeaders },
+            );
           }
-          const result = await runPython([obsidianRagScript, "search", "-q", query, "--vault", VAULT_PATH, "-k", String(top_k), "--json"]);
+          const result = await runPython([
+            obsidianRagScript,
+            "search",
+            "-q",
+            query,
+            "--vault",
+            VAULT_PATH,
+            "-k",
+            String(top_k),
+            "--json",
+          ]);
           return Response.json({ results: result }, { headers: corsHeaders });
         }
 
         // RAG - sync
         if (path === "/api/rag/sync" && method === "POST") {
-          const result = await runPython([obsidianRagScript, "sync", "--vault", VAULT_PATH, "--json"]);
+          const result = await runPython([
+            obsidianRagScript,
+            "sync",
+            "--vault",
+            VAULT_PATH,
+            "--json",
+          ]);
           return Response.json(result, { headers: corsHeaders });
         }
 
@@ -572,7 +571,7 @@ export function startApiServer(port = 3000) {
           if (!file) {
             return Response.json(
               { error: "No file provided" },
-              { status: 400, headers: corsHeaders }
+              { status: 400, headers: corsHeaders },
             );
           }
 
@@ -581,7 +580,7 @@ export function startApiServer(port = 3000) {
           if (file.size > MAX_SIZE) {
             return Response.json(
               { error: "File too large (max 10MB)" },
-              { status: 400, headers: corsHeaders }
+              { status: 400, headers: corsHeaders },
             );
           }
 
@@ -590,9 +589,8 @@ export function startApiServer(port = 3000) {
           const { mkdir, writeFile } = await import("node:fs/promises");
 
           const uploadsDir = join(
-            process.env.WORKSPACE_ROOT ||
-              join(process.env.HOME || "", "merlin", "workspace"),
-            "uploads"
+            process.env.WORKSPACE_ROOT || join(process.env.HOME || "", "merlin", "workspace"),
+            "uploads",
           );
 
           await mkdir(uploadsDir, { recursive: true });
@@ -615,18 +613,14 @@ export function startApiServer(port = 3000) {
               size: file.size,
               type: file.type,
             },
-            { headers: corsHeaders }
+            { headers: corsHeaders },
           );
         }
 
         // === Workspace File Browser APIs ===
         const WORKSPACE_ROOT =
           process.env.WORKSPACE_ROOT ||
-          (await import("node:path")).join(
-            process.env.HOME || "",
-            "merlin",
-            "workspace"
-          );
+          (await import("node:path")).join(process.env.HOME || "", "merlin", "workspace");
 
         // Workspace - list directory
         if (path === "/api/workspace/list" && method === "GET") {
@@ -638,10 +632,7 @@ export function startApiServer(port = 3000) {
 
           // 安全檢查：確保路徑在 workspace 內
           if (!fullPath.startsWith(WORKSPACE_ROOT)) {
-            return Response.json(
-              { error: "Access denied" },
-              { status: 403, headers: corsHeaders }
-            );
+            return Response.json({ error: "Access denied" }, { status: 403, headers: corsHeaders });
           }
 
           try {
@@ -657,7 +648,7 @@ export function startApiServer(port = 3000) {
                   size: stats?.size || 0,
                   modified: stats?.mtime?.toISOString() || null,
                 };
-              })
+              }),
             );
 
             // 排序：目錄在前，然後按名稱
@@ -668,14 +659,11 @@ export function startApiServer(port = 3000) {
               return a.name.localeCompare(b.name);
             });
 
-            return Response.json(
-              { items, currentPath: dirPath || "/" },
-              { headers: corsHeaders }
-            );
-          } catch (err) {
+            return Response.json({ items, currentPath: dirPath || "/" }, { headers: corsHeaders });
+          } catch (_err) {
             return Response.json(
               { error: "Directory not found" },
-              { status: 404, headers: corsHeaders }
+              { status: 404, headers: corsHeaders },
             );
           }
         }
@@ -687,20 +675,14 @@ export function startApiServer(port = 3000) {
 
           const filePath = url.searchParams.get("path");
           if (!filePath) {
-            return Response.json(
-              { error: "path required" },
-              { status: 400, headers: corsHeaders }
-            );
+            return Response.json({ error: "path required" }, { status: 400, headers: corsHeaders });
           }
 
           const fullPath = join(WORKSPACE_ROOT, filePath);
 
           // 安全檢查
           if (!fullPath.startsWith(WORKSPACE_ROOT)) {
-            return Response.json(
-              { error: "Access denied" },
-              { status: 403, headers: corsHeaders }
-            );
+            return Response.json({ error: "Access denied" }, { status: 403, headers: corsHeaders });
           }
 
           try {
@@ -708,7 +690,7 @@ export function startApiServer(port = 3000) {
             if (stats.isDirectory()) {
               return Response.json(
                 { error: "Cannot read directory" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: corsHeaders },
               );
             }
 
@@ -716,7 +698,7 @@ export function startApiServer(port = 3000) {
             if (stats.size > 1024 * 1024) {
               return Response.json(
                 { error: "File too large (max 1MB)" },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: corsHeaders },
               );
             }
 
@@ -728,12 +710,12 @@ export function startApiServer(port = 3000) {
                 size: stats.size,
                 modified: stats.mtime.toISOString(),
               },
-              { headers: corsHeaders }
+              { headers: corsHeaders },
             );
-          } catch (err) {
+          } catch (_err) {
             return Response.json(
               { error: "File not found" },
-              { status: 404, headers: corsHeaders }
+              { status: 404, headers: corsHeaders },
             );
           }
         }

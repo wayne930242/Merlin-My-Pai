@@ -19,10 +19,7 @@ const activeTasks = new Map<number, AbortController>();
 /**
  * 處理來自 Web 的聊天訊息
  */
-export async function handleWebChat(
-  clientId: string,
-  content: string
-): Promise<void> {
+export async function handleWebChat(clientId: string, content: string): Promise<void> {
   const userId = WEB_USER_ID;
 
   // 發送訊息進入事件
@@ -136,10 +133,7 @@ export async function handleWebChat(
 /**
  * 處理指令
  */
-async function handleCommand(
-  clientId: string,
-  content: string
-): Promise<void> {
+async function handleCommand(clientId: string, content: string): Promise<void> {
   const [command] = content.slice(1).split(" ");
   const userId = WEB_USER_ID;
 

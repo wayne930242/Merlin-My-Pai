@@ -99,7 +99,7 @@ export class ContextManager {
   // Get raw messages for display (with timestamps)
   getMessages(
     userId: number,
-    limit = 50
+    limit = 50,
   ): Array<{ role: "user" | "assistant"; content: string; timestamp: number }> {
     const db = getDb();
     const messages = db
@@ -110,7 +110,7 @@ export class ContextManager {
         WHERE user_id = ?
         ORDER BY created_at DESC
         LIMIT ?
-      `
+      `,
       )
       .all(userId, limit);
 

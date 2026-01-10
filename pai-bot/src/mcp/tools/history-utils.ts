@@ -7,8 +7,7 @@ import { join } from "node:path";
 
 // History 目錄路徑（VPS 上的 Merlin workspace）
 const HISTORY_ROOT =
-  process.env.HISTORY_ROOT ||
-  join(process.env.HOME || "", "merlin", "workspace", "history");
+  process.env.HISTORY_ROOT || join(process.env.HOME || "", "merlin", "workspace", "history");
 
 export type HistoryType = "sessions" | "learnings" | "decisions";
 
@@ -39,10 +38,7 @@ function parseFrontmatter(content: string): Record<string, string> {
 /**
  * 列出指定類型的 history 檔案
  */
-async function listHistoryByType(
-  type: HistoryType,
-  limit: number
-): Promise<HistoryEntry[]> {
+async function listHistoryByType(type: HistoryType, limit: number): Promise<HistoryEntry[]> {
   const dir = join(HISTORY_ROOT, type);
   const entries: HistoryEntry[] = [];
 
@@ -75,14 +71,9 @@ async function listHistoryByType(
 /**
  * 列出 history（供 REST API 使用）
  */
-export async function listHistory(
-  type: string,
-  limit: number
-): Promise<HistoryEntry[]> {
+export async function listHistory(type: string, limit: number): Promise<HistoryEntry[]> {
   const types: HistoryType[] =
-    type === "all"
-      ? ["sessions", "learnings", "decisions"]
-      : [type as HistoryType];
+    type === "all" ? ["sessions", "learnings", "decisions"] : [type as HistoryType];
 
   const allEntries: HistoryEntry[] = [];
   for (const t of types) {
@@ -101,12 +92,10 @@ export async function listHistory(
 export async function searchHistory(
   query: string,
   type: string,
-  limit: number
+  limit: number,
 ): Promise<HistoryEntry[]> {
   const types: HistoryType[] =
-    type === "all"
-      ? ["sessions", "learnings", "decisions"]
-      : [type as HistoryType];
+    type === "all" ? ["sessions", "learnings", "decisions"] : [type as HistoryType];
 
   const results: HistoryEntry[] = [];
   const queryLower = query.toLowerCase();
@@ -116,7 +105,10 @@ export async function searchHistory(
 
     try {
       const files = await readdir(dir);
-      const mdFiles = files.filter((f) => f.endsWith(".md")).sort().reverse();
+      const mdFiles = files
+        .filter((f) => f.endsWith(".md"))
+        .sort()
+        .reverse();
 
       for (const filename of mdFiles) {
         if (results.length >= limit) break;
@@ -143,10 +135,7 @@ export async function searchHistory(
 /**
  * 讀取 history 內容（供 REST API 使用）
  */
-export async function readHistory(
-  type: HistoryType,
-  filename: string
-): Promise<string> {
+export async function readHistory(type: HistoryType, filename: string): Promise<string> {
   const filepath = join(HISTORY_ROOT, type, filename);
 
   try {

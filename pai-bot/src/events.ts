@@ -94,24 +94,15 @@ class TypedEventEmitter extends EventEmitter {
     return super.emit(event, data);
   }
 
-  on<K extends keyof PaiEvents>(
-    event: K,
-    listener: (data: PaiEvents[K]) => void
-  ): this {
+  on<K extends keyof PaiEvents>(event: K, listener: (data: PaiEvents[K]) => void): this {
     return super.on(event, listener);
   }
 
-  once<K extends keyof PaiEvents>(
-    event: K,
-    listener: (data: PaiEvents[K]) => void
-  ): this {
+  once<K extends keyof PaiEvents>(event: K, listener: (data: PaiEvents[K]) => void): this {
     return super.once(event, listener);
   }
 
-  off<K extends keyof PaiEvents>(
-    event: K,
-    listener: (data: PaiEvents[K]) => void
-  ): this {
+  off<K extends keyof PaiEvents>(event: K, listener: (data: PaiEvents[K]) => void): this {
     return super.off(event, listener);
   }
 }
@@ -122,7 +113,7 @@ export const paiEvents = new TypedEventEmitter();
 // 便捷函數
 export function emitEvent<K extends keyof PaiEvents>(
   event: K,
-  data: Omit<PaiEvents[K], "timestamp">
+  data: Omit<PaiEvents[K], "timestamp">,
 ): void {
   paiEvents.emit(event, {
     ...data,

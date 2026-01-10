@@ -1,10 +1,11 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 // History 目錄路徑（VPS 上的 Merlin workspace）
-const HISTORY_ROOT = process.env.HISTORY_ROOT || join(process.env.HOME || "", "merlin", "workspace", "history");
+const HISTORY_ROOT =
+  process.env.HISTORY_ROOT || join(process.env.HOME || "", "merlin", "workspace", "history");
 
 type HistoryType = "sessions" | "learnings" | "decisions";
 
@@ -68,7 +69,11 @@ async function listHistory(type: HistoryType, limit: number): Promise<HistoryEnt
 /**
  * 搜尋 history 內容
  */
-async function searchHistory(query: string, types: HistoryType[], limit: number): Promise<HistoryEntry[]> {
+async function searchHistory(
+  query: string,
+  types: HistoryType[],
+  limit: number,
+): Promise<HistoryEntry[]> {
   const results: HistoryEntry[] = [];
   const queryLower = query.toLowerCase();
 
@@ -77,7 +82,10 @@ async function searchHistory(query: string, types: HistoryType[], limit: number)
 
     try {
       const files = await readdir(dir);
-      const mdFiles = files.filter((f) => f.endsWith(".md")).sort().reverse();
+      const mdFiles = files
+        .filter((f) => f.endsWith(".md"))
+        .sort()
+        .reverse();
 
       for (const filename of mdFiles) {
         if (results.length >= limit) break;

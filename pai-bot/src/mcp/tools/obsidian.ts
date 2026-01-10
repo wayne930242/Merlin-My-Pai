@@ -82,8 +82,7 @@ export function registerObsidianTools(server: McpServer): void {
     },
     async () => {
       try {
-        const result =
-          await $`${VENV_PYTHON} ${RAG_SCRIPT} stats --vault ${VAULT_PATH}`.quiet();
+        const result = await $`${VENV_PYTHON} ${RAG_SCRIPT} stats --vault ${VAULT_PATH}`.quiet();
         return { content: [{ type: "text", text: result.stdout.toString() }] };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -101,8 +100,7 @@ export function registerObsidianTools(server: McpServer): void {
     },
     async () => {
       try {
-        const result =
-          await $`${VENV_PYTHON} ${RAG_SCRIPT} sync --vault ${VAULT_PATH}`.quiet();
+        const result = await $`${VENV_PYTHON} ${RAG_SCRIPT} sync --vault ${VAULT_PATH}`.quiet();
         return { content: [{ type: "text", text: result.stdout.toString() }] };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);

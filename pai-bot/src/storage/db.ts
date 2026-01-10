@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 
@@ -44,7 +44,12 @@ function runMigrations(db: Database): void {
 
 export function getDb(): Database {
   if (!db) {
-    db = new Database(config.database.path);
+    const dbPath = config.database.path;
+    const dbDir = dirname(dbPath);
+    if (!existsSync(dbDir)) {
+      mkdirSync(dbDir, { recursive: true });
+    }
+    db = new Database(dbPath);
     db.run("PRAGMA journal_mode = WAL");
     logger.info({ path: config.database.path }, "Database connected");
 
