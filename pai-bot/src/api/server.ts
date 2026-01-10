@@ -10,6 +10,7 @@ import { contextManager } from "../context/manager";
 import { type PaiEvents, paiEvents } from "../events";
 import { memoryManager } from "../memory";
 import * as google from "../services/google";
+import { generateDigest } from "../services/intel-feed";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
 import {
@@ -200,6 +201,20 @@ export function startApiServer(port = 3000) {
 
           await notifyBySession(session, message);
           return Response.json({ success: true, platform: session.platform });
+        }
+
+        // Intel Feed - trigger digest
+        if (path === "/api/intel/trigger" && method === "POST") {
+          logger.info("Manually triggering Intel Feed digest...");
+          const result = await generateDigest();
+          if (result.ok) {
+            return Response.json({
+              success: true,
+              itemCount: result.itemCount,
+              categories: result.categories,
+            });
+          }
+          return Response.json({ success: false, error: result.error }, { status: 500 });
         }
 
         // List sessions API
