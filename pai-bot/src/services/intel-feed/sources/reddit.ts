@@ -8,7 +8,10 @@ import type { Category, FeedItem } from "../types";
 const BASE_URL = "https://www.reddit.com";
 
 // Only include items published within this many hours
-const MAX_AGE_HOURS = 24;
+const MAX_AGE_HOURS = 48;
+
+// Minimum score to filter out low-engagement posts
+const MIN_SCORE = 10;
 
 interface RedditPost {
   id: string;
@@ -72,6 +75,9 @@ async function fetchSubreddit(subreddit: string, category: Category): Promise<Fe
     // Skip posts older than MAX_AGE_HOURS
     const postTime = post.created_utc * 1000;
     if (now - postTime > maxAgeMs) continue;
+
+    // Skip low-engagement posts
+    if (post.score < MIN_SCORE) continue;
 
     items.push({
       id: post.id,
