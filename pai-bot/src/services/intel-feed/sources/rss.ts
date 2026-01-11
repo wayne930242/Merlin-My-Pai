@@ -5,6 +5,9 @@
 import { RSS_FEEDS } from "../config";
 import type { FeedItem } from "../types";
 
+// Only include items published within this many hours
+const MAX_AGE_HOURS = 24;
+
 // Simple XML parsing for RSS feeds
 interface RSSItem {
   title: string;
@@ -44,16 +47,25 @@ async function fetchFeed(url: string): Promise<FeedItem[]> {
   const feedTitle = extractFeedTitle(xml);
   const rssItems = parseRSSItems(xml);
 
-  return rssItems.slice(0, 20).map((item) => ({
-    id: hashString(item.guid || item.link),
-    source: "rss" as const,
-    sourceName: feedTitle,
-    category: categorizeRSSFeed(url),
-    title: item.title,
-    url: item.link,
-    publishedAt: item.pubDate ? new Date(item.pubDate) : undefined,
-    summary: item.description?.slice(0, 300) || undefined,
-  }));
+  const now = Date.now();
+  const maxAgeMs = MAX_AGE_HOURS * 60 * 60 * 1000;
+
+  return rssItems
+    .slice(0, 20)
+    .map((item) => ({
+      id: hashString(item.guid || item.link),
+      source: "rss" as const,
+      sourceName: feedTitle,
+      category: categorizeRSSFeed(url),
+      title: item.title,
+      url: item.link,
+      publishedAt: item.pubDate ? new Date(item.pubDate) : undefined,
+      summary: item.description?.slice(0, 300) || undefined,
+    }))
+    .filter((item) => {
+      if (!item.publishedAt) return false;
+      return now - item.publishedAt.getTime() <= maxAgeMs;
+    });
 }
 
 function extractFeedTitle(xml: string): string {

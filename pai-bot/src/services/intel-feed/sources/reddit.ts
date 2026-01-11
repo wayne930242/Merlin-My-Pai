@@ -7,6 +7,9 @@ import type { Category, FeedItem } from "../types";
 
 const BASE_URL = "https://www.reddit.com";
 
+// Only include items published within this many hours
+const MAX_AGE_HOURS = 24;
+
 interface RedditPost {
   id: string;
   title: string;
@@ -57,12 +60,18 @@ async function fetchSubreddit(subreddit: string, category: Category): Promise<Fe
 
   const data = (await response.json()) as RedditResponse;
   const items: FeedItem[] = [];
+  const now = Date.now();
+  const maxAgeMs = MAX_AGE_HOURS * 60 * 60 * 1000;
 
   for (const child of data.data.children) {
     const post = child.data;
 
     // Skip stickied posts (mod announcements)
     if (post.stickied) continue;
+
+    // Skip posts older than MAX_AGE_HOURS
+    const postTime = post.created_utc * 1000;
+    if (now - postTime > maxAgeMs) continue;
 
     items.push({
       id: post.id,
@@ -74,7 +83,7 @@ async function fetchSubreddit(subreddit: string, category: Category): Promise<Fe
       score: post.score,
       comments: post.num_comments,
       author: post.author,
-      publishedAt: new Date(post.created_utc * 1000),
+      publishedAt: new Date(postTime),
       summary: post.selftext?.slice(0, 300) || undefined,
     });
   }
