@@ -64,10 +64,18 @@
         groups: pai
         append: true
 
+    - name: Ensure conf.d directory exists
+      ansible.builtin.file:
+        path: /etc/caddy/conf.d
+        state: directory
+        mode: "0755"
+
     - name: Configure Caddyfile
       ansible.builtin.copy:
         dest: /etc/caddy/Caddyfile
         content: |
+          import /etc/caddy/conf.d/*.caddy
+
           {{ domain }} {
               root * {{ webroot }}
               file_server
