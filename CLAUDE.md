@@ -59,7 +59,7 @@ weihung-pai/
 ├── .claude/          # 開發環境配置
 │   ├── commands/     # Slash commands
 │   └── rules/        # 開發規範
-├── pai-bot/          # Telegram Bot (Bun + grammY)
+├── pai-bot/          # Telegram/Discord Bot (Bun + grammY + discord.js)
 ├── pai-claude/       # Merlin VPS 運行配置 (↔ ~/merlin/)
 │   ├── context/      # 身份與原則
 │   ├── scripts/      # Hooks
@@ -80,7 +80,7 @@ weihung-pai/
 | 類別 | 技術 |
 |------|------|
 | Runtime | Bun |
-| Bot | grammY |
+| Bot | grammY, discord.js |
 | AI | Claude Code CLI (Headless) |
 | Database | SQLite (bun:sqlite) |
 | Deploy | Ansible + systemd |

@@ -27,8 +27,9 @@ weihung-pai/
 
 - **多平台 Bot** - Telegram / Discord 與 Merlin 對話
 - **Skills 系統** - 模組化技能：學習、日常、研究、程式碼
+- **Intel Feed** - 自動彙整 Reddit、RSS 情報摘要
+- **Obsidian LiveSync** - CouchDB 筆記同步
 - **Google 整合** - Calendar、Drive、Gmail、Contacts
-- **Discord 音樂** - YouTube、Spotify 播放
 - **雙向同步** - 本地 ↔ VPS 透過 Mutagen 即時同步
 - **Fabric AI** - 透過 Fabric patterns 處理內容
 
@@ -70,9 +71,6 @@ bun run dev
 uv run pai ansible ansible-playbook ansible/playbooks/init/init-user.yml
 uv run pai ansible ansible-playbook ansible/playbooks/init/setup-vps.yml
 uv run pai ansible ansible-playbook ansible/playbooks/init/setup-caddy.yml
-# 初始化 Librespot（可選）
-uv run pai ansible ansible-playbook ansible/playbooks/init/setup-librespot.yml
-
 # 日常部署
 uv run pai ansible ansible-playbook ansible/playbooks/deploy-bot.yml
 uv run pai ansible ansible-playbook ansible/playbooks/deploy-claude.yml
@@ -106,7 +104,6 @@ uv run pai google auth              # Google OAuth
 | `init/init-user.yml` | 初始化部署用戶 |
 | `init/setup-vps.yml` | VPS 環境設定 |
 | `init/setup-caddy.yml` | Caddy 靜態網站 |
-| `init/setup-librespot.yml` | Librespot 音樂播放 |
 
 ## 技術棧
 

@@ -19,14 +19,16 @@ Personal AI Bot - 整合 Claude Code 的多平台聊天機器人。
 | Memory | 向量記憶儲存與檢索 |
 | Notify | 推播通知 |
 | Garmin | 健康數據查詢 |
-| Music | Discord 音樂播放控制 |
 | System | 系統管理 |
 
 ### Discord 特色
 
-- 音樂播放（Spotify Connect）
 - 骰子系統（支援 TRPG 規則）
 - 語音頻道管理
+
+### 服務
+
+- **Intel Feed** - 自動彙整 Reddit、RSS 情報，AI 篩選後推播
 
 ### 其他
 
