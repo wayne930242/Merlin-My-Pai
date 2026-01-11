@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.59.0 (2026-01-11)
+
+### Features
+
+- **intel-feed**: Add gamedev category and expand TRPG
+  ([`1f18532`](https://github.com/wayne930242/Merlin-My-Pai/commit/1f18532026139aa966de06fbf316c9a59c02d00d))
+
+
 ## v1.58.0 (2026-01-11)
 
 
