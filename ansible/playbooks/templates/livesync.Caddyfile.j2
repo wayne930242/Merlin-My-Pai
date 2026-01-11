@@ -1,10 +1,24 @@
 {{ vault_livesync_domain }} {
     encode gzip
 
+    # CORS for Obsidian LiveSync
+    @cors_preflight method OPTIONS
+    handle @cors_preflight {
+        header Access-Control-Allow-Origin "*"
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        header Access-Control-Allow-Headers "Accept, Authorization, Content-Type, Origin, X-Requested-With"
+        header Access-Control-Max-Age "86400"
+        respond "" 204
+    }
+
     reverse_proxy localhost:5984 {
         header_up Host {host}
         header_up X-Real-IP {remote}
         header_up X-Forwarded-For {remote}
         header_up X-Forwarded-Proto {scheme}
     }
+
+    header Access-Control-Allow-Origin "*"
+    header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    header Access-Control-Allow-Headers "Accept, Authorization, Content-Type, Origin, X-Requested-With"
 }
