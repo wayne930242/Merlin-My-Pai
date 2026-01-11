@@ -8,7 +8,7 @@ const VENV_PYTHON = join(homedir(), ".venv/bin/python");
 const BOT_SRC = join(homedir(), "pai-bot/src/rag");
 const RAG_SCRIPT = join(BOT_SRC, "obsidian_rag.py");
 const AGENTIC_RAG_SCRIPT = join(BOT_SRC, "agentic_rag.py");
-const VAULT_PATH = join(homedir(), "obsidian");
+const VAULT_PATH = join(homedir(), "obsidian-vault");
 
 export function registerObsidianTools(server: McpServer): void {
   // Agentic RAG - 主要入口
