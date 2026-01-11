@@ -3435,7 +3435,7 @@ wheels = [
 
 [[package]]
 name = "weihung-pai"
-version = "1.56.3"
+version = "1.57.0"
 source = { editable = "." }
 dependencies = [
     { name = "ansible", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
