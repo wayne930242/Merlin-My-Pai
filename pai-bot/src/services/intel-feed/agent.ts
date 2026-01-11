@@ -180,13 +180,13 @@ export class IntelFeedAgent {
       const prompt = OUTLINE_PROMPT.replace("{articles}", articlesText);
 
       const response = await this.ai.models.generateContent({
-        model: LITE_MODEL,
+        model: MAIN_MODEL,
         contents: prompt,
         config: { maxOutputTokens: 2000 },
       });
 
       const outline = response.text?.trim() || "";
-      logger.info({ length: outline.length }, "Generated outline");
+      logger.info({ length: outline.length }, "Generated outline with flash");
       return outline;
     } catch (error) {
       logger.error({ error }, "Failed to generate outline");
