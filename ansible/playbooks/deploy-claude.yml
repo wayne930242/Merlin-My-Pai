@@ -99,10 +99,17 @@
         path: "/home/{{ ansible_user }}/merlin/CLAUDE.md"
       register: claude_config
 
-    - name: Update Caddy config to use new path
+    - name: Ensure Caddy conf.d directory exists
+      become: true
+      ansible.builtin.file:
+        path: /etc/caddy/conf.d
+        state: directory
+        mode: "0755"
+
+    - name: Deploy merlin Caddy config to conf.d
       become: true
       ansible.builtin.copy:
-        dest: /etc/caddy/Caddyfile
+        dest: /etc/caddy/conf.d/merlin.caddy
         content: |
           {{ vault_site_domain }} {
               root * /home/{{ ansible_user }}/merlin/workspace/site
@@ -114,8 +121,15 @@
               }
           }
         mode: "0644"
-        owner: root
-        group: root
+      notify: Reload caddy
+
+    - name: Update main Caddyfile to import conf.d
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/caddy/Caddyfile
+        content: |
+          import /etc/caddy/conf.d/*.caddy
+        mode: "0644"
       notify: Reload caddy
 
     - name: Print deployment status
