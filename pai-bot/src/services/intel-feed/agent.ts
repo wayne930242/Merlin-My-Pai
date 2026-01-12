@@ -270,30 +270,47 @@ export class IntelFeedAgent {
   }
 
   /**
+   * Check if summary is valid (not empty or placeholder)
+   */
+  private isValidSummary(summary: string): boolean {
+    const trimmed = summary.trim();
+    return trimmed.length > 0 && trimmed !== "無摘要";
+  }
+
+  /**
    * Format digests as notification messages
    * Returns: category overview + individual article notifications
+   * Skips items without valid summaries
    */
   formatNotifications(digests: CategoryDigest[]): Map<Category, string[]> {
     const notifications = new Map<Category, string[]>();
 
     for (const digest of digests) {
+      // Filter items with valid summaries
+      const validItems = digest.items.filter((item) => this.isValidSummary(item.summary));
+
+      if (validItems.length === 0) {
+        logger.info({ category: digest.category }, "Skipping category - no items with valid summaries");
+        continue;
+      }
+
       const messages: string[] = [];
 
       // 1. Category overview (titles + links)
       const overviewLines: string[] = [
-        `${digest.emoji} ${digest.label}（${digest.items.length} 則精選）`,
+        `${digest.emoji} ${digest.label}（${validItems.length} 則精選）`,
         "",
       ];
-      for (let i = 0; i < digest.items.length; i++) {
-        const item = digest.items[i];
+      for (let i = 0; i < validItems.length; i++) {
+        const item = validItems[i];
         overviewLines.push(`${i + 1}. ${item.title}`);
         overviewLines.push(`   ${item.url}`);
       }
       messages.push(overviewLines.join("\n"));
 
       // 2. Individual article notifications
-      for (let i = 0; i < digest.items.length; i++) {
-        const item = digest.items[i];
+      for (let i = 0; i < validItems.length; i++) {
+        const item = validItems[i];
         const articleLines: string[] = [`📰 ${item.title}`, "", item.summary, "", `🔗 ${item.url}`];
         messages.push(articleLines.join("\n"));
       }

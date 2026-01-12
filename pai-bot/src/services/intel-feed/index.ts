@@ -1,8 +1,10 @@
 /**
  * Intel Feed Service
- * Aggregates news from Reddit and RSS, analyzes with Gemini, sends to Telegram
+ * Aggregates news from Reddit and RSS, analyzes with LangGraph agent, sends to Telegram
  */
 
+import { join } from "node:path";
+import { $ } from "bun";
 import { config } from "../../config";
 import { contextManager } from "../../context/manager";
 import { getDb } from "../../storage/db";
@@ -10,9 +12,38 @@ import { logger } from "../../utils/logger";
 import { IntelFeedAgent } from "./agent";
 import { fetchReddit } from "./sources/reddit";
 import { fetchRSS } from "./sources/rss";
-import type { Category, FeedItem } from "./types";
+import type { Category, CategoryDigest, FeedItem } from "./types";
+
+const AGENT_SCRIPT = join(import.meta.dir, "agent.py");
 
 const API_BASE = process.env.API_BASE || "http://127.0.0.1:3000";
+
+/**
+ * Run Python LangGraph agent to analyze items
+ * Returns digests or null if failed
+ */
+async function runPythonAgent(items: FeedItem[]): Promise<CategoryDigest[] | null> {
+  try {
+    const itemsJson = JSON.stringify(items);
+    logger.info({ itemCount: items.length }, "Running Python LangGraph agent...");
+
+    const result =
+      await $`uv run --with langgraph --with langchain-google-genai --with pydantic python3 ${AGENT_SCRIPT} ${itemsJson}`.text();
+
+    const parsed = JSON.parse(result.trim());
+
+    if (parsed.error) {
+      logger.error({ error: parsed.error }, "Python agent returned error");
+      return null;
+    }
+
+    logger.info({ digestCount: parsed.digests?.length ?? 0 }, "Python agent completed");
+    return parsed.digests as CategoryDigest[];
+  } catch (error) {
+    logger.error({ error }, "Python agent failed, falling back to TypeScript");
+    return null;
+  }
+}
 
 /**
  * Check if item has been seen before
@@ -113,16 +144,25 @@ export async function generateDigest(): Promise<{
       markSeen(item);
     }
 
-    // 3. AI Analysis
-    const agent = new IntelFeedAgent();
+    // 3. AI Analysis (Python LangGraph agent with TypeScript fallback)
+    let digests: CategoryDigest[];
 
-    // Round 1: Score items
-    logger.info("Scoring items with AI...");
-    const scoredItems = await agent.scoreItems(newItems);
+    // Try Python LangGraph agent first
+    const pythonDigests = await runPythonAgent(newItems);
 
-    // Round 2: Generate digests
-    logger.info("Generating category digests...");
-    const digests = await agent.generateDigests(scoredItems);
+    if (pythonDigests !== null) {
+      digests = pythonDigests;
+    } else {
+      // Fallback to TypeScript agent
+      logger.info("Using TypeScript agent fallback...");
+      const tsAgent = new IntelFeedAgent();
+
+      logger.info("Scoring items with AI...");
+      const scoredItems = await tsAgent.scoreItems(newItems);
+
+      logger.info("Generating category digests...");
+      digests = await tsAgent.generateDigests(scoredItems);
+    }
 
     if (digests.length === 0) {
       logger.info("No items passed the relevance threshold");
@@ -130,7 +170,8 @@ export async function generateDigest(): Promise<{
     }
 
     // 4. Send notifications (overview + individual articles per category)
-    const notifications = agent.formatNotifications(digests);
+    const notificationFormatter = new IntelFeedAgent();
+    const notifications = notificationFormatter.formatNotifications(digests);
     const sentCategories: Category[] = [];
     const userId = config.telegram.allowedUserIds[0]; // Primary user for memory
 

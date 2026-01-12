@@ -205,6 +205,10 @@ export function startApiServer(port = 3000) {
 
         // Intel Feed - trigger digest
         if (path === "/api/intel/trigger" && method === "POST") {
+          if (!validateApiKey(req)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+
           logger.info("Manually triggering Intel Feed digest...");
           const result = await generateDigest();
           if (result.ok) {
