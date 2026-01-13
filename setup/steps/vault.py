@@ -79,6 +79,8 @@ def create_vault_file(state: SetupState) -> bool:
             str(VAULT_FILE),
             "--vault-password-file",
             str(VAULT_PASSWORD_FILE),
+            "--encrypt-vault-id",
+            "default",
         ],
         cwd=ROOT_DIR,
     )
