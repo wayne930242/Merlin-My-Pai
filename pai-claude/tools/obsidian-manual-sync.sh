@@ -3,8 +3,7 @@
 # 當從外部（非 Obsidian）寫入檔案到 vault 時，手動推送到 CouchDB
 
 # 載入環境變數
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/../.env"
+ENV_FILE="$HOME/pai-bot/.env"
 [ -f "$ENV_FILE" ] && source "$ENV_FILE"
 
 VAULT_PATH="$HOME/obsidian-vault"
