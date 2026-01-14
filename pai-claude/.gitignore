@@ -13,6 +13,7 @@ session-env/
 .credentials
 .credentials.json
 credentials.json
+.env
 
 # Node
 node_modules/
