@@ -21,17 +21,17 @@ def setup_vault_password(state: SetupState) -> bool:
     print("提示：請記住這個密碼，之後解密需要使用")
 
     while True:
-        password = getpass("輸入新密碼: ")
+        password = getpass("輸入新密碼: ").strip()
         if len(password) < 8:
             print("密碼至少需要 8 個字元")
             continue
-        confirm = getpass("確認密碼: ")
+        confirm = getpass("確認密碼: ").strip()
         if password != confirm:
             print("密碼不符，請重試")
             continue
         break
 
-    VAULT_PASSWORD_FILE.write_text(password + "\n")
+    VAULT_PASSWORD_FILE.write_text(password)
     VAULT_PASSWORD_FILE.chmod(0o600)
     ui.success("Vault 密碼已儲存")
 
