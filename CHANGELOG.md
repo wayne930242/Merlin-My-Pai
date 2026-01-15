@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.64.0 (2026-01-15)
+
+### Features
+
+- **pai-bot**: Add idle timeout and heartbeat mechanism for Claude process
+  ([`28ad263`](https://github.com/wayne930242/Merlin-My-Pai/commit/28ad2638e2c96ba16ffc0e2861f03785efa4dab5))
+
+### Refactoring
+
+- Unify env injection to deploy-bot
+  ([`d9f9641`](https://github.com/wayne930242/Merlin-My-Pai/commit/d9f96418de6f16c62a33109a65e12fe3d3a5c193))
+
+
 ## v1.63.0 (2026-01-14)
 
 ### Features
