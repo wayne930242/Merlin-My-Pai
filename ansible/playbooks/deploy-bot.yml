@@ -47,9 +47,9 @@
 
     - name: Install dependencies
       ansible.builtin.shell: |
-        source ~/.bashrc
+        export PATH="$HOME/.bun/bin:$PATH"
         cd ~/pai-bot
-        ~/.bun/bin/bun install
+        bun install
       become: true
       become_user: "{{ ansible_user }}"
       args:
@@ -59,9 +59,9 @@
 
     - name: Initialize database
       ansible.builtin.shell: |
-        source ~/.bashrc
+        export PATH="$HOME/.bun/bin:$PATH"
         cd ~/pai-bot
-        ~/.bun/bin/bun run db:init
+        bun run db:init
       become: true
       become_user: "{{ ansible_user }}"
       args:

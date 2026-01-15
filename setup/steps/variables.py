@@ -6,7 +6,7 @@ from typing import Any
 from .. import ui
 from ..config import OPTIONAL_FEATURES, REQUIRED_VARS
 from ..state import SetupState
-from ..utils import generate_ssh_key
+from ..utils import generate_ssh_key, validate_ssh_private_key_path
 
 
 def generate_api_key() -> str:
@@ -32,11 +32,47 @@ def collect_required_vars(state: SetupState) -> bool:
 
         if not current:
             ui.show_var(var)
-            value = ui.get_input("  輸入值", var.get("default"), var.get("secret", False))
-            if not value and not var.get("default"):
-                ui.error("此為必要欄位")
-                return False
-            variables[key] = value
+
+            # 對 SSH key 路徑進行驗證
+            if key == "vault_local_ssh_key_path":
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    value = ui.get_input(
+                        "  輸入值", var.get("default"), var.get("secret", False)
+                    )
+                    if not value and not var.get("default"):
+                        ui.error("此為必要欄位")
+                        return False
+
+                    # 驗證 SSH key 路徑
+                    is_valid, message = validate_ssh_private_key_path(value)
+                    if is_valid:
+                        # 儲存展開後的絕對路徑，避免 Ansible 執行時的歧義
+                        from pathlib import Path
+
+                        expanded = Path(value).expanduser().resolve()
+                        variables[key] = str(expanded)
+                        print(f"  {message}")
+                        break
+                    else:
+                        # 顯示錯誤訊息並詢問是否重新輸入
+                        print(f"\n{message}\n")
+                        remaining = max_attempts - attempt - 1
+                        if remaining > 0:
+                            if not ui.ask_yes_no(
+                                f"重新輸入？（剩餘 {remaining} 次機會）", default=True
+                            ):
+                                return False
+                        else:
+                            ui.error("已達到最大嘗試次數 (3 次)")
+                            return False
+            else:
+                # 其他變數直接收集
+                value = ui.get_input("  輸入值", var.get("default"), var.get("secret", False))
+                if not value and not var.get("default"):
+                    ui.error("此為必要欄位")
+                    return False
+                variables[key] = value
 
     # 產生 SSH Key
     if "pai_agent_ssh_private_key" in variables and state.ssh_key_generated:

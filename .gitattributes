@@ -1,0 +1,3 @@
+# Ansible Vault - 各 fork 保留自己的 vault.yml
+# 使用 merge=ours 策略：merge 時保留目標分支（upstream）的版本
+ansible/inventory/group_vars/all/vault.yml merge=ours
