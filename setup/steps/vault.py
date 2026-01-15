@@ -31,7 +31,7 @@ def setup_vault_password(state: SetupState) -> bool:
             continue
         break
 
-    VAULT_PASSWORD_FILE.write_text(password)
+    VAULT_PASSWORD_FILE.write_text(password + "\n")
     VAULT_PASSWORD_FILE.chmod(0o600)
     ui.success("Vault 密碼已儲存")
 
