@@ -739,6 +739,29 @@ export function startApiServer(port = 3000) {
           }
         }
 
+        // === Internal API (for Claude hook heartbeat) ===
+        if (path === "/internal/heartbeat" && method === "POST") {
+          // 只允許本地連線
+          const host = req.headers.get("host") || "";
+          if (!host.includes("127.0.0.1") && !host.includes("localhost")) {
+            return Response.json({ error: "Forbidden" }, { status: 403 });
+          }
+
+          const body = await req.json();
+          const { sessionId } = body as { sessionId?: string };
+
+          if (!sessionId) {
+            return Response.json({ error: "sessionId required" }, { status: 400 });
+          }
+
+          // 重置對應 session 的 idle timeout
+          const { resetIdleTimeoutBySession } = await import("../claude/client");
+          const reset = resetIdleTimeoutBySession(sessionId);
+
+          logger.debug({ sessionId, reset }, "Heartbeat received");
+          return Response.json({ success: true, reset });
+        }
+
         // === Internal API (for MCP process to broadcast events) ===
         if (path === "/internal/broadcast" && method === "POST") {
           // 只允許本地連線

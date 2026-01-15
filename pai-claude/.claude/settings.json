@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": ["bash scripts/heartbeat.sh"]
+      }
+    ]
+  }
+}

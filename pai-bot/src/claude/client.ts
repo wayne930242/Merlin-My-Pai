@@ -36,6 +36,26 @@ interface ClaudeOptions {
   signal?: AbortSignal;
   platform?: string;
   sessionId?: string;
+  idleTimeoutMs?: number;
+}
+
+// Default idle timeout: 5 minutes without any output
+const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+
+// Session -> reset function mapping for heartbeat
+const sessionResetFunctions = new Map<string, () => void>();
+
+/**
+ * Reset idle timeout for a session (called by heartbeat API)
+ * Returns true if the session was found and reset
+ */
+export function resetIdleTimeoutBySession(sessionId: string): boolean {
+  const resetFn = sessionResetFunctions.get(sessionId);
+  if (resetFn) {
+    resetFn();
+    return true;
+  }
+  return false;
 }
 
 // Streaming version - yields events as they come
@@ -79,6 +99,10 @@ export async function* streamClaude(
     cwd: projectDir,
     stdout: "pipe",
     stderr: "pipe",
+    env: {
+      ...process.env,
+      PAI_SESSION_ID: sessionId, // 傳給 hook 用於心跳
+    },
   });
 
   // 並行捕獲 stderr，避免時序競爭導致 stderr 丟失
@@ -110,6 +134,34 @@ export async function* streamClaude(
     });
   }
 
+  // Idle timeout mechanism
+  const idleTimeoutMs = options?.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+  let idleTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let isIdleTimeout = false;
+
+  const resetIdleTimeout = () => {
+    if (idleTimeoutId) clearTimeout(idleTimeoutId);
+    idleTimeoutId = setTimeout(() => {
+      isIdleTimeout = true;
+      logger.warn({ userId: options?.userId, sessionId }, "Claude process idle timeout");
+      abortController.abort();
+      proc.kill();
+    }, idleTimeoutMs);
+  };
+
+  const clearIdleTimeout = () => {
+    if (idleTimeoutId) {
+      clearTimeout(idleTimeoutId);
+      idleTimeoutId = null;
+    }
+  };
+
+  // Start idle timeout
+  resetIdleTimeout();
+
+  // Register reset function for heartbeat API
+  sessionResetFunctions.set(sessionId, resetIdleTimeout);
+
   const decoder = new TextDecoder();
   let buffer = "";
   let lastThinking = "";
@@ -117,9 +169,12 @@ export async function* streamClaude(
 
   try {
     for await (const chunk of proc.stdout) {
+      // Reset idle timeout on any output
+      resetIdleTimeout();
+
       // Check if aborted
       if (abortController.signal.aborted) {
-        yield { type: "error", content: "任務已中斷" };
+        yield { type: "error", content: isIdleTimeout ? "任務逾時（5 分鐘無輸出）" : "任務已中斷" };
         return;
       }
       buffer += decoder.decode(chunk, { stream: true });
@@ -197,6 +252,12 @@ export async function* streamClaude(
     emitEvent("claude:error", { sessionId, error: errorMessage });
     yield { type: "error", content: errorMessage };
   } finally {
+    // Clear idle timeout
+    clearIdleTimeout();
+
+    // Unregister reset function
+    sessionResetFunctions.delete(sessionId);
+
     // Unregister process when done
     if (options?.userId) {
       processManager.unregister(options.userId);
