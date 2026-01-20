@@ -57,6 +57,23 @@
       when: not node_modules_stat.stat.exists or bot_sync.changed
       changed_when: true
 
+    - name: Check if agent-browser Chromium is installed
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/.cache/agent-browser"
+      register: agent_browser_cache
+
+    - name: Install agent-browser Chromium (with system deps)
+      ansible.builtin.shell: |
+        source ~/.bashrc
+        cd ~/pai-bot
+        ~/.bun/bin/bunx agent-browser install --with-deps
+      become: true
+      become_user: "{{ ansible_user }}"
+      args:
+        executable: /bin/bash
+      when: not agent_browser_cache.stat.exists
+      changed_when: true
+
     - name: Initialize database
       ansible.builtin.shell: |
         source ~/.bashrc
