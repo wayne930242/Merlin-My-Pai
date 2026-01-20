@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.65.0 (2026-01-20)
+
+### Features
+
+- Add agent-browser for Merlin browser automation
+  ([`270842e`](https://github.com/wayne930242/Merlin-My-Pai/commit/270842ec003599555cd8edcad5fbf047137ce4d9))
+
+
 ## v1.64.0 (2026-01-15)
 
 ### Features
