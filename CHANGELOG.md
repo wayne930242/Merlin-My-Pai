@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.65.1 (2026-01-20)
+
+### Bug Fixes
+
+- Improve SSH auth, deployment config and vault password handling
+  ([`9ec762c`](https://github.com/wayne930242/Merlin-My-Pai/commit/9ec762cba50f6435d1d055b4da0e51dc48ff2fee))
+
+### Documentation
+
+- Add agent-browser fallback rule to Merlin CLAUDE.md
+  ([`134dfd9`](https://github.com/wayne930242/Merlin-My-Pai/commit/134dfd9a5565d37497a7e3fbb1ad5126261f83b0))
+
+
 ## v1.65.0 (2026-01-20)
 
 ### Features
