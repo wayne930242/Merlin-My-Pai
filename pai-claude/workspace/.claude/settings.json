@@ -72,6 +72,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run --silent scripts/on-user-prompt.ts"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
