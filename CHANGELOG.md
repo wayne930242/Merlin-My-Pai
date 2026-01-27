@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.67.1 (2026-01-27)
+
+### Bug Fixes
+
+- Correct findSimilarMemory CLI command and unify memory limit to 100
+  ([`ce92310`](https://github.com/wayne930242/Merlin-My-Pai/commit/ce92310848633a3190b60faa96b29b2422d1ee7b))
+
+
 ## v1.67.0 (2026-01-27)
 
 ### Chores
