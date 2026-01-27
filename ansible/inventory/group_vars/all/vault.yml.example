@@ -60,6 +60,13 @@ vault_gemini_api_key: "YOUR_GEMINI_API_KEY"
 # 使用 Gemini 將語音訊息轉為文字，再送給 Claude 處理
 vault_enable_transcription: true
 
+# === Claude Code OAuth（用於 Merlin CLI 認證）===
+# 取得方式:
+#   1. 在本機執行 claude /login 登入
+#   2. 執行 claude setup-token 取得 token
+#   3. Token 格式應為 sk-ant-oat01-...
+vault_claude_code_oauth_token: "sk-ant-oat01-YOUR_OAUTH_TOKEN"
+
 # === Fabric AI（可選）===
 vault_enable_fabric: false
 # Anthropic API Key（用於 Fabric AI）
