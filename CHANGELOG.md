@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.66.0 (2026-01-27)
+
+### Features
+
+- Add CLAUDE_CODE_OAUTH_TOKEN support for CLI authentication
+  ([`58efe70`](https://github.com/wayne930242/Merlin-My-Pai/commit/58efe70b90c425227c73a72cff65ce8f878f0ff3))
+
+
 ## v1.65.1 (2026-01-20)
 
 ### Bug Fixes
