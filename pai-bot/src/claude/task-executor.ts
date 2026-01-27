@@ -12,6 +12,9 @@ import { escapeMarkdownV2 } from "../utils/telegram";
 import { streamClaude } from "./client";
 import { type QueuedTask, queueManager } from "./queue-manager";
 
+// Global memory user ID (shared across all platforms)
+const MEMORY_USER_ID = parseInt(process.env.TELEGRAM_ALLOWED_USER_IDS?.split(",")[0] || "0", 10);
+
 /**
  * 將 Claude 的 Markdown 轉換為 Telegram MarkdownV2
  */
@@ -158,10 +161,10 @@ export async function executeClaudeTask(
     // Save assistant response
     contextManager.saveMessage(userId, "assistant", finalContent);
 
-    // Extract and save memories asynchronously
+    // Extract and save memories asynchronously (use global memory user ID)
     if (config.memory.enabled) {
-      extractAndSaveMemories(userId, task.prompt, finalContent).catch((error) => {
-        logger.warn({ error, userId }, "Memory extraction failed");
+      extractAndSaveMemories(MEMORY_USER_ID, task.prompt, finalContent).catch((error) => {
+        logger.warn({ error, memoryUserId: MEMORY_USER_ID }, "Memory extraction failed");
       });
     }
   }
@@ -192,17 +195,17 @@ export async function prepareTask(
   // Get conversation context
   const history = contextManager.getConversationContext(userId);
 
-  // Search for relevant memories
+  // Search for relevant memories (use global memory user ID)
   let memoryContext = "";
   if (config.memory.enabled) {
     try {
-      const memories = await memoryManager.search(userId, text, 5);
+      const memories = await memoryManager.search(MEMORY_USER_ID, text, 5);
       if (memories.length > 0) {
         memoryContext = formatMemoriesForPrompt(memories);
-        logger.debug({ userId, memoryCount: memories.length }, "Retrieved memories");
+        logger.debug({ memoryUserId: MEMORY_USER_ID, memoryCount: memories.length }, "Retrieved memories");
       }
     } catch (error) {
-      logger.warn({ error, userId }, "Memory search failed");
+      logger.warn({ error, memoryUserId: MEMORY_USER_ID }, "Memory search failed");
     }
   }
 

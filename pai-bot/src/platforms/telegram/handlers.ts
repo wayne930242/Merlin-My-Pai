@@ -23,6 +23,9 @@ import { logger } from "../../utils/logger";
 import { escapeMarkdownV2, fmt } from "../../utils/telegram";
 import { setTaskExecutor } from "./callbacks";
 
+// Global memory user ID (shared across all platforms)
+const MEMORY_USER_ID = parseInt(process.env.TELEGRAM_ALLOWED_USER_IDS?.split(",")[0] || "0", 10);
+
 // Bot API 參考
 let botApi: Context["api"] | null = null;
 
@@ -124,16 +127,16 @@ export async function handleStop(ctx: Context): Promise<void> {
 }
 
 export async function handleMemory(ctx: Context): Promise<void> {
-  const userId = ctx.from?.id;
-  if (!userId) return;
+  if (!ctx.from?.id) return;
 
   if (!config.memory.enabled) {
     await ctx.reply("長期記憶功能未啟用");
     return;
   }
 
-  const memories = memoryManager.getRecent(userId, 20);
-  const count = memoryManager.count(userId);
+  // Use global memory user ID for cross-platform sharing
+  const memories = memoryManager.getRecent(MEMORY_USER_ID, 20);
+  const count = memoryManager.count(MEMORY_USER_ID);
 
   if (memories.length === 0) {
     await ctx.reply("目前沒有長期記憶");
@@ -151,15 +154,15 @@ export async function handleMemory(ctx: Context): Promise<void> {
 }
 
 export async function handleForget(ctx: Context): Promise<void> {
-  const userId = ctx.from?.id;
-  if (!userId) return;
+  if (!ctx.from?.id) return;
 
   if (!config.memory.enabled) {
     await ctx.reply("長期記憶功能未啟用");
     return;
   }
 
-  const archived = memoryManager.archiveByUser(userId);
+  // Use global memory user ID for cross-platform sharing
+  const archived = memoryManager.archiveByUser(MEMORY_USER_ID);
   await ctx.reply(`已封存 ${archived} 條長期記憶（可透過 MCP 工具恢復）`);
 }
 
