@@ -1,6 +1,47 @@
 # CHANGELOG
 
 
+## v1.67.0 (2026-01-27)
+
+### Chores
+
+- Reduce intel-feed API costs
+  ([`8c0b44b`](https://github.com/wayne930242/Merlin-My-Pai/commit/8c0b44bf8f8ba317b5b08b3b3b4e06cfff15640b))
+
+### Documentation
+
+- Update Task 4 plan with search-before-save logic
+  ([`1f639c8`](https://github.com/wayne930242/Merlin-My-Pai/commit/1f639c8104e6bd343c9b226844801fbf8b7f78f1))
+
+### Features
+
+- Add dual-layer memory API with limit enforcement
+  ([`0cbdb11`](https://github.com/wayne930242/Merlin-My-Pai/commit/0cbdb11c3c8284334967be8ec1afdfb79e33ea9c))
+
+- Add find-similar and update commands to memory CLI
+  ([`5904a09`](https://github.com/wayne930242/Merlin-My-Pai/commit/5904a09023f90f18bd7299759eaea29ef4a9e86c))
+
+- Add long-term memory CLI with proper format validation
+  ([`4ee99a8`](https://github.com/wayne930242/Merlin-My-Pai/commit/4ee99a8d8ef72d99d60da9d1cf2f992298671e53))
+
+- Add UserPromptSubmit hook for context-aware memory search
+  ([`26f77c0`](https://github.com/wayne930242/Merlin-My-Pai/commit/26f77c0bf4858ed8c2e1f083afb2445c2ee77428))
+
+- Create long-term memory file structure
+  ([`1bb67b4`](https://github.com/wayne930242/Merlin-My-Pai/commit/1bb67b4988300722f523b437f31695ae9e86279c))
+
+- Smart long-term memory update in Stop hook (search before save)
+  ([`61cfcdc`](https://github.com/wayne930242/Merlin-My-Pai/commit/61cfcdc3ac265e800f2dbcd4550da44388ae09c2))
+
+### Refactoring
+
+- Remove old memory module (replaced by API + CLI)
+  ([`d16abc8`](https://github.com/wayne930242/Merlin-My-Pai/commit/d16abc8733585863b1617273860591e14dbe7c25))
+
+- Simplify SessionStart to show memory stats via CLI
+  ([`abb83e5`](https://github.com/wayne930242/Merlin-My-Pai/commit/abb83e58c9e3d417605ad6bf91ba1101ddbe394f))
+
+
 ## v1.66.0 (2026-01-27)
 
 ### Features
