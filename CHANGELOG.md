@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.67.2 (2026-01-27)
+
+### Bug Fixes
+
+- Use global MEMORY_USER_ID for cross-platform memory sharing
+  ([`84c36f5`](https://github.com/wayne930242/Merlin-My-Pai/commit/84c36f5ec4430b5cad02fca0b82f78cce509c2ff))
+
+
 ## v1.67.1 (2026-01-27)
 
 ### Bug Fixes
