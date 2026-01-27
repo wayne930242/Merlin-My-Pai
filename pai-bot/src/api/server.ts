@@ -13,6 +13,7 @@ import * as google from "../services/google";
 import { generateDigest } from "../services/intel-feed";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
+import { handleMemoryRoutes } from "./routes/memory";
 import {
   broadcast,
   handleClose,
@@ -379,42 +380,13 @@ export function startApiServer(port = 3000) {
           return Response.json({ messages }, { headers: corsHeaders });
         }
 
-        // === Memory APIs ===
-
-        // Memory - save
-        if (path === "/api/memory/save" && method === "POST") {
-          const body = await req.json();
-          const { content, category = "general", importance = 3 } = body;
-
-          if (!content) {
-            return Response.json(
-              { error: "content required" },
-              { status: 400, headers: corsHeaders },
-            );
-          }
-
-          // 使用預設 user_id
-          const userId = allowedUserIds[0];
-          if (!userId) {
-            return Response.json(
-              { error: "No user configured" },
-              { status: 500, headers: corsHeaders },
-            );
-          }
-
-          const id = await memoryManager.save({
-            userId,
-            content,
-            category,
-            importance,
-          });
-          if (id === null) {
-            return Response.json({ success: true, duplicate: true }, { headers: corsHeaders });
-          }
-          return Response.json({ success: true, id }, { headers: corsHeaders });
+        // === Memory APIs (dual-layer support) ===
+        const memoryResult = await handleMemoryRoutes(path, method, req);
+        if (memoryResult.handled) {
+          return memoryResult.response;
         }
 
-        // Memory - list
+        // Memory - list (legacy, kept for backward compatibility)
         if (path === "/api/memory/list" && method === "GET") {
           const limit = parseInt(url.searchParams.get("limit") || "20", 10);
           const userId = allowedUserIds[0];
@@ -425,27 +397,6 @@ export function startApiServer(port = 3000) {
             );
           }
           const memories = memoryManager.getRecent(userId, limit);
-          return Response.json({ memories }, { headers: corsHeaders });
-        }
-
-        // Memory - search
-        if (path === "/api/memory/search" && method === "GET") {
-          const query = url.searchParams.get("query");
-          if (!query) {
-            return Response.json(
-              { error: "query required" },
-              { status: 400, headers: corsHeaders },
-            );
-          }
-          const limit = parseInt(url.searchParams.get("limit") || "5", 10);
-          const userId = allowedUserIds[0];
-          if (!userId) {
-            return Response.json(
-              { error: "No user configured" },
-              { status: 500, headers: corsHeaders },
-            );
-          }
-          const memories = memoryManager.search(userId, query, limit);
           return Response.json({ memories }, { headers: corsHeaders });
         }
 

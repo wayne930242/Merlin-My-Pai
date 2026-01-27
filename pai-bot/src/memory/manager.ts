@@ -238,16 +238,17 @@ export class MemoryManager {
 
   /**
    * Enforce per-user memory limit by removing lowest priority memories
+   * Returns the number of memories removed
    */
-  private enforceLimit(userId: number): void {
+  enforceLimit(userId: number): number {
     const count = this.count(userId);
-    if (count <= MAX_MEMORIES_PER_USER) return;
+    if (count <= MAX_MEMORIES_PER_USER) return 0;
 
     const db = getDb();
     const toRemove = count - MAX_MEMORIES_PER_USER;
 
     // Delete lowest importance, then oldest last_accessed
-    db.run(
+    const result = db.run(
       `DELETE FROM memories WHERE id IN (
         SELECT id FROM memories
         WHERE user_id = ?
@@ -257,7 +258,8 @@ export class MemoryManager {
       [userId, toRemove],
     );
 
-    logger.info({ userId, removed: toRemove }, "Enforced memory limit");
+    logger.info({ userId, removed: result.changes }, "Enforced memory limit");
+    return result.changes;
   }
 
   /**
@@ -286,6 +288,31 @@ export class MemoryManager {
       )
       .get(userId);
     return result?.count ?? 0;
+  }
+
+  /**
+   * Search memories by multiple keywords (OR logic)
+   */
+  searchByKeywords(userId: number, keywords: string[], limit: number = 10): Memory[] {
+    const db = getDb();
+
+    if (keywords.length === 0) {
+      return this.getRecent(userId, limit);
+    }
+
+    const conditions = keywords.map(() => "content LIKE ?").join(" OR ");
+    const params = keywords.map((k) => `%${k}%`);
+
+    return db
+      .query<Memory, (number | string)[]>(
+        `SELECT id, user_id as userId, content, category, importance,
+                created_at as createdAt, last_accessed as lastAccessed
+         FROM memories
+         WHERE user_id = ? AND (${conditions})
+         ORDER BY importance DESC, created_at DESC
+         LIMIT ?`,
+      )
+      .all(userId, ...params, limit);
   }
 
   /**
