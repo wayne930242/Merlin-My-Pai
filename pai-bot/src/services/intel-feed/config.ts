@@ -65,10 +65,10 @@ export const CATEGORY_META: Record<Category, { label: string; emoji: string }> =
 };
 
 // Items per subreddit
-export const REDDIT_LIMIT = 10;
+export const REDDIT_LIMIT = 5;
 
 // Items to keep per category after filtering
 export const ITEMS_PER_CATEGORY = 3;
 
 // Minimum relevance score to keep (1-10)
-export const MIN_RELEVANCE_SCORE = 6;
+export const MIN_RELEVANCE_SCORE = 7;

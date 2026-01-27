@@ -245,7 +245,7 @@ export async function initIntelFeedSchedule(userId: number): Promise<void> {
   if (!hasIntelFeed) {
     createSchedule({
       name: "Intel Feed Daily",
-      cronExpression: "0 8 * * *", // Every day at 08:00
+      cronExpression: "0 8 */2 * *", // Every 2 days at 08:00
       taskType: "prompt",
       taskData: "/intel-digest",
       userId,
