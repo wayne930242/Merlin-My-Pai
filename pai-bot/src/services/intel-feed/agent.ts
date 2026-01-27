@@ -290,7 +290,10 @@ export class IntelFeedAgent {
       const validItems = digest.items.filter((item) => this.isValidSummary(item.summary));
 
       if (validItems.length === 0) {
-        logger.info({ category: digest.category }, "Skipping category - no items with valid summaries");
+        logger.info(
+          { category: digest.category },
+          "Skipping category - no items with valid summaries",
+        );
         continue;
       }
 

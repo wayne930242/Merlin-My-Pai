@@ -92,23 +92,33 @@ async function findSimilarMemory(
   keywords: string[],
   category: string
 ): Promise<SimilarMemory | null> {
-  const query = keywords.join(" ");
-  const result = await runMemoryCli(["search", query, "--category", category, "--limit", "1"]);
+  const result = await runMemoryCli([
+    "find-similar",
+    ...keywords,
+    "--category",
+    category,
+    "--limit",
+    "1",
+  ]);
 
   if (!result.ok || !result.output) {
     return null;
   }
 
-  // 解析輸出，格式：[score] path - title
-  const match = result.output.match(/\[(\d+)\]\s+(\S+)/);
-  if (!match) {
+  try {
+    const data = JSON.parse(result.output);
+    if (!data.ok || !data.data?.results?.length) {
+      return null;
+    }
+
+    const best = data.data.results[0];
+    return {
+      score: best.score,
+      path: best.path,
+    };
+  } catch {
     return null;
   }
-
-  return {
-    score: parseInt(match[1], 10),
-    path: match[2],
-  };
 }
 
 /**

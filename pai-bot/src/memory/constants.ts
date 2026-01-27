@@ -1,10 +1,7 @@
 // Memory system configuration
 
-/** Maximum memories per user */
-export const MAX_MEMORIES_PER_USER = 50;
-
-/** Short-term memory limit (per user) - for dual-layer system */
-export const SHORT_TERM_MEMORY_LIMIT = 100;
+/** Maximum memories per user (short-term memory limit for dual-layer system) */
+export const MAX_MEMORIES_PER_USER = 100;
 
 /** Trigger consolidation when memories exceed this count */
 export const CONSOLIDATION_THRESHOLD = 30;
