@@ -13,6 +13,15 @@ export interface ClassifyResult {
     category: string;
     importance: number;
   }>;
+  longTermMemories: Array<{
+    keywords: string[];
+    category: "preferences" | "knowledge" | "events";
+    suggestedPath: string;
+    title: string;
+    summary: string;
+    content: string;
+    tags: string[];
+  }>;
   summary: string;
 }
 
@@ -37,13 +46,34 @@ const CLASSIFY_PROMPT = `分析以下 AI 助理的回應內容，進行分類和
    - importance: 1-5（5 最重要）
    - 如果沒有值得記住的，返回空陣列 []
 
-3. summary: 回應的一句話摘要（用於 history 標題）
+3. longTermMemories: 值得保存到長期記憶庫的知識（用於搜尋和更新）
+   - keywords: 用於搜尋相似記憶的關鍵字陣列（3-5 個）
+   - category: preferences / knowledge / events
+   - suggestedPath: 建議的檔案路徑（如 preferences/coding-style 或 knowledge/typescript-tips）
+   - title: 記憶標題
+   - summary: 一句話摘要
+   - content: 增量內容（新學到或需要補充的部分）
+   - tags: 標籤陣列
+   - 如果沒有值得保存的，返回空陣列 []
+
+4. summary: 回應的一句話摘要（用於 history 標題）
 
 只返回 JSON，不要其他文字。範例格式：
 {
   "historyType": "learnings",
   "memories": [
     {"content": "偏好使用 Bun 而非 Node.js", "category": "preference", "importance": 4}
+  ],
+  "longTermMemories": [
+    {
+      "keywords": ["bun", "runtime", "nodejs"],
+      "category": "preferences",
+      "suggestedPath": "preferences/runtime-choice",
+      "title": "Runtime 偏好",
+      "summary": "偏好使用 Bun 作為主要 runtime",
+      "content": "- 偏好 Bun 而非 Node.js\\n- 原因：更快、內建 TypeScript 支援",
+      "tags": ["bun", "nodejs", "runtime"]
+    }
   ],
   "summary": "解決了 TypeScript 編譯錯誤"
 }`;
@@ -57,6 +87,7 @@ export async function classifyWithLLM(content: string): Promise<ClassifyResult> 
     return {
       historyType: "none",
       memories: [],
+      longTermMemories: [],
       summary: "",
     };
   }
@@ -83,7 +114,7 @@ export async function classifyWithLLM(content: string): Promise<ClassifyResult> 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error("[LLM] Failed to extract JSON from response");
-      return { historyType: "none", memories: [], summary: "" };
+      return { historyType: "none", memories: [], longTermMemories: [], summary: "" };
     }
 
     const result = JSON.parse(jsonMatch[0]) as ClassifyResult;
@@ -95,6 +126,9 @@ export async function classifyWithLLM(content: string): Promise<ClassifyResult> 
     if (!Array.isArray(result.memories)) {
       result.memories = [];
     }
+    if (!Array.isArray(result.longTermMemories)) {
+      result.longTermMemories = [];
+    }
     if (typeof result.summary !== "string") {
       result.summary = "";
     }
@@ -102,6 +136,6 @@ export async function classifyWithLLM(content: string): Promise<ClassifyResult> 
     return result;
   } catch (error) {
     console.error("[LLM] Classification failed:", error);
-    return { historyType: "none", memories: [], summary: "" };
+    return { historyType: "none", memories: [], longTermMemories: [], summary: "" };
   }
 }
