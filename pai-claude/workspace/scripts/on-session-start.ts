@@ -4,25 +4,63 @@
  * Session Start Hook
  *
  * 功能：
- * 1. 載入長期記憶（從 pai-bot SQLite）
- * 2. 檢查最近 sessions 和未完成 follow-ups
- * 3. 顯示可用 Skills
- * 4. 輸出 Context 供 Claude 參考
+ * 1. 顯示 Session 時間
+ * 2. 顯示記憶統計（中短期 via API，長期 via CLI）
+ * 3. 檢查未完成 follow-ups
+ * 4. 顯示可用 Skills
  *
- * 參考：PAI (Personal AI Infrastructure) 的 SessionStart 設計
- * - 在對話開始時主動蒐集脈絡
- * - 整合 Memory + History 雙層記憶架構
+ * 注意：具體記憶內容由 UserPromptSubmit Hook 注入
  */
 
+import { spawn } from "bun";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isMemoryEnabled } from "./lib/config";
 
 const PAI_ROOT = join(import.meta.dir, "..");
+const PAI_API_URL = process.env.PAI_API_URL || "http://127.0.0.1:3000";
+const SCRIPTS_DIR = import.meta.dir;
+const SHORT_TERM_LIMIT = 100;
 
 interface FollowUp {
   file: string;
   items: string[];
+}
+
+/**
+ * 取得中短期記憶統計（via API）
+ */
+async function getShortTermStats(): Promise<{ total: number }> {
+  try {
+    const response = await fetch(`${PAI_API_URL}/api/memory/stats`);
+    if (!response.ok) return { total: 0 };
+    return await response.json();
+  } catch {
+    return { total: 0 };
+  }
+}
+
+/**
+ * 取得長期記憶數量（via CLI）
+ */
+async function getLongTermCount(): Promise<number> {
+  try {
+    const proc = spawn({
+      cmd: ["bun", "run", join(SCRIPTS_DIR, "memory-cli.ts"), "list"],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    const output = await new Response(proc.stdout).text();
+    const exitCode = await proc.exited;
+
+    if (exitCode !== 0) return 0;
+
+    const data = JSON.parse(output);
+    return data.ok ? data.data.count : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -71,14 +109,30 @@ async function getAvailableSkills(): Promise<string[]> {
 }
 
 async function main() {
+  // 顯示 session 資訊
   const now = new Date();
-  const today = now.toISOString().split("T")[0];
-  const weekday = now.toLocaleDateString("zh-TW", { weekday: "long" });
-  const time = now.toLocaleTimeString("zh-TW", { hour12: false });
+  const timeStr = now.toLocaleString("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  console.log(`[Session] ${timeStr}`);
 
-  console.log(`[Session] ${today} ${weekday} ${time}`);
+  // 記憶統計（具體記憶由 UserPromptSubmit 注入）
+  if (isMemoryEnabled()) {
+    const [shortTermStats, longTermCount] = await Promise.all([
+      getShortTermStats(),
+      getLongTermCount(),
+    ]);
 
-  // 記憶統計將由 Task 6 實作（使用 CLI + API）
+    console.log(
+      `[Memory] Short-term: ${shortTermStats.total}/${SHORT_TERM_LIMIT} | Long-term: ${longTermCount} files`
+    );
+  }
 
   // 檢查未完成 follow-ups
   const followUps = await getPendingFollowUps();
@@ -95,7 +149,7 @@ async function main() {
     }
   }
 
-  // 3. 顯示可用 Skills
+  // 顯示可用 Skills
   const skills = await getAvailableSkills();
   if (skills.length > 0) {
     console.log(`\n[Available Skills] ${skills.join(", ")}`);
