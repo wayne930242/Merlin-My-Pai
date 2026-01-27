@@ -51,6 +51,10 @@
 !.claude/skills/knowledge-base/
 !.claude/skills/knowledge-base/**
 
+# ===== Long-term Memory =====
+!memory/
+!memory/**
+
 # ===== Hook Scripts =====
 !scripts/
 !scripts/*.ts
