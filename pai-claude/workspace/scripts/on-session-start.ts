@@ -17,11 +17,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isMemoryEnabled } from "./lib/config";
-import {
-  getRecentMemories,
-  getMemoryStats,
-  formatMemoriesForContext,
-} from "./lib/memory";
 
 const PAI_ROOT = join(import.meta.dir, "..");
 
@@ -83,18 +78,9 @@ async function main() {
 
   console.log(`[Session] ${today} ${weekday} ${time}`);
 
-  // 1. 載入長期記憶（如果啟用）
-  if (isMemoryEnabled()) {
-    const memories = getRecentMemories(10);
-    const stats = getMemoryStats();
+  // 記憶統計將由 Task 6 實作（使用 CLI + API）
 
-    if (memories.length > 0) {
-      console.log(`\n${formatMemoriesForContext(memories)}`);
-      console.log(`\n[Memory Stats] Total: ${stats.total}`);
-    }
-  }
-
-  // 2. 檢查未完成 follow-ups
+  // 檢查未完成 follow-ups
   const followUps = await getPendingFollowUps();
   if (followUps.length > 0) {
     console.log("\n[Pending Follow-ups]");
