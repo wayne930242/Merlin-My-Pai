@@ -279,6 +279,93 @@ export async function searchMemory(
 }
 
 /**
+ * Find similar memories by keywords and optional category
+ * Returns memories with relevance score
+ */
+export async function findSimilarMemory(
+  keywords: string[],
+  category?: string,
+  limit = 5
+): Promise<Array<{ memory: MemoryData; score: number }>> {
+  const entries = await readIndex();
+  const scored: Array<{ memory: MemoryData; score: number }> = [];
+
+  for (const entry of entries.values()) {
+    // Filter by category if specified
+    if (category && !entry.path.startsWith(`${category}/`)) continue;
+
+    const memory = await getMemory(entry.path);
+    if (!memory) continue;
+
+    // Calculate relevance score
+    const searchText = `${memory.title} ${memory.summary} ${memory.content} ${memory.tags.join(" ")}`.toLowerCase();
+    let score = 0;
+    for (const kw of keywords) {
+      if (searchText.includes(kw.toLowerCase())) {
+        score++;
+        // Bonus for title/summary match
+        if (memory.title.toLowerCase().includes(kw.toLowerCase())) score++;
+        if (memory.summary.toLowerCase().includes(kw.toLowerCase())) score++;
+      }
+    }
+
+    if (score > 0) {
+      scored.push({ memory, score });
+    }
+  }
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+/**
+ * Update an existing memory file (merge content)
+ */
+export async function updateMemory(
+  memoryPath: string,
+  data: {
+    summary?: string;
+    content?: string;
+    tags?: string[];
+    appendContent?: boolean; // If true, append content instead of replace
+  }
+): Promise<boolean> {
+  const existing = await getMemory(memoryPath);
+  if (!existing) return false;
+
+  const fullPath = join(MEMORY_ROOT, memoryPath);
+  const updated = new Date().toISOString().split("T")[0];
+
+  // Merge data
+  const newContent = data.appendContent && data.content
+    ? `${existing.content}\n\n${data.content}`
+    : data.content || existing.content;
+
+  const newTags = data.tags
+    ? [...new Set([...existing.tags, ...data.tags])]
+    : existing.tags;
+
+  const meta: MemoryMeta = {
+    title: existing.title,
+    path: memoryPath,
+    summary: data.summary || existing.summary,
+    updated,
+    tags: newTags,
+  };
+
+  const frontmatter = generateFrontmatter(meta);
+  const fileContent = `${frontmatter}\n\n${newContent}\n`;
+
+  await Bun.write(fullPath, fileContent);
+
+  // Update index
+  await updateIndex(memoryPath, meta.summary, updated);
+
+  return true;
+}
+
+/**
  * List all memories
  */
 export async function listMemory(): Promise<IndexEntry[]> {

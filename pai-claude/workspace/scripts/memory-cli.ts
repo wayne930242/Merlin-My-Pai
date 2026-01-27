@@ -6,6 +6,8 @@
  *   bun run scripts/memory-cli.ts save <path> --title "..." --summary "..." --content "..." [--tags "a,b"]
  *   bun run scripts/memory-cli.ts get <path>
  *   bun run scripts/memory-cli.ts search <keywords...> [--limit N]
+ *   bun run scripts/memory-cli.ts find-similar <keywords...> [--category <cat>] [--limit N]
+ *   bun run scripts/memory-cli.ts update <path> [--summary "..."] [--content "..."] [--tags "a,b"] [--append]
  *   bun run scripts/memory-cli.ts list
  *   bun run scripts/memory-cli.ts init
  *
@@ -16,6 +18,8 @@ import {
   getMemory,
   saveMemory,
   searchMemory,
+  findSimilarMemory,
+  updateMemory,
   listMemory,
   initMemory,
   getMemoryRoot,
@@ -70,7 +74,7 @@ async function main(): Promise<void> {
     console.log(
       JSON.stringify(
         error(
-          "Usage: memory-cli.ts <command> [args]\nCommands: save, get, search, list, init"
+          "Usage: memory-cli.ts <command> [args]\nCommands: save, get, search, find-similar, update, list, init"
         ),
         null,
         2
@@ -168,6 +172,62 @@ async function main(): Promise<void> {
       case "list": {
         const entries = await listMemory();
         result = success({ count: entries.length, entries });
+        break;
+      }
+
+      case "find-similar": {
+        const keywords = positional;
+        const category = options.category;
+        const limit = options.limit ? parseInt(options.limit, 10) : 5;
+
+        if (keywords.length === 0) {
+          result = error("Missing keywords");
+          break;
+        }
+
+        const results = await findSimilarMemory(keywords, category, limit);
+        result = success({
+          count: results.length,
+          results: results.map((r) => ({
+            path: r.memory.path,
+            title: r.memory.title,
+            summary: r.memory.summary,
+            score: r.score,
+          })),
+        });
+        break;
+      }
+
+      case "update": {
+        const path = positional[0];
+
+        if (!path) {
+          result = error("Missing path argument");
+          break;
+        }
+
+        const { summary, content, tags, append } = options;
+
+        if (!summary && !content && !tags) {
+          result = error("At least one of --summary, --content, or --tags required");
+          break;
+        }
+
+        const tagList = tags ? tags.split(",").map((t) => t.trim()) : undefined;
+
+        const updated = await updateMemory(path, {
+          summary,
+          content,
+          tags: tagList,
+          appendContent: append === "true",
+        });
+
+        if (!updated) {
+          result = error(`Memory not found: ${path}`);
+          break;
+        }
+
+        result = success({ message: "Memory updated", path });
         break;
       }
 

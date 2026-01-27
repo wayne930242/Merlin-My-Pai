@@ -10,6 +10,7 @@ updated: 2026-01-27
 ## preferences/
 | 檔案 | 摘要 | 更新日期 |
 |------|------|----------|
+| preferences/coding.md | TypeScript, Bun, 簡潔風格 | 2026-01-27 |
 
 ## knowledge/
 | 檔案 | 摘要 | 更新日期 |
