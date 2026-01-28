@@ -8,6 +8,7 @@ import { createWriteStream } from "node:fs";
 import { mkdir, unlink, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type VoiceConnection, EndBehaviorType } from "@discordjs/voice";
+import prism from "prism-media";
 import { logger } from "../../utils/logger";
 
 // 錄音暫存目錄
@@ -29,6 +30,7 @@ export interface RecordingSession {
   startTime: Date;
   userStreams: Map<string, UserStream>;
   isActive: boolean;
+  isPaused: boolean;
 }
 
 // 每個 guild 的錄音 session
@@ -47,6 +49,7 @@ export function createRecordingSession(
     startTime: new Date(),
     userStreams: new Map(),
     isActive: true,
+    isPaused: false,
   };
   recordingSessions.set(guildId, session);
   return session;
@@ -79,4 +82,117 @@ export function deleteRecordingSession(guildId: string): boolean {
  */
 export function clearAllSessions(): void {
   recordingSessions.clear();
+}
+
+/**
+ * 確保暫存目錄存在
+ */
+async function ensureTempDir(): Promise<void> {
+  await mkdir(RECORDING_TEMP_DIR, { recursive: true });
+}
+
+/**
+ * 開始錄音
+ */
+export async function startRecording(
+  guildId: string,
+  channelId: string,
+  connection: VoiceConnection
+): Promise<{ ok: true; session: RecordingSession } | { ok: false; error: string }> {
+  if (isRecording(guildId)) {
+    return { ok: false, error: "已在錄音中" };
+  }
+
+  try {
+    await ensureTempDir();
+
+    const session = createRecordingSession(guildId, channelId);
+    const receiver = connection.receiver;
+
+    // 監聽使用者開始說話
+    receiver.speaking.on("start", (userId: string) => {
+      if (!session.isActive || session.isPaused) return;
+
+      // 避免重複訂閱
+      if (session.userStreams.has(userId)) return;
+
+      const startOffset = Date.now() - session.startTime.getTime();
+      const pcmPath = join(
+        RECORDING_TEMP_DIR,
+        `${guildId}-${userId}-${Date.now()}.pcm`
+      );
+
+      session.userStreams.set(userId, {
+        userId,
+        username: "Unknown",
+        pcmPath,
+        startOffset,
+      });
+
+      // 訂閱音訊流
+      const opusStream = receiver.subscribe(userId, {
+        end: {
+          behavior: EndBehaviorType.AfterSilence,
+          duration: 1000,
+        },
+      });
+
+      // Opus 解碼器
+      const decoder = new prism.opus.Decoder({
+        rate: 48000,
+        channels: 2,
+        frameSize: 960,
+      });
+
+      // 寫入 PCM 檔案
+      const writeStream = createWriteStream(pcmPath, { flags: "a" });
+
+      opusStream.pipe(decoder).pipe(writeStream);
+
+      opusStream.on("end", () => {
+        logger.debug({ userId, guildId }, "User audio stream ended");
+      });
+
+      logger.info({ userId, guildId, pcmPath }, "Started recording user audio");
+    });
+
+    logger.info({ guildId, channelId }, "Recording started");
+    return { ok: true, session };
+  } catch (error) {
+    logger.error({ error, guildId }, "Failed to start recording");
+    return { ok: false, error: String(error) };
+  }
+}
+
+/**
+ * 停止錄音（placeholder - 將在 Task 5 實作）
+ */
+export async function stopRecording(
+  _guildId: string
+): Promise<{ ok: true; filePath: string } | { ok: false; error: string }> {
+  return { ok: false, error: "尚未實作" };
+}
+
+/**
+ * 暫停錄音
+ */
+export function pauseRecording(guildId: string): boolean {
+  const session = recordingSessions.get(guildId);
+  if (!session || !session.isActive) return false;
+
+  session.isPaused = true;
+  logger.info({ guildId }, "Recording paused");
+  return true;
+}
+
+/**
+ * 繼續錄音
+ */
+export function resumeRecording(guildId: string): boolean {
+  const session = recordingSessions.get(guildId);
+  if (!session || !session.isActive) return false;
+
+  session.isPaused = false;
+  logger.info({ guildId }, "Recording resumed");
+  return true;
 }
