@@ -2,6 +2,16 @@
  * Discord Bot Setup
  */
 
+// 全域 Discord client 參考（用於自動停止錄音等場景）
+let discordClient: Client | null = null;
+
+/**
+ * 取得 Discord client
+ */
+export function getDiscordClient(): Client | null {
+  return discordClient;
+}
+
 import {
   Client,
   Events,
@@ -56,6 +66,9 @@ export function createDiscordBot(): Client {
     ],
     partials: [Partials.Channel, Partials.Message],
   });
+
+  // 儲存全域 client 參考
+  discordClient = client;
 
   // Error handlers
   client.on(Events.Error, (error) => {

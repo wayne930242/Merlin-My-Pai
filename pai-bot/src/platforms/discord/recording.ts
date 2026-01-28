@@ -33,10 +33,72 @@ export interface RecordingSession {
   userStreams: Map<string, UserStream>;
   isActive: boolean;
   isPaused: boolean;
+  lastActivityTime: Date;
+  autoStopTimer: ReturnType<typeof setInterval> | null;
 }
 
 // 每個 guild 的錄音 session
 const recordingSessions = new Map<string, RecordingSession>();
+
+// 自動停止超時（15 分鐘）
+const AUTO_STOP_TIMEOUT_MS = 15 * 60 * 1000;
+
+// 自動停止時的 callback（由 handler 設定）
+let onAutoStop: ((guildId: string, reason: string) => Promise<void>) | null = null;
+
+/**
+ * 設定自動停止 callback
+ */
+export function setAutoStopCallback(
+  callback: (guildId: string, reason: string) => Promise<void>
+): void {
+  onAutoStop = callback;
+}
+
+/**
+ * 啟動自動停止計時器
+ */
+function startAutoStopTimer(session: RecordingSession): void {
+  // 清除現有計時器
+  if (session.autoStopTimer) {
+    clearInterval(session.autoStopTimer);
+  }
+
+  session.autoStopTimer = setInterval(async () => {
+    if (!session.isActive) {
+      if (session.autoStopTimer) {
+        clearInterval(session.autoStopTimer);
+        session.autoStopTimer = null;
+      }
+      return;
+    }
+
+    const now = Date.now();
+    const lastActivity = session.lastActivityTime.getTime();
+    const elapsed = now - lastActivity;
+
+    if (elapsed >= AUTO_STOP_TIMEOUT_MS) {
+      const reason = session.isPaused ? "暫停超時" : "無聲超時";
+      logger.info({ guildId: session.guildId, reason, elapsed }, "Auto-stopping recording");
+
+      if (session.autoStopTimer) {
+        clearInterval(session.autoStopTimer);
+        session.autoStopTimer = null;
+      }
+
+      if (onAutoStop) {
+        await onAutoStop(session.guildId, reason);
+      }
+    }
+  }, 60_000); // 每分鐘檢查一次
+}
+
+/**
+ * 更新最後活動時間
+ */
+function updateLastActivity(session: RecordingSession): void {
+  session.lastActivityTime = new Date();
+}
 
 /**
  * 建立錄音 session
@@ -52,6 +114,8 @@ export function createRecordingSession(
     userStreams: new Map(),
     isActive: true,
     isPaused: false,
+    lastActivityTime: new Date(),
+    autoStopTimer: null,
   };
   recordingSessions.set(guildId, session);
   return session;
@@ -115,6 +179,9 @@ export async function startRecording(
     receiver.speaking.on("start", (userId: string) => {
       if (!session.isActive || session.isPaused) return;
 
+      // 更新最後活動時間
+      updateLastActivity(session);
+
       // 避免重複訂閱
       if (session.userStreams.has(userId)) return;
 
@@ -158,6 +225,9 @@ export async function startRecording(
       logger.info({ userId, guildId, pcmPath }, "Started recording user audio");
     });
 
+    // 啟動自動停止計時器
+    startAutoStopTimer(session);
+
     logger.info({ guildId, channelId }, "Recording started");
     return { ok: true, session };
   } catch (error) {
@@ -178,6 +248,13 @@ export async function stopRecording(
   }
 
   session.isActive = false;
+
+  // 清除自動停止計時器
+  if (session.autoStopTimer) {
+    clearInterval(session.autoStopTimer);
+    session.autoStopTimer = null;
+  }
+
   const duration = Math.floor((Date.now() - session.startTime.getTime()) / 1000);
 
   try {
@@ -236,10 +313,18 @@ async function mergeAudioTracks(
     }
 
     // 合併所有音軌
+    // 加入 silenceremove filter 切除開頭和結尾的靜音
+    // start_periods=1: 移除開頭靜音
+    // stop_periods=-1: 移除結尾靜音
+    // start_threshold=-50dB: 靜音閾值
+    // stop_threshold=-50dB: 靜音閾值
+    // start_silence=0.5: 保留 0.5 秒過渡
+    // stop_silence=0.5: 保留 0.5 秒過渡
     const mixInputs = userStreams.map((_, i) => `[a${i}]`).join("");
     const filterComplex = [
       ...filterParts,
-      `${mixInputs}amix=inputs=${userStreams.length}:duration=longest:normalize=0[out]`,
+      `${mixInputs}amix=inputs=${userStreams.length}:duration=longest:normalize=0[mixed]`,
+      `[mixed]silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.5:stop_periods=-1:stop_threshold=-50dB:stop_silence=0.5[out]`,
     ].join(";");
 
     const args = [
@@ -279,6 +364,7 @@ export function pauseRecording(guildId: string): boolean {
   if (!session || !session.isActive) return false;
 
   session.isPaused = true;
+  // 不更新 lastActivityTime，讓自動停止計時器可以在 15 分鐘後觸發
   logger.info({ guildId }, "Recording paused");
   return true;
 }
@@ -291,6 +377,7 @@ export function resumeRecording(guildId: string): boolean {
   if (!session || !session.isActive) return false;
 
   session.isPaused = false;
+  session.lastActivityTime = new Date(); // 重置活動時間
   logger.info({ guildId }, "Recording resumed");
   return true;
 }

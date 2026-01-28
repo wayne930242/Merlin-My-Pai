@@ -9,13 +9,67 @@ import {
   resumeRecording,
   stopRecording,
   uploadRecording,
+  setAutoStopCallback,
 } from "../../recording";
 import {
   buildRecordingComponents,
   buildRecordingContent,
   clearRecordingPanel,
+  getRecordingPanel,
 } from "../panels/recording";
 import { logger } from "../../../../utils/logger";
+import { getDiscordClient } from "../../bot";
+
+// 設定自動停止 callback
+setAutoStopCallback(async (guildId: string, reason: string) => {
+  const session = getRecordingSession(guildId);
+  if (!session) return;
+
+  const panel = getRecordingPanel(guildId);
+
+  const stopResult = await stopRecording(guildId);
+
+  if (stopResult.ok) {
+    // 嘗試取得頻道名稱
+    const client = getDiscordClient();
+    const guild = client?.guilds.cache.get(guildId);
+    const voiceChannel = guild?.channels.cache.get(session.channelId);
+    const channelName = voiceChannel?.name ?? "auto-stopped";
+
+    const uploadResult = await uploadRecording(stopResult.mp3Path, channelName);
+
+    // 如果有 panel，嘗試更新訊息
+    if (panel && client) {
+      try {
+        const channel = client.channels.cache.get(panel.channelId);
+        if (channel?.isTextBased() && "messages" in channel) {
+          const message = await channel.messages.fetch(panel.messageId);
+          const duration = formatDuration(stopResult.duration);
+          if (uploadResult.ok) {
+            await message.edit({
+              content: `⏹️ **Recording auto-stopped** (${reason})\nDuration: ${duration}\nLink: ${uploadResult.webViewLink}`,
+              components: [],
+            });
+          } else {
+            await message.edit({
+              content: `⏹️ **Recording auto-stopped** (${reason})\nDuration: ${duration}\n❌ Upload failed: ${uploadResult.error}`,
+              components: [],
+            });
+          }
+        }
+      } catch (error) {
+        logger.warn({ error, guildId }, "Failed to update panel after auto-stop");
+      }
+    }
+
+    logger.info(
+      { guildId, reason, uploaded: uploadResult.ok },
+      "Recording auto-stopped"
+    );
+  }
+
+  clearRecordingPanel(guildId);
+});
 
 export async function handleRecordingInteraction(
   interaction: ButtonInteraction,
