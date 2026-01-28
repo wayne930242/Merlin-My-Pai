@@ -165,12 +165,108 @@ export async function startRecording(
 }
 
 /**
- * 停止錄音（placeholder - 將在 Task 5 實作）
+ * 停止錄音並合併音軌
  */
 export async function stopRecording(
-  _guildId: string
-): Promise<{ ok: true; filePath: string } | { ok: false; error: string }> {
-  return { ok: false, error: "尚未實作" };
+  guildId: string,
+): Promise<{ ok: true; mp3Path: string; duration: number } | { ok: false; error: string }> {
+  const session = recordingSessions.get(guildId);
+  if (!session || !session.isActive) {
+    return { ok: false, error: "沒有進行中的錄音" };
+  }
+
+  session.isActive = false;
+  const duration = Math.floor((Date.now() - session.startTime.getTime()) / 1000);
+
+  try {
+    // 等待所有 stream 寫入完成
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const userStreams = Array.from(session.userStreams.values());
+
+    if (userStreams.length === 0) {
+      recordingSessions.delete(guildId);
+      return { ok: false, error: "沒有錄到任何音訊" };
+    }
+
+    const timestamp = session.startTime.toISOString().replace(/[:.]/g, "-");
+    const mp3Path = join(RECORDING_TEMP_DIR, `recording-${guildId}-${timestamp}.mp3`);
+
+    // 使用 ffmpeg 合併音軌
+    await mergeAudioTracks(userStreams, mp3Path);
+
+    // 清理 PCM 檔案
+    for (const stream of userStreams) {
+      await unlink(stream.pcmPath).catch(() => {});
+    }
+
+    recordingSessions.delete(guildId);
+    logger.info({ guildId, mp3Path, duration }, "Recording stopped and merged");
+
+    return { ok: true, mp3Path, duration };
+  } catch (error) {
+    recordingSessions.delete(guildId);
+    logger.error({ error, guildId }, "Failed to stop recording");
+    return { ok: false, error: String(error) };
+  }
+}
+
+/**
+ * 使用 ffmpeg 合併多個 PCM 音軌為 MP3
+ */
+async function mergeAudioTracks(
+  userStreams: UserStream[],
+  outputPath: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // 建立 ffmpeg 指令
+    const inputs: string[] = [];
+    const filterParts: string[] = [];
+
+    for (let i = 0; i < userStreams.length; i++) {
+      const stream = userStreams[i];
+      // PCM 輸入參數
+      inputs.push("-f", "s16le", "-ar", "48000", "-ac", "2", "-i", stream.pcmPath);
+
+      // 計算延遲 (毫秒)
+      const delayMs = stream.startOffset;
+      filterParts.push(`[${i}]adelay=${delayMs}|${delayMs}[a${i}]`);
+    }
+
+    // 合併所有音軌
+    const mixInputs = userStreams.map((_, i) => `[a${i}]`).join("");
+    const filterComplex = [
+      ...filterParts,
+      `${mixInputs}amix=inputs=${userStreams.length}:duration=longest:normalize=0[out]`,
+    ].join(";");
+
+    const args = [
+      ...inputs,
+      "-filter_complex", filterComplex,
+      "-map", "[out]",
+      "-acodec", "libmp3lame",
+      "-q:a", "2",
+      "-y",
+      outputPath,
+    ];
+
+    const ffmpeg = spawn("ffmpeg", args);
+
+    let stderr = "";
+    ffmpeg.stderr.on("data", (data: Buffer) => {
+      stderr += data.toString();
+    });
+
+    ffmpeg.on("close", (code: number | null) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
+      }
+    });
+
+    ffmpeg.on("error", reject);
+  });
 }
 
 /**

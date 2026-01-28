@@ -113,3 +113,19 @@ test("resumeRecording sets isPaused to false", async () => {
   const session = getRecordingSession("guild-resume");
   expect(session?.isPaused).toBe(false);
 });
+
+test("stopRecording returns error when no session", async () => {
+  const result = await stopRecording("nonexistent-stop");
+  expect(result.ok).toBe(false);
+});
+
+test("stopRecording returns error when no audio recorded", async () => {
+  const mockConnection = createMockConnection();
+  await startRecording("guild-empty", "channel-1", mockConnection);
+
+  const result = await stopRecording("guild-empty");
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.error).toContain("沒有錄到");
+  }
+});
