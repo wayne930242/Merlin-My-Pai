@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.70.0 (2026-01-28)
+
+### Features
+
+- TTS announce before recording, switch to male voice
+  ([`3b23c3d`](https://github.com/wayne930242/Merlin-My-Pai/commit/3b23c3d26fb03106a43528eecfda779df62463bb))
+
+
 ## v1.69.3 (2026-01-28)
 
 ### Bug Fixes
