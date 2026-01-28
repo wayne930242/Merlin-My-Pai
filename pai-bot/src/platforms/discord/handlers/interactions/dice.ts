@@ -24,6 +24,7 @@ import {
   undoLastDie,
 } from "../panels";
 import { isSendableChannel } from "../utils";
+import { logger } from "../../../../utils/logger";
 
 /**
  * Append roll result to history message
@@ -58,7 +59,8 @@ async function appendToHistory(
 
     await historyMsg.edit(newContent);
     return true;
-  } catch {
+  } catch (error) {
+    logger.error({ error, channelId, historyMessageId: dicePanel.historyMessageId }, "Failed to update dice history");
     return false;
   }
 }
@@ -202,38 +204,16 @@ export async function handleDiceModalSubmit(
     return;
   }
 
-  const channelId = interaction.channelId;
-  if (channelId) {
-    const dicePanel = getDicePanel(channelId);
-    if (dicePanel && "messages" in channel) {
-      try {
-        const historyMsg = await channel.messages.fetch(dicePanel.historyMessageId);
-        const currentContent = historyMsg.content;
-        const newEntry = `<@${discordUserId}> ${result.text}`;
-
-        if (currentContent.length + newEntry.length + 2 > 1900) {
-          await interaction.reply({
-            content: "歷史訊息已滿，請使用 `/panel dice` 重新建立面板",
-            flags: MessageFlags.Ephemeral,
-          });
-          return;
-        }
-
-        const newContent =
-          currentContent === "**擲骰歷史**\n—"
-            ? `**擲骰歷史**\n${newEntry}`
-            : `${currentContent}\n${newEntry}`;
-
-        await historyMsg.edit(newContent);
-        await interaction.reply({
-          content: `你的結果: ${result.text}\n複製: \`${expression}\``,
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      } catch {
-        // Fall through
-      }
+  const channelId = interaction.channelId ?? channel.id;
+  const handled = await appendToHistory(channel, channelId, discordUserId, result.text, interaction);
+  if (handled) {
+    if (!interaction.replied) {
+      await interaction.reply({
+        content: `你的結果: ${result.text}\n複製: \`${expression}\``,
+        flags: MessageFlags.Ephemeral,
+      });
     }
+    return;
   }
 
   await interaction.reply(`<@${discordUserId}> ${result.text}`);

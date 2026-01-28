@@ -162,7 +162,8 @@ export function createDiscordBot(): Client {
     // Skip auth for dice interactions (TRPG mode - anyone can roll)
     const shouldSkipAuth =
       (interaction.isButton() && interaction.customId.startsWith("dice:")) ||
-      (interaction.isModalSubmit() && interaction.customId.startsWith("dice:"));
+      (interaction.isModalSubmit() && interaction.customId.startsWith("dice:")) ||
+      (interaction.isStringSelectMenu() && interaction.customId.startsWith("dice:"));
 
     // Check authorization
     if (!shouldSkipAuth && !isAuthorized(interaction.user.id)) {

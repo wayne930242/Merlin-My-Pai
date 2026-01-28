@@ -513,7 +513,7 @@ function buildDiceRow2(guildId: string): ActionRowBuilder<ButtonBuilder> {
  * Build dice panel content
  */
 export function buildDiceContent(): string {
-  return "**[Dice]** 上方快速擲骰 | 下方累積模式";
+  return "**[Dice]**";
 }
 
 /**
