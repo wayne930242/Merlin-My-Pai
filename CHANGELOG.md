@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.68.0 (2026-01-28)
+
+### Features
+
+- Add google_calendar_delete_event MCP tool
+  ([`d0f366c`](https://github.com/wayne930242/Merlin-My-Pai/commit/d0f366ce9a17d92e35f5c3dc25873c05a5fa0dc7))
+
+
 ## v1.67.2 (2026-01-27)
 
 ### Bug Fixes
