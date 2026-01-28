@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.69.2 (2026-01-28)
+
+### Bug Fixes
+
+- Simplify recording panel, remove non-updating duration/count
+  ([`e0b46fe`](https://github.com/wayne930242/Merlin-My-Pai/commit/e0b46fe882ee768a25a54250781ecd6c7bd58249))
+
+
 ## v1.69.1 (2026-01-28)
 
 ### Bug Fixes
