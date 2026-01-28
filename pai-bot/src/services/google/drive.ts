@@ -97,4 +97,31 @@ export async function deleteFile(fileId: string) {
   await drive.files.delete({ fileId });
 }
 
+export async function uploadBinaryFile(
+  name: string,
+  buffer: Buffer,
+  mimeType: string,
+  folderId?: string,
+): Promise<drive_v3.Schema$File> {
+  const drive = getDrive();
+
+  const fileMetadata: drive_v3.Schema$File = { name };
+  if (folderId) {
+    fileMetadata.parents = [folderId];
+  }
+
+  const media = {
+    mimeType,
+    body: Readable.from(buffer),
+  };
+
+  const res = await drive.files.create({
+    requestBody: fileMetadata,
+    media,
+    fields: "id,name,mimeType,webViewLink",
+  });
+
+  return res.data;
+}
+
 export type { drive_v3 };
