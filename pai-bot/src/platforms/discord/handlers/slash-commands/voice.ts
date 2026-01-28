@@ -3,6 +3,7 @@
  */
 
 import { type ChatInputCommandInteraction, type Client, MessageFlags } from "discord.js";
+import { getVoiceConnection } from "@discordjs/voice";
 import {
   isInVoiceChannel,
   // isSpotifyConnected,
@@ -12,13 +13,17 @@ import {
   // startSpotifyConnect,
   // stopSpotifyConnect,
 } from "../../voice";
+import { isRecording, startRecording } from "../../recording";
 import {
   buildPanelComponents,
   buildPanelContent,
+  buildRecordingComponents,
+  buildRecordingContent,
   // buildVolumeComponents,
   // buildVolumeContent,
   parseAndRoll,
   setDicePanel,
+  setRecordingPanel,
   // setVolumePanel,
 } from "../panels";
 
@@ -213,4 +218,76 @@ export async function handleRoll(interaction: ChatInputCommandInteraction): Prom
   }
 
   await interaction.reply(result.text);
+}
+
+export async function handleRecord(
+  interaction: ChatInputCommandInteraction,
+  discordUserId: string,
+): Promise<void> {
+  if (!interaction.guildId || !interaction.guild) {
+    await interaction.reply({ content: "此指令只能在伺服器中使用", flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  // Check if bot is in voice channel
+  if (!isInVoiceChannel(interaction.guildId)) {
+    // Auto-join user's voice channel
+    const member = await interaction.guild.members.fetch(discordUserId);
+    const voiceChannel = member.voice.channel;
+
+    if (!voiceChannel) {
+      await interaction.reply({
+        content: "請先加入語音頻道",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    await interaction.deferReply();
+
+    const joinResult = await joinChannel(voiceChannel);
+    if (!joinResult.ok) {
+      await interaction.editReply(`無法加入語音頻道: ${joinResult.error}`);
+      return;
+    }
+  } else {
+    await interaction.deferReply();
+  }
+
+  // Check if already recording
+  if (isRecording(interaction.guildId)) {
+    await interaction.editReply({
+      content: "已在錄音中，請使用面板控制",
+    });
+    return;
+  }
+
+  const connection = getVoiceConnection(interaction.guildId);
+  if (!connection) {
+    await interaction.editReply("無法取得語音連線");
+    return;
+  }
+
+  const result = await startRecording(interaction.guildId, interaction.channelId, connection);
+
+  if (!result.ok) {
+    await interaction.editReply(`錯誤: ${result.error}`);
+    return;
+  }
+
+  // Send recording control panel
+  const content = buildRecordingContent(interaction.guildId);
+  const components = buildRecordingComponents(interaction.guildId);
+
+  const panelMsg = await interaction.editReply({
+    content,
+    components,
+  });
+
+  // Track panel
+  setRecordingPanel(interaction.guildId, {
+    messageId: panelMsg.id,
+    channelId: interaction.channelId,
+    guildId: interaction.guildId,
+  });
 }

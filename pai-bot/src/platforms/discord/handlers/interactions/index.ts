@@ -10,6 +10,7 @@ import type {
 
 import { handleDiceButton, handleDiceModalSubmit, handleDiceSelectMenu } from "./dice";
 import { handleQueueButton } from "./queue";
+import { handleRecordingInteraction } from "./recording";
 import { handleVolumeButton } from "./volume";
 
 /**
@@ -31,6 +32,13 @@ export async function handleButtonInteraction(interaction: ButtonInteraction): P
   // Handle volume buttons: vol:action:guildId
   if (parts[0] === "vol") {
     await handleVolumeButton(interaction, parts);
+    return;
+  }
+
+  // Handle recording buttons: recording:action:guildId
+  if (parts[0] === "recording") {
+    const [, action, guildId] = parts;
+    await handleRecordingInteraction(interaction, action, guildId);
     return;
   }
 

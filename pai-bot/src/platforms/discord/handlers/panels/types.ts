@@ -2,7 +2,7 @@
  * Panel Types
  */
 
-export type PanelMode = "dice" | "volume";
+export type PanelMode = "dice" | "volume" | "recording";
 
 export interface ControlPanel {
   messageId: string;

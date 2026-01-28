@@ -24,6 +24,7 @@ import {
   handleJoin,
   handleLeave,
   handlePanel,
+  handleRecord,
   handleRoll,
   handleSay,
   // handleSpotify,
@@ -108,6 +109,10 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
 
     case "roll":
       await handleRoll(interaction);
+      break;
+
+    case "record":
+      await handleRecord(interaction, discordUserId);
       break;
 
     default:
