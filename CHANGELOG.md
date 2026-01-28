@@ -1,6 +1,48 @@
 # CHANGELOG
 
 
+## v1.69.0 (2026-01-28)
+
+### Chores
+
+- Add prism-media dependency
+  ([`dd812ca`](https://github.com/wayne930242/Merlin-My-Pai/commit/dd812ca3e8824dd1d655466584b1d016b909a96e))
+
+### Documentation
+
+- Add GOOGLE_DRIVE_RECORDINGS_FOLDER_ID to vault example
+  ([`7c5ba85`](https://github.com/wayne930242/Merlin-My-Pai/commit/7c5ba8522197f19ba7355eac5d9a41553765ba3f))
+
+### Features
+
+- Add Google Drive recordings folder ID to vault and env template
+  ([`15fc98b`](https://github.com/wayne930242/Merlin-My-Pai/commit/15fc98bf083f62dbf43b0d8f1ecedede9995dd99))
+
+- Improve discord channel context with stickers, attachments and user IDs
+  ([`d2bc9de`](https://github.com/wayne930242/Merlin-My-Pai/commit/d2bc9de166321f19f47f641607f42229b9d24bbf))
+
+- **discord**: Add /record command with recording panel
+  ([`5af3324`](https://github.com/wayne930242/Merlin-My-Pai/commit/5af332464b550ad94f905a1f1c0f3cff3f276c06))
+
+- **drive**: Add uploadBinaryFile for binary file upload
+  ([`7156b42`](https://github.com/wayne930242/Merlin-My-Pai/commit/7156b42a6c34fa25ff5340c227693313930051b1))
+
+- **recording**: Add auto-stop on timeout and silence removal
+  ([`c38618e`](https://github.com/wayne930242/Merlin-My-Pai/commit/c38618e9aabea58f46d20e6f8b61d485ee1109b8))
+
+- **recording**: Add recording session management
+  ([`3d5c07e`](https://github.com/wayne930242/Merlin-My-Pai/commit/3d5c07e4ed8241486a7707b436740961cf8fb41f))
+
+- **recording**: Implement Google Drive upload
+  ([`3836aa8`](https://github.com/wayne930242/Merlin-My-Pai/commit/3836aa8c059dc3f461b15e56e69216e5539e27cb))
+
+- **recording**: Implement startRecording with pause/resume support
+  ([`3bbeb18`](https://github.com/wayne930242/Merlin-My-Pai/commit/3bbeb18f67cbd1d4049438562481e1ffeda01420))
+
+- **recording**: Implement stopRecording with ffmpeg audio merging
+  ([`74c2fb6`](https://github.com/wayne930242/Merlin-My-Pai/commit/74c2fb63df2a5105eaf95f394997bd46fea9e957))
+
+
 ## v1.68.0 (2026-01-28)
 
 ### Features
