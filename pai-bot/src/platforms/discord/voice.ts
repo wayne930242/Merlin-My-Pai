@@ -24,7 +24,7 @@ import { logger } from "../../utils/logger";
 // const SPOTIFY_DEVICE_NAME = "Merlin DJ";
 
 // TTS 設定
-const TTS_VOICE = "zh-TW-HsiaoChenNeural"; // 台灣女聲（曉臻）
+const TTS_VOICE = "zh-TW-YunJheNeural"; // 台灣男聲（雲哲）
 const TTS_TEMP_DIR = "/tmp/pai-tts";
 
 interface GuildQueue {

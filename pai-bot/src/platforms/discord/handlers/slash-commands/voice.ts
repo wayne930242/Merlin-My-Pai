@@ -173,9 +173,9 @@ export async function handleSay(interaction: ChatInputCommandInteraction): Promi
   const result = await speakTts(interaction.guildId, text);
 
   if (result.ok) {
-    await interaction.editReply(`Said: "${text.slice(0, 100)}${text.length > 100 ? "..." : ""}"`);
+    await interaction.editReply(`說了：「${text.slice(0, 100)}${text.length > 100 ? "..." : ""}」`);
   } else {
-    await interaction.editReply(`TTS failed: ${result.error}`);
+    await interaction.editReply(`語音播放失敗：${result.error}`);
   }
 }
 
@@ -267,6 +267,9 @@ export async function handleRecord(
     await interaction.editReply("無法取得語音連線");
     return;
   }
+
+  // 錄音前語音提示
+  await speakTts(interaction.guildId, "開始錄音囉！");
 
   const result = await startRecording(interaction.guildId, interaction.channelId, connection);
 
