@@ -110,6 +110,24 @@ export function registerGoogleTools(server: McpServer): void {
     },
   );
 
+  server.registerTool(
+    "google_calendar_delete_event",
+    {
+      title: "Delete Calendar Event",
+      description: "刪除日曆行程",
+      inputSchema: {
+        eventId: z.string().describe("行程 ID"),
+        calendarId: z.string().optional().describe("日曆 ID，預設 primary"),
+      },
+    },
+    async ({ eventId, calendarId }) => {
+      await google.calendar.deleteEvent(eventId, calendarId || "primary");
+      return {
+        content: [{ type: "text", text: "行程已刪除" }],
+      };
+    },
+  );
+
   // === Drive Tools ===
 
   server.registerTool(
