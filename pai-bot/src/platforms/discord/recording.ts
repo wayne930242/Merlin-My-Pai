@@ -9,13 +9,15 @@ import { mkdir, unlink, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type VoiceConnection, EndBehaviorType } from "@discordjs/voice";
 import prism from "prism-media";
+import { uploadBinaryFile } from "../../services/google/drive";
 import { logger } from "../../utils/logger";
 
 // 錄音暫存目錄
 const RECORDING_TEMP_DIR = "/tmp/pai-recordings";
 
 // Google Drive 錄音資料夾 ID (可透過環境變數設定)
-const RECORDINGS_FOLDER_ID = process.env.GOOGLE_DRIVE_RECORDINGS_FOLDER_ID;
+const RECORDINGS_FOLDER_ID =
+  process.env.GOOGLE_DRIVE_RECORDINGS_FOLDER_ID || "1YdEuUcrTxq8ap3ETJk46FbLRsl-iGqFv";
 
 export interface UserStream {
   userId: string;
@@ -291,4 +293,35 @@ export function resumeRecording(guildId: string): boolean {
   session.isPaused = false;
   logger.info({ guildId }, "Recording resumed");
   return true;
+}
+
+/**
+ * 上傳錄音至 Google Drive
+ */
+export async function uploadRecording(
+  mp3Path: string,
+  channelName: string,
+): Promise<{ ok: true; webViewLink: string } | { ok: false; error: string }> {
+  try {
+    const buffer = await readFile(mp3Path);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const fileName = `${timestamp}-${channelName.replace(/[^a-zA-Z0-9-_\u4e00-\u9fff]/g, "_")}.mp3`;
+
+    const file = await uploadBinaryFile(
+      fileName,
+      buffer,
+      "audio/mpeg",
+      RECORDINGS_FOLDER_ID,
+    );
+
+    // 清理本地檔案
+    await unlink(mp3Path).catch(() => {});
+
+    logger.info({ fileName, fileId: file.id }, "Recording uploaded to Google Drive");
+
+    return { ok: true, webViewLink: file.webViewLink ?? "" };
+  } catch (error) {
+    logger.error({ error, mp3Path }, "Failed to upload recording");
+    return { ok: false, error: String(error) };
+  }
 }
