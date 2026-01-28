@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.69.1 (2026-01-28)
+
+### Bug Fixes
+
+- Use Chinese UI, set selfDeaf=false for voice receiving
+  ([`e67ae25`](https://github.com/wayne930242/Merlin-My-Pai/commit/e67ae25a979cf458bfc9635864db79fdbd2c2351))
+
+
 ## v1.69.0 (2026-01-28)
 
 ### Chores
