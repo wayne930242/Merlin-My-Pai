@@ -48,15 +48,7 @@ export function buildRecordingContent(guildId: string): string {
     return "**錄音已結束**";
   }
 
-  const duration = Math.floor((Date.now() - session.startTime.getTime()) / 1000);
-  const userCount = session.userStreams.size;
-  const status = session.isPaused ? "⏸️ 已暫停" : "🔴 錄音中";
-
-  return [
-    `**${status}**`,
-    `時長: ${formatDuration(duration)}`,
-    `錄製人數: ${userCount}`,
-  ].join("\n");
+  return session.isPaused ? "⏸️ **已暫停**" : "🔴 **錄音中**";
 }
 
 /**
