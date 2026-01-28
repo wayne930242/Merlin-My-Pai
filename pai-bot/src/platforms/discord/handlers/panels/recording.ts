@@ -45,17 +45,17 @@ function formatDuration(seconds: number): string {
 export function buildRecordingContent(guildId: string): string {
   const session = getRecordingSession(guildId);
   if (!session) {
-    return "**Recording ended**";
+    return "**錄音已結束**";
   }
 
   const duration = Math.floor((Date.now() - session.startTime.getTime()) / 1000);
   const userCount = session.userStreams.size;
-  const status = session.isPaused ? "⏸️ Paused" : "🔴 Recording";
+  const status = session.isPaused ? "⏸️ 已暫停" : "🔴 錄音中";
 
   return [
     `**${status}**`,
-    `Duration: ${formatDuration(duration)}`,
-    `Users: ${userCount}`,
+    `時長: ${formatDuration(duration)}`,
+    `錄製人數: ${userCount}`,
   ].join("\n");
 }
 
@@ -71,11 +71,11 @@ export function buildRecordingComponents(
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`recording:${isPaused ? "resume" : "pause"}:${guildId}`)
-      .setLabel(isPaused ? "▶️ Resume" : "⏸️ Pause")
+      .setLabel(isPaused ? "繼續" : "暫停")
       .setStyle(isPaused ? ButtonStyle.Success : ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`recording:stop:${guildId}`)
-      .setLabel("⏹️ Stop & Upload")
+      .setLabel("停止並上傳")
       .setStyle(ButtonStyle.Danger),
   );
 

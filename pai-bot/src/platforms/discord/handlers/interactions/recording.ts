@@ -47,12 +47,12 @@ setAutoStopCallback(async (guildId: string, reason: string) => {
           const duration = formatDuration(stopResult.duration);
           if (uploadResult.ok) {
             await message.edit({
-              content: `⏹️ **Recording auto-stopped** (${reason})\nDuration: ${duration}\nLink: ${uploadResult.webViewLink}`,
+              content: `⏹️ **錄音已自動停止**（${reason}）\n時長: ${duration}\n連結: ${uploadResult.webViewLink}`,
               components: [],
             });
           } else {
             await message.edit({
-              content: `⏹️ **Recording auto-stopped** (${reason})\nDuration: ${duration}\n❌ Upload failed: ${uploadResult.error}`,
+              content: `⏹️ **錄音已自動停止**（${reason}）\n時長: ${duration}\n❌ 上傳失敗: ${uploadResult.error}`,
               components: [],
             });
           }
@@ -78,7 +78,7 @@ export async function handleRecordingInteraction(
 ): Promise<void> {
   // Validate guildId matches
   if (interaction.guildId !== guildId) {
-    await interaction.reply({ content: "Invalid operation", ephemeral: true });
+    await interaction.reply({ content: "無效的操作", ephemeral: true });
     return;
   }
 
@@ -86,7 +86,7 @@ export async function handleRecordingInteraction(
 
   if (action === "pause") {
     if (!session) {
-      await interaction.reply({ content: "No active recording", ephemeral: true });
+      await interaction.reply({ content: "沒有進行中的錄音", ephemeral: true });
       return;
     }
 
@@ -99,7 +99,7 @@ export async function handleRecordingInteraction(
     });
   } else if (action === "resume") {
     if (!session) {
-      await interaction.reply({ content: "No active recording", ephemeral: true });
+      await interaction.reply({ content: "沒有進行中的錄音", ephemeral: true });
       return;
     }
 
@@ -112,12 +112,12 @@ export async function handleRecordingInteraction(
     });
   } else if (action === "stop") {
     if (!session) {
-      await interaction.reply({ content: "No active recording", ephemeral: true });
+      await interaction.reply({ content: "沒有進行中的錄音", ephemeral: true });
       return;
     }
 
     await interaction.update({
-      content: "⏳ Processing recording and uploading to Google Drive...",
+      content: "⏳ 正在處理錄音並上傳至 Google Drive...",
       components: [],
     });
 
@@ -125,7 +125,7 @@ export async function handleRecordingInteraction(
 
     if (!stopResult.ok) {
       await interaction.editReply({
-        content: `❌ Failed to stop recording: ${stopResult.error}`,
+        content: `❌ 停止錄音失敗: ${stopResult.error}`,
       });
       clearRecordingPanel(guildId);
       return;
@@ -140,7 +140,7 @@ export async function handleRecordingInteraction(
     if (uploadResult.ok) {
       const duration = formatDuration(stopResult.duration);
       await interaction.editReply({
-        content: `✅ **Recording uploaded**\nDuration: ${duration}\nLink: ${uploadResult.webViewLink}`,
+        content: `✅ **錄音已上傳**\n時長: ${duration}\n連結: ${uploadResult.webViewLink}`,
       });
       logger.info(
         { guildId, duration: stopResult.duration, link: uploadResult.webViewLink },
@@ -148,7 +148,7 @@ export async function handleRecordingInteraction(
       );
     } else {
       await interaction.editReply({
-        content: `❌ Upload failed: ${uploadResult.error}`,
+        content: `❌ 上傳失敗: ${uploadResult.error}`,
       });
     }
 

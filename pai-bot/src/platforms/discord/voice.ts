@@ -65,6 +65,7 @@ export async function joinChannel(
       channelId: channel.id,
       guildId: guildId,
       adapterCreator: channel.guild.voiceAdapterCreator,
+      selfDeaf: false, // 需要接收音訊（錄音功能）
     });
 
     // Wait for connection to be ready
