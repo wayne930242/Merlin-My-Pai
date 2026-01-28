@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.69.3 (2026-01-28)
+
+### Bug Fixes
+
+- Allow all users to update dice history and change game system
+  ([`57cfea3`](https://github.com/wayne930242/Merlin-My-Pai/commit/57cfea322bd088b9e43b23c655e8b9140959d108))
+
+
 ## v1.69.2 (2026-01-28)
 
 ### Bug Fixes
