@@ -111,7 +111,9 @@ export async function prepareTask(
   let channelContext = "";
   if (isChannelMode && channel) {
     const channelMessages = await getChannelContext(channel, [], existingMessageIds);
-    channelContext = formatChannelContext(channelMessages);
+    // 傳入主人的 Discord ID，用於在上下文中標示
+    const selfId = config.discord.allowedUserIds[0];
+    channelContext = formatChannelContext(channelMessages, selfId);
   }
 
   let memoryContext = "";

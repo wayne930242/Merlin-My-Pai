@@ -17,6 +17,47 @@ export interface ChannelMessage {
 const MAX_CONTEXT_MESSAGES = 10;
 
 /**
+ * 從 Discord 訊息中提取內容（包含文字、貼圖、附件）
+ */
+function extractMessageContent(msg: Message): string {
+  const parts: string[] = [];
+
+  // 文字內容
+  if (msg.content && msg.content.trim().length > 0) {
+    const text = msg.content.length > 500 ? `${msg.content.slice(0, 500)}...` : msg.content;
+    parts.push(text);
+  }
+
+  // 貼圖（Stickers）
+  if (msg.stickers.size > 0) {
+    for (const [_, sticker] of msg.stickers) {
+      const format = sticker.format === 3 ? "動態貼圖" : "貼圖";
+      parts.push(`[${format}: ${sticker.name}]`);
+    }
+  }
+
+  // 附件（Attachments: 圖片、GIF、影片等）
+  if (msg.attachments.size > 0) {
+    for (const [_, attachment] of msg.attachments) {
+      const contentType = attachment.contentType || "unknown";
+      if (contentType.startsWith("image/gif")) {
+        parts.push(`[GIF: ${attachment.name || "unnamed"}]`);
+      } else if (contentType.startsWith("image/")) {
+        parts.push(`[圖片: ${attachment.name || "unnamed"}]`);
+      } else if (contentType.startsWith("video/")) {
+        parts.push(`[影片: ${attachment.name || "unnamed"}]`);
+      } else if (contentType.startsWith("audio/")) {
+        parts.push(`[音訊: ${attachment.name || "unnamed"}]`);
+      } else {
+        parts.push(`[檔案: ${attachment.name || "unnamed"}]`);
+      }
+    }
+  }
+
+  return parts.join(" ");
+}
+
+/**
  * 從 Discord API 即時抓取頻道最近訊息作為上下文
  * @param channel - Discord 頻道物件
  * @param excludeUserIds - 排除這些用戶的訊息
@@ -47,11 +88,11 @@ export async function getChannelContext(
       // 排除已在對話歷史中的訊息（避免重複）
       if (excludeMessageIds.has(msg.id)) continue;
 
-      // 只保留有文字內容的訊息
-      if (!msg.content || msg.content.trim().length === 0) continue;
+      // 提取訊息內容（包含文字、貼圖、附件）
+      const content = extractMessageContent(msg);
 
-      // 限制訊息長度避免 context 過長
-      const content = msg.content.length > 500 ? `${msg.content.slice(0, 500)}...` : msg.content;
+      // 跳過沒有任何內容的訊息
+      if (!content) continue;
 
       messages.push({
         author_id: msg.author.id,
@@ -81,16 +122,20 @@ export async function getChannelContext(
 
 /**
  * 格式化頻道上下文為 prompt
+ * @param messages - 訊息列表
+ * @param selfId - 主人的 Discord ID（用於標示「這是主人」）
  */
-export function formatChannelContext(messages: ChannelMessage[]): string {
+export function formatChannelContext(messages: ChannelMessage[], selfId?: string): string {
   if (messages.length === 0) return "";
 
   const lines = messages.map((m) => {
-    const prefix = m.is_bot ? "[Bot]" : `[${m.author_name}]`;
-    return `${prefix}: ${m.content}`;
+    const isSelf = selfId && m.author_id === selfId;
+    const selfMarker = isSelf ? " ★主人" : "";
+    const prefix = m.is_bot ? "Bot" : `${m.author_name} (${m.author_id})${selfMarker}`;
+    return `<msg from="${prefix}">${m.content}</msg>`;
   });
 
-  return `[本頻道近期討論上下文 - 供你參考理解對話背景，但不需直接回應]\n${lines.join("\n")}\n[/本頻道近期討論上下文]`;
+  return `<channel-context>\n${lines.join("\n")}\n</channel-context>`;
 }
 
 /**
