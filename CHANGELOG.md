@@ -1,6 +1,40 @@
 # CHANGELOG
 
 
+## v1.71.0 (2026-01-29)
+
+### Bug Fixes
+
+- Update Discord recording to handle Result pattern
+  ([`b88c7e9`](https://github.com/wayne930242/Merlin-My-Pai/commit/b88c7e92eafafc91048c0bf93f2c8c0811f6e325))
+
+### Chores
+
+- Remove unused reference template
+  ([`ea5ab86`](https://github.com/wayne930242/Merlin-My-Pai/commit/ea5ab863df0aaf9c65db098d042ccecd6039a647))
+
+- **deps**: Add ts-results for Result pattern
+  ([`2d8864a`](https://github.com/wayne930242/Merlin-My-Pai/commit/2d8864a611a010d4d87c667fd55a63e0a45fad95))
+
+### Documentation
+
+- Add MCP tools development skill
+  ([`b03f82f`](https://github.com/wayne930242/Merlin-My-Pai/commit/b03f82fdd359adb445cdbae62d096abbd2932bbf))
+
+### Features
+
+- **mcp**: Add error handling to all MCP tools
+  ([`141c596`](https://github.com/wayne930242/Merlin-My-Pai/commit/141c5961c9f209d669d9ca1dd4c19f4bea831d9a))
+
+### Refactoring
+
+- **garmin**: Use Result pattern in Garmin service
+  ([`072e361`](https://github.com/wayne930242/Merlin-My-Pai/commit/072e361418b28987e0f61a0100e50b8ff672dc72))
+
+- **google**: Use Result pattern in all Google services
+  ([`0698c64`](https://github.com/wayne930242/Merlin-My-Pai/commit/0698c64b8f489992b4b6b098a46836067fc8ceaa))
+
+
 ## v1.70.4 (2026-01-29)
 
 ### Bug Fixes
