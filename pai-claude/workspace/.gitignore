@@ -50,6 +50,8 @@
 !.claude/skills/proactive/**
 !.claude/skills/knowledge-base/
 !.claude/skills/knowledge-base/**
+!.claude/skills/agent-browser/
+!.claude/skills/agent-browser/**
 
 # ===== Long-term Memory =====
 !memory/
