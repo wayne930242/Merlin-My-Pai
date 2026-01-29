@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.70.4 (2026-01-29)
+
+### Bug Fixes
+
+- Track actual write time for accurate silence gap filling
+  ([`d39d062`](https://github.com/wayne930242/Merlin-My-Pai/commit/d39d06248f463dc0e73846963308deaf63d0c396))
+
+
 ## v1.70.3 (2026-01-29)
 
 ### Bug Fixes
