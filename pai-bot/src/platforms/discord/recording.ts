@@ -24,6 +24,7 @@ export interface UserStream {
   username: string;
   pcmPath: string;
   startOffset: number; // 相對於錄音開始的毫秒偏移
+  lastSegmentEndTime: number | null; // 上一段音訊結束的時間戳（用於填充靜音）
 }
 
 export interface RecordingSession {
@@ -198,12 +199,33 @@ export async function startRecording(
           username: "Unknown",
           pcmPath,
           startOffset,
+          lastSegmentEndTime: null,
         };
         session.userStreams.set(userId, userStream);
         logger.info(
           { userId, guildId, pcmPath },
           "Created new PCM file for user"
         );
+      }
+
+      // 追加寫入 PCM 檔案（使用 flags: "a"）
+      const writeStream = createWriteStream(userStream.pcmPath, { flags: "a" });
+
+      // 如果有上一段音訊，填充中間的靜音
+      if (userStream.lastSegmentEndTime !== null) {
+        const now = Date.now();
+        const gapMs = now - userStream.lastSegmentEndTime;
+        if (gapMs > 0) {
+          // PCM 格式: 48000Hz, 2 channels, 16-bit (2 bytes)
+          // 每秒 bytes = 48000 * 2 * 2 = 192000
+          const silenceBytes = Math.floor((192000 * gapMs) / 1000);
+          const silence = Buffer.alloc(silenceBytes, 0);
+          writeStream.write(silence);
+          logger.debug(
+            { userId, guildId, gapMs, silenceBytes },
+            "Filled silence gap between segments"
+          );
+        }
       }
 
       // 訂閱音訊流（每次說話都重新訂閱）
@@ -221,12 +243,11 @@ export async function startRecording(
         frameSize: 960,
       });
 
-      // 追加寫入 PCM 檔案（使用 flags: "a"）
-      const writeStream = createWriteStream(userStream.pcmPath, { flags: "a" });
-
       opusStream.pipe(decoder).pipe(writeStream);
 
+      // 當這段音訊結束時，記錄結束時間
       opusStream.on("end", () => {
+        userStream.lastSegmentEndTime = Date.now();
         logger.debug({ userId, guildId }, "User audio stream segment ended");
       });
 
