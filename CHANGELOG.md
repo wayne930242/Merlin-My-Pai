@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.70.1 (2026-01-29)
+
+### Bug Fixes
+
+- Allow re-subscription when user speaks again during recording
+  ([`99ccab5`](https://github.com/wayne930242/Merlin-My-Pai/commit/99ccab5ee5448d63d7272d4d68b411ea5a83eda9))
+
+
 ## v1.70.0 (2026-01-28)
 
 ### Features
