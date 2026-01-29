@@ -182,23 +182,31 @@ export async function startRecording(
       // 更新最後活動時間
       updateLastActivity(session);
 
-      // 避免重複訂閱
-      if (session.userStreams.has(userId)) return;
+      // 取得或建立 userStream 記錄
+      let userStream = session.userStreams.get(userId);
 
-      const startOffset = Date.now() - session.startTime.getTime();
-      const pcmPath = join(
-        RECORDING_TEMP_DIR,
-        `${guildId}-${userId}-${Date.now()}.pcm`
-      );
+      // 如果該使用者還沒有 PCM 檔案，建立一個
+      if (!userStream) {
+        const startOffset = Date.now() - session.startTime.getTime();
+        const pcmPath = join(
+          RECORDING_TEMP_DIR,
+          `${guildId}-${userId}-${Date.now()}.pcm`
+        );
 
-      session.userStreams.set(userId, {
-        userId,
-        username: "Unknown",
-        pcmPath,
-        startOffset,
-      });
+        userStream = {
+          userId,
+          username: "Unknown",
+          pcmPath,
+          startOffset,
+        };
+        session.userStreams.set(userId, userStream);
+        logger.info(
+          { userId, guildId, pcmPath },
+          "Created new PCM file for user"
+        );
+      }
 
-      // 訂閱音訊流
+      // 訂閱音訊流（每次說話都重新訂閱）
       const opusStream = receiver.subscribe(userId, {
         end: {
           behavior: EndBehaviorType.AfterSilence,
@@ -213,16 +221,16 @@ export async function startRecording(
         frameSize: 960,
       });
 
-      // 寫入 PCM 檔案
-      const writeStream = createWriteStream(pcmPath, { flags: "a" });
+      // 追加寫入 PCM 檔案（使用 flags: "a"）
+      const writeStream = createWriteStream(userStream.pcmPath, { flags: "a" });
 
       opusStream.pipe(decoder).pipe(writeStream);
 
       opusStream.on("end", () => {
-        logger.debug({ userId, guildId }, "User audio stream ended");
+        logger.debug({ userId, guildId }, "User audio stream segment ended");
       });
 
-      logger.info({ userId, guildId, pcmPath }, "Started recording user audio");
+      logger.debug({ userId, guildId }, "Subscribed to user audio stream");
     });
 
     // 啟動自動停止計時器
