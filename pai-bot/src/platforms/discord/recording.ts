@@ -246,8 +246,9 @@ export async function startRecording(
       opusStream.pipe(decoder).pipe(writeStream);
 
       // 當這段音訊結束時，記錄結束時間
+      // 減去靜音偵測時間 (1000ms)，因為 stream 是在靜音 1 秒後才結束
       opusStream.on("end", () => {
-        userStream.lastSegmentEndTime = Date.now();
+        userStream.lastSegmentEndTime = Date.now() - 1000;
         logger.debug({ userId, guildId }, "User audio stream segment ended");
       });
 
