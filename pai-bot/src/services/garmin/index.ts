@@ -2,6 +2,7 @@
 
 import { join } from "node:path";
 import { $ } from "bun";
+import { Err, Ok, type Result } from "ts-results";
 import type {
   GarminActivity,
   GarminHealthSummary,
@@ -24,9 +25,9 @@ function getToday(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-async function runSync<T>(command: string, args: string[] = []): Promise<T> {
+async function runSync<T>(command: string, args: string[] = []): Promise<Result<T, Error>> {
   if (!isGarminConfigured()) {
-    throw new Error("Garmin credentials not configured");
+    return Err(new Error("Garmin credentials not configured"));
   }
 
   const allArgs = [GARMIN_EMAIL!, GARMIN_PASSWORD!, command, ...args];
@@ -36,22 +37,22 @@ async function runSync<T>(command: string, args: string[] = []): Promise<T> {
     const parsed = JSON.parse(result.trim());
 
     if (parsed.error) {
-      throw new Error(parsed.error);
+      return Err(new Error(parsed.error));
     }
 
-    return parsed as T;
+    return Ok(parsed as T);
   } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error(`Garmin sync failed: ${error}`);
+    return Err(error instanceof Error ? error : new Error(String(error)));
   }
 }
 
 /**
  * 取得日期範圍內的每日統計數據
  */
-export async function getStats(startDate?: string, endDate?: string): Promise<GarminStats[]> {
+export async function getStats(
+  startDate?: string,
+  endDate?: string,
+): Promise<Result<GarminStats[], Error>> {
   const start = startDate || getToday();
   const end = endDate || start;
   return runSync<GarminStats[]>("stats", [start, end]);
@@ -60,7 +61,10 @@ export async function getStats(startDate?: string, endDate?: string): Promise<Ga
 /**
  * 取得日期範圍內的睡眠數據
  */
-export async function getSleep(startDate?: string, endDate?: string): Promise<GarminSleep[]> {
+export async function getSleep(
+  startDate?: string,
+  endDate?: string,
+): Promise<Result<GarminSleep[], Error>> {
   const start = startDate || getToday();
   const end = endDate || start;
   return runSync<GarminSleep[]>("sleep", [start, end]);
@@ -69,7 +73,7 @@ export async function getSleep(startDate?: string, endDate?: string): Promise<Ga
 /**
  * 取得最近活動
  */
-export async function getActivities(limit = 10): Promise<GarminActivity[]> {
+export async function getActivities(limit = 10): Promise<Result<GarminActivity[], Error>> {
   return runSync<GarminActivity[]>("activities", [limit.toString()]);
 }
 
@@ -79,7 +83,7 @@ export async function getActivities(limit = 10): Promise<GarminActivity[]> {
 export async function getHeartRates(
   startDate?: string,
   endDate?: string,
-): Promise<GarminHeartRateSummary[]> {
+): Promise<Result<GarminHeartRateSummary[], Error>> {
   const start = startDate || getToday();
   const end = endDate || start;
   return runSync<GarminHeartRateSummary[]>("heart", [start, end]);
@@ -91,11 +95,16 @@ export async function getHeartRates(
 export async function getAll(
   startDate?: string,
   endDate?: string,
-): Promise<{
-  stats: GarminStats[];
-  sleep: GarminSleep[];
-  activities: GarminActivity[];
-}> {
+): Promise<
+  Result<
+    {
+      stats: GarminStats[];
+      sleep: GarminSleep[];
+      activities: GarminActivity[];
+    },
+    Error
+  >
+> {
   const start = startDate || getToday();
   const end = endDate || start;
   return runSync("all", [start, end]);
@@ -107,10 +116,15 @@ export async function getAll(
 export async function getHealthSummary(
   startDate?: string,
   endDate?: string,
-): Promise<GarminHealthSummary[]> {
-  const { stats, sleep } = await getAll(startDate, endDate);
+): Promise<Result<GarminHealthSummary[], Error>> {
+  const allResult = await getAll(startDate, endDate);
+  if (allResult.err) {
+    return allResult;
+  }
 
-  return stats.map((stat, i) => {
+  const { stats, sleep } = allResult.val;
+
+  const summaries = stats.map((stat, i) => {
     const sleepData = sleep[i] || {};
     const sleepHours = (sleepData.sleepTimeSeconds || 0) / 3600;
     const deepHours = (sleepData.deepSleepSeconds || 0) / 3600;
@@ -153,6 +167,8 @@ export async function getHealthSummary(
       },
     };
   });
+
+  return Ok(summaries);
 }
 
 /**
