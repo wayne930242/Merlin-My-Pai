@@ -14,9 +14,15 @@ export function registerGarminTools(server: McpServer): void {
       },
     },
     async ({ startDate, endDate }) => {
-      const stats = await garmin.getStats(startDate, endDate);
+      const result = await garmin.getStats(startDate, endDate);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Garmin 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(stats, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -32,9 +38,15 @@ export function registerGarminTools(server: McpServer): void {
       },
     },
     async ({ startDate, endDate }) => {
-      const sleep = await garmin.getSleep(startDate, endDate);
+      const result = await garmin.getSleep(startDate, endDate);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Garmin 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(sleep, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -49,9 +61,15 @@ export function registerGarminTools(server: McpServer): void {
       },
     },
     async ({ limit }) => {
-      const activities = await garmin.getActivities(limit || 10);
+      const result = await garmin.getActivities(limit || 10);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Garmin 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(activities, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -67,9 +85,15 @@ export function registerGarminTools(server: McpServer): void {
       },
     },
     async ({ startDate, endDate }) => {
-      const hr = await garmin.getHeartRates(startDate, endDate);
+      const result = await garmin.getHeartRates(startDate, endDate);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Garmin 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(hr, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -85,14 +109,20 @@ export function registerGarminTools(server: McpServer): void {
       },
     },
     async ({ startDate, endDate }) => {
-      const summaries = await garmin.getHealthSummary(startDate, endDate);
-      const formatted = garmin.formatSummary(summaries);
+      const result = await garmin.getHealthSummary(startDate, endDate);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Garmin 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
+      const formatted = garmin.formatSummary(result.val);
       return {
         content: [
           { type: "text", text: formatted },
           {
             type: "text",
-            text: `\n\n---\nRaw data:\n${JSON.stringify(summaries, null, 2)}`,
+            text: `\n\n---\nRaw data:\n${JSON.stringify(result.val, null, 2)}`,
           },
         ],
       };

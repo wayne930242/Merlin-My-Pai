@@ -13,9 +13,15 @@ export function registerGoogleTools(server: McpServer): void {
       inputSchema: {},
     },
     async () => {
-      const calendars = await google.calendar.listCalendars();
+      const result = await google.calendar.listCalendars();
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Calendar 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(calendars, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -34,14 +40,20 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ calendarId, timeMin, timeMax, maxResults, q }) => {
-      const events = await google.calendar.listEvents(calendarId || "primary", {
+      const result = await google.calendar.listEvents(calendarId || "primary", {
         timeMin,
         timeMax,
         maxResults,
         q,
       });
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Calendar 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(events, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -61,7 +73,7 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ summary, description, startDateTime, endDateTime, location, calendarId }) => {
-      const event = await google.calendar.createEvent(
+      const result = await google.calendar.createEvent(
         {
           summary,
           description,
@@ -71,8 +83,14 @@ export function registerGoogleTools(server: McpServer): void {
         },
         calendarId || "primary",
       );
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Calendar 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(event, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -103,9 +121,19 @@ export function registerGoogleTools(server: McpServer): void {
       if (endDateTime) updateData.end = { dateTime: endDateTime };
       if (location) updateData.location = location;
 
-      const event = await google.calendar.updateEvent(eventId, updateData, calendarId || "primary");
+      const result = await google.calendar.updateEvent(
+        eventId,
+        updateData,
+        calendarId || "primary",
+      );
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Calendar 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(event, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -121,7 +149,13 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ eventId, calendarId }) => {
-      await google.calendar.deleteEvent(eventId, calendarId || "primary");
+      const result = await google.calendar.deleteEvent(eventId, calendarId || "primary");
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Calendar 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
         content: [{ type: "text", text: "行程已刪除" }],
       };
@@ -141,9 +175,15 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ folderId, pageSize }) => {
-      const files = await google.drive.listFiles({ folderId, pageSize });
+      const result = await google.drive.listFiles({ folderId, pageSize });
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Drive 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(files, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -158,9 +198,15 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ query }) => {
-      const files = await google.drive.searchFiles(query);
+      const result = await google.drive.searchFiles(query);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Drive 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(files, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -177,12 +223,24 @@ export function registerGoogleTools(server: McpServer): void {
     },
     async ({ fileId, getContent }) => {
       if (getContent) {
-        const content = await google.drive.getFileContent(fileId);
-        return { content: [{ type: "text", text: content }] };
+        const result = await google.drive.getFileContent(fileId);
+        if (result.err) {
+          return {
+            content: [{ type: "text", text: `Google Drive 錯誤: ${result.val.message}` }],
+            isError: true,
+          };
+        }
+        return { content: [{ type: "text", text: result.val }] };
       } else {
-        const file = await google.drive.getFile(fileId);
+        const result = await google.drive.getFile(fileId);
+        if (result.err) {
+          return {
+            content: [{ type: "text", text: `Google Drive 錯誤: ${result.val.message}` }],
+            isError: true,
+          };
+        }
         return {
-          content: [{ type: "text", text: JSON.stringify(file, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
         };
       }
     },
@@ -201,9 +259,15 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ q, maxResults }) => {
-      const messages = await google.gmail.listMessages({ q, maxResults });
+      const result = await google.gmail.listMessages({ q, maxResults });
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Gmail 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(messages, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -218,9 +282,15 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ messageId }) => {
-      const message = await google.gmail.getMessageContent(messageId);
+      const result = await google.gmail.getMessageContent(messageId);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Gmail 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(message, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -243,8 +313,14 @@ export function registerGoogleTools(server: McpServer): void {
         cc,
         bcc,
       });
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Gmail 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -262,8 +338,14 @@ export function registerGoogleTools(server: McpServer): void {
     },
     async ({ pageSize }) => {
       const result = await google.contacts.listContacts({ pageSize });
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Contacts 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -278,9 +360,15 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ query }) => {
-      const contacts = await google.contacts.searchContacts(query);
+      const result = await google.contacts.searchContacts(query);
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Contacts 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(contacts, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -295,9 +383,15 @@ export function registerGoogleTools(server: McpServer): void {
       inputSchema: {},
     },
     async () => {
-      const taskLists = await google.tasks.listTaskLists();
+      const result = await google.tasks.listTaskLists();
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Tasks 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(taskLists, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -314,12 +408,18 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ taskListId, showCompleted, maxResults }) => {
-      const tasks = await google.tasks.listTasks(taskListId || "@default", {
+      const result = await google.tasks.listTasks(taskListId || "@default", {
         showCompleted,
         maxResults,
       });
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Tasks 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -337,9 +437,18 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ title, notes, due, taskListId }) => {
-      const task = await google.tasks.createTask({ title, notes, due }, taskListId || "@default");
+      const result = await google.tasks.createTask(
+        { title, notes, due },
+        taskListId || "@default",
+      );
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Tasks 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(task, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -355,9 +464,15 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ taskId, taskListId }) => {
-      const task = await google.tasks.completeTask(taskId, taskListId || "@default");
+      const result = await google.tasks.completeTask(taskId, taskListId || "@default");
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Tasks 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
-        content: [{ type: "text", text: JSON.stringify(task, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(result.val, null, 2) }],
       };
     },
   );
@@ -373,7 +488,13 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ taskId, taskListId }) => {
-      await google.tasks.deleteTask(taskId, taskListId || "@default");
+      const result = await google.tasks.deleteTask(taskId, taskListId || "@default");
+      if (result.err) {
+        return {
+          content: [{ type: "text", text: `Google Tasks 錯誤: ${result.val.message}` }],
+          isError: true,
+        };
+      }
       return {
         content: [{ type: "text", text: "工作已刪除" }],
       };

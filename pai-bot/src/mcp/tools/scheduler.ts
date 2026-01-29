@@ -31,30 +31,40 @@ export function registerSchedulerTools(server: McpServer): void {
       },
     },
     async ({ name, cronExpression, runAt, taskType, taskData }) => {
-      if (!cronExpression && !runAt) {
+      try {
+        if (!cronExpression && !runAt) {
+          return {
+            content: [{ type: "text", text: "錯誤：必須提供 cronExpression 或 runAt" }],
+            isError: true,
+          };
+        }
+
+        const result = scheduler.createSchedule({
+          name,
+          cronExpression,
+          runAt,
+          taskType,
+          taskData,
+          userId: DEFAULT_USER_ID,
+        });
+
+        if (!result) {
+          return {
+            content: [{ type: "text", text: "錯誤：創建排程失敗，請檢查 cron 表達式是否正確" }],
+            isError: true,
+          };
+        }
+
         return {
-          content: [{ type: "text", text: "錯誤：必須提供 cronExpression 或 runAt" }],
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Scheduler 錯誤: ${message}` }],
+          isError: true,
         };
       }
-
-      const result = scheduler.createSchedule({
-        name,
-        cronExpression,
-        runAt,
-        taskType,
-        taskData,
-        userId: DEFAULT_USER_ID,
-      });
-
-      if (!result) {
-        return {
-          content: [{ type: "text", text: "錯誤：創建排程失敗，請檢查 cron 表達式是否正確" }],
-        };
-      }
-
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-      };
     },
   );
 
@@ -66,10 +76,18 @@ export function registerSchedulerTools(server: McpServer): void {
       inputSchema: {},
     },
     async () => {
-      const schedules = scheduler.listSchedules(DEFAULT_USER_ID);
-      return {
-        content: [{ type: "text", text: JSON.stringify(schedules, null, 2) }],
-      };
+      try {
+        const schedules = scheduler.listSchedules(DEFAULT_USER_ID);
+        return {
+          content: [{ type: "text", text: JSON.stringify(schedules, null, 2) }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Scheduler 錯誤: ${message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -83,10 +101,24 @@ export function registerSchedulerTools(server: McpServer): void {
       },
     },
     async ({ id }) => {
-      const success = scheduler.deleteSchedule(id);
-      return {
-        content: [{ type: "text", text: success ? "排程已刪除" : "找不到該排程" }],
-      };
+      try {
+        const success = scheduler.deleteSchedule(id);
+        if (!success) {
+          return {
+            content: [{ type: "text", text: "找不到該排程" }],
+            isError: true,
+          };
+        }
+        return {
+          content: [{ type: "text", text: "排程已刪除" }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Scheduler 錯誤: ${message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -101,15 +133,29 @@ export function registerSchedulerTools(server: McpServer): void {
       },
     },
     async ({ id, enabled }) => {
-      const success = scheduler.setScheduleEnabled(id, enabled);
-      return {
-        content: [
-          {
-            type: "text",
-            text: success ? `排程已${enabled ? "啟用" : "停用"}` : "找不到該排程",
-          },
-        ],
-      };
+      try {
+        const success = scheduler.setScheduleEnabled(id, enabled);
+        if (!success) {
+          return {
+            content: [{ type: "text", text: "找不到該排程" }],
+            isError: true,
+          };
+        }
+        return {
+          content: [
+            {
+              type: "text",
+              text: `排程已${enabled ? "啟用" : "停用"}`,
+            },
+          ],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Scheduler 錯誤: ${message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -137,25 +183,34 @@ export function registerSchedulerTools(server: McpServer): void {
       },
     },
     async ({ id, name, cronExpression, runAt, taskType, taskData, enabled }) => {
-      const result = scheduler.updateSchedule({
-        id,
-        name,
-        cronExpression,
-        runAt,
-        taskType,
-        taskData,
-        enabled,
-      });
+      try {
+        const result = scheduler.updateSchedule({
+          id,
+          name,
+          cronExpression,
+          runAt,
+          taskType,
+          taskData,
+          enabled,
+        });
 
-      if (!result) {
+        if (!result) {
+          return {
+            content: [{ type: "text", text: "錯誤：找不到該排程或 cron 表達式無效" }],
+            isError: true,
+          };
+        }
+
         return {
-          content: [{ type: "text", text: "錯誤：找不到該排程或 cron 表達式無效" }],
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Scheduler 錯誤: ${message}` }],
+          isError: true,
         };
       }
-
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-      };
     },
   );
 
@@ -170,10 +225,18 @@ export function registerSchedulerTools(server: McpServer): void {
       },
     },
     async ({ id, limit }) => {
-      const logs = scheduler.getScheduleLogs(id, limit || 10);
-      return {
-        content: [{ type: "text", text: JSON.stringify(logs, null, 2) }],
-      };
+      try {
+        const logs = scheduler.getScheduleLogs(id, limit || 10);
+        return {
+          content: [{ type: "text", text: JSON.stringify(logs, null, 2) }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Scheduler 錯誤: ${message}` }],
+          isError: true,
+        };
+      }
     },
   );
 }

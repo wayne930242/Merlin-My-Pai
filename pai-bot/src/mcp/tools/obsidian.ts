@@ -38,7 +38,10 @@ export function registerObsidianTools(server: McpServer): void {
         return { content: [{ type: "text", text: output }] };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: "text", text: `Agent 查詢失敗: ${errorMsg}` }] };
+        return {
+          content: [{ type: "text", text: `Agent 查詢失敗: ${errorMsg}` }],
+          isError: true,
+        };
       }
     },
   );
@@ -68,7 +71,10 @@ export function registerObsidianTools(server: McpServer): void {
         return { content: [{ type: "text", text: output }] };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: "text", text: `搜尋失敗: ${errorMsg}` }] };
+        return {
+          content: [{ type: "text", text: `搜尋失敗: ${errorMsg}` }],
+          isError: true,
+        };
       }
     },
   );
@@ -86,7 +92,10 @@ export function registerObsidianTools(server: McpServer): void {
         return { content: [{ type: "text", text: result.stdout.toString() }] };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: "text", text: `統計失敗: ${errorMsg}` }] };
+        return {
+          content: [{ type: "text", text: `統計失敗: ${errorMsg}` }],
+          isError: true,
+        };
       }
     },
   );
@@ -104,7 +113,10 @@ export function registerObsidianTools(server: McpServer): void {
         return { content: [{ type: "text", text: result.stdout.toString() }] };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: "text", text: `同步失敗: ${errorMsg}` }] };
+        return {
+          content: [{ type: "text", text: `同步失敗: ${errorMsg}` }],
+          isError: true,
+        };
       }
     },
   );

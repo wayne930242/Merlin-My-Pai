@@ -10,38 +10,47 @@ export function registerSystemTools(server: McpServer): void {
       inputSchema: {},
     },
     async () => {
-      const siteDir = "/home/pai/merlin/workspace/site";
+      try {
+        const siteDir = "/home/pai/merlin/workspace/site";
 
-      // 修復檔案權限 (644)
-      const fixFiles = Bun.spawn(
-        ["find", siteDir, "-type", "f", "-exec", "chmod", "644", "{}", ";"],
-        { stdout: "pipe", stderr: "pipe" },
-      );
-      await fixFiles.exited;
+        // 修復檔案權限 (644)
+        const fixFiles = Bun.spawn(
+          ["find", siteDir, "-type", "f", "-exec", "chmod", "644", "{}", ";"],
+          { stdout: "pipe", stderr: "pipe" },
+        );
+        await fixFiles.exited;
 
-      // 修復目錄權限 (755)
-      const fixDirs = Bun.spawn(
-        ["find", siteDir, "-type", "d", "-exec", "chmod", "755", "{}", ";"],
-        { stdout: "pipe", stderr: "pipe" },
-      );
-      await fixDirs.exited;
+        // 修復目錄權限 (755)
+        const fixDirs = Bun.spawn(
+          ["find", siteDir, "-type", "d", "-exec", "chmod", "755", "{}", ";"],
+          { stdout: "pipe", stderr: "pipe" },
+        );
+        await fixDirs.exited;
 
-      // 重載 Caddy
-      const proc = Bun.spawn(["sudo", "systemctl", "reload", "caddy"], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      const exitCode = await proc.exited;
-      const stderr = await new Response(proc.stderr).text();
+        // 重載 Caddy
+        const proc = Bun.spawn(["sudo", "systemctl", "reload", "caddy"], {
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+        const exitCode = await proc.exited;
+        const stderr = await new Response(proc.stderr).text();
 
-      if (exitCode !== 0) {
+        if (exitCode !== 0) {
+          return {
+            content: [{ type: "text", text: `重載失敗: ${stderr}` }],
+            isError: true,
+          };
+        }
         return {
-          content: [{ type: "text", text: `重載失敗: ${stderr}` }],
+          content: [{ type: "text", text: "Caddy 已重載（權限已修復）" }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `System 錯誤: ${message}` }],
+          isError: true,
         };
       }
-      return {
-        content: [{ type: "text", text: "Caddy 已重載（權限已修復）" }],
-      };
     },
   );
 
@@ -55,15 +64,23 @@ export function registerSystemTools(server: McpServer): void {
       },
     },
     async ({ service }) => {
-      const proc = Bun.spawn(["systemctl", "status", service, "--no-pager"], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      await proc.exited;
-      const stdout = await new Response(proc.stdout).text();
-      return {
-        content: [{ type: "text", text: stdout }],
-      };
+      try {
+        const proc = Bun.spawn(["systemctl", "status", service, "--no-pager"], {
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+        await proc.exited;
+        const stdout = await new Response(proc.stdout).text();
+        return {
+          content: [{ type: "text", text: stdout }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `System 錯誤: ${message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -77,21 +94,30 @@ export function registerSystemTools(server: McpServer): void {
       },
     },
     async ({ service }) => {
-      const proc = Bun.spawn(["sudo", "systemctl", "restart", service], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      const exitCode = await proc.exited;
-      const stderr = await new Response(proc.stderr).text();
+      try {
+        const proc = Bun.spawn(["sudo", "systemctl", "restart", service], {
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+        const exitCode = await proc.exited;
+        const stderr = await new Response(proc.stderr).text();
 
-      if (exitCode !== 0) {
+        if (exitCode !== 0) {
+          return {
+            content: [{ type: "text", text: `重啟失敗: ${stderr}` }],
+            isError: true,
+          };
+        }
         return {
-          content: [{ type: "text", text: `重啟失敗: ${stderr}` }],
+          content: [{ type: "text", text: `${service} 已重啟` }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `System 錯誤: ${message}` }],
+          isError: true,
         };
       }
-      return {
-        content: [{ type: "text", text: `${service} 已重啟` }],
-      };
     },
   );
 }

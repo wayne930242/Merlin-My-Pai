@@ -16,19 +16,27 @@ export function registerMemoryTools(server: McpServer): void {
       },
     },
     async ({ limit = 20 }) => {
-      const memories = memoryManager.getRecent(DEFAULT_USER_ID, limit);
-      const count = memoryManager.count(DEFAULT_USER_ID);
+      try {
+        const memories = memoryManager.getRecent(DEFAULT_USER_ID, limit);
+        const count = memoryManager.count(DEFAULT_USER_ID);
 
-      if (memories.length === 0) {
-        return { content: [{ type: "text", text: "目前沒有長期記憶" }] };
+        if (memories.length === 0) {
+          return { content: [{ type: "text", text: "目前沒有長期記憶" }] };
+        }
+
+        const lines = [`長期記憶（共 ${count} 條，顯示 ${memories.length} 條）：\n`];
+        for (const m of memories) {
+          lines.push(`- [ID:${m.id}] [${m.category}] ${m.content} (重要性: ${m.importance})`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Memory 錯誤: ${message}` }],
+          isError: true,
+        };
       }
-
-      const lines = [`長期記憶（共 ${count} 條，顯示 ${memories.length} 條）：\n`];
-      for (const m of memories) {
-        lines.push(`- [ID:${m.id}] [${m.category}] ${m.content} (重要性: ${m.importance})`);
-      }
-
-      return { content: [{ type: "text", text: lines.join("\n") }] };
     },
   );
 
@@ -43,18 +51,26 @@ export function registerMemoryTools(server: McpServer): void {
       },
     },
     async ({ query, limit = 5 }) => {
-      const memories = await memoryManager.search(DEFAULT_USER_ID, query, limit);
+      try {
+        const memories = await memoryManager.search(DEFAULT_USER_ID, query, limit);
 
-      if (memories.length === 0) {
-        return { content: [{ type: "text", text: `沒有找到與「${query}」相關的記憶` }] };
+        if (memories.length === 0) {
+          return { content: [{ type: "text", text: `沒有找到與「${query}」相關的記憶` }] };
+        }
+
+        const lines = [`與「${query}」相關的記憶：\n`];
+        for (const m of memories) {
+          lines.push(`- [ID:${m.id}] [${m.category}] ${m.content}`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Memory 錯誤: ${message}` }],
+          isError: true,
+        };
       }
-
-      const lines = [`與「${query}」相關的記憶：\n`];
-      for (const m of memories) {
-        lines.push(`- [ID:${m.id}] [${m.category}] ${m.content}`);
-      }
-
-      return { content: [{ type: "text", text: lines.join("\n") }] };
     },
   );
 
@@ -82,18 +98,26 @@ export function registerMemoryTools(server: McpServer): void {
       },
     },
     async ({ content, category = "general", importance = 3 }) => {
-      const result = await memoryManager.save({
-        userId: DEFAULT_USER_ID,
-        content,
-        category,
-        importance,
-      });
+      try {
+        const result = await memoryManager.save({
+          userId: DEFAULT_USER_ID,
+          content,
+          category,
+          importance,
+        });
 
-      if (result === null) {
-        return { content: [{ type: "text", text: "已有相似記憶，跳過儲存" }] };
+        if (result === null) {
+          return { content: [{ type: "text", text: "已有相似記憶，跳過儲存" }] };
+        }
+
+        return { content: [{ type: "text", text: `記憶已儲存 (ID: ${result})` }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Memory 錯誤: ${message}` }],
+          isError: true,
+        };
       }
-
-      return { content: [{ type: "text", text: `記憶已儲存 (ID: ${result})` }] };
     },
   );
 
@@ -107,18 +131,32 @@ export function registerMemoryTools(server: McpServer): void {
       },
     },
     async ({ id }) => {
-      const memory = memoryManager.getById(id);
-      if (!memory) {
-        return { content: [{ type: "text", text: `找不到 ID 為 ${id} 的記憶` }] };
-      }
+      try {
+        const memory = memoryManager.getById(id);
+        if (!memory) {
+          return {
+            content: [{ type: "text", text: `找不到 ID 為 ${id} 的記憶` }],
+            isError: true,
+          };
+        }
 
-      const deleted = memoryManager.delete(id);
-      if (deleted) {
+        const deleted = memoryManager.delete(id);
+        if (deleted) {
+          return {
+            content: [{ type: "text", text: `已刪除記憶 (ID: ${id}): ${memory.content}` }],
+          };
+        }
         return {
-          content: [{ type: "text", text: `已刪除記憶 (ID: ${id}): ${memory.content}` }],
+          content: [{ type: "text", text: `刪除失敗` }],
+          isError: true,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Memory 錯誤: ${message}` }],
+          isError: true,
         };
       }
-      return { content: [{ type: "text", text: `刪除失敗` }] };
     },
   );
 
@@ -147,24 +185,38 @@ export function registerMemoryTools(server: McpServer): void {
       },
     },
     async ({ id, content, category, importance }) => {
-      const memory = memoryManager.getById(id);
-      if (!memory) {
-        return { content: [{ type: "text", text: `找不到 ID 為 ${id} 的記憶` }] };
-      }
+      try {
+        const memory = memoryManager.getById(id);
+        if (!memory) {
+          return {
+            content: [{ type: "text", text: `找不到 ID 為 ${id} 的記憶` }],
+            isError: true,
+          };
+        }
 
-      const updated = await memoryManager.update(id, { content, category, importance });
-      if (updated) {
-        const newMemory = memoryManager.getById(id);
+        const updated = await memoryManager.update(id, { content, category, importance });
+        if (updated) {
+          const newMemory = memoryManager.getById(id);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `已更新記憶 (ID: ${id}):\n舊: ${memory.content}\n新: ${newMemory?.content}`,
+              },
+            ],
+          };
+        }
         return {
-          content: [
-            {
-              type: "text",
-              text: `已更新記憶 (ID: ${id}):\n舊: ${memory.content}\n新: ${newMemory?.content}`,
-            },
-          ],
+          content: [{ type: "text", text: `更新失敗` }],
+          isError: true,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Memory 錯誤: ${message}` }],
+          isError: true,
         };
       }
-      return { content: [{ type: "text", text: `更新失敗` }] };
     },
   );
 
@@ -176,29 +228,37 @@ export function registerMemoryTools(server: McpServer): void {
       inputSchema: {},
     },
     async () => {
-      const userCount = memoryManager.count(DEFAULT_USER_ID);
-      const archived = memoryManager.countArchived(DEFAULT_USER_ID);
-      const recentMemories = memoryManager.getRecent(DEFAULT_USER_ID, 1);
-      const oldest = recentMemories.length > 0 ? recentMemories[0].createdAt : null;
+      try {
+        const userCount = memoryManager.count(DEFAULT_USER_ID);
+        const archived = memoryManager.countArchived(DEFAULT_USER_ID);
+        const recentMemories = memoryManager.getRecent(DEFAULT_USER_ID, 1);
+        const oldest = recentMemories.length > 0 ? recentMemories[0].createdAt : null;
 
-      // Get category breakdown from recent memories
-      const allMemories = memoryManager.getRecent(DEFAULT_USER_ID, 1000);
-      const byCategory: Record<string, number> = {};
-      for (const m of allMemories) {
-        byCategory[m.category] = (byCategory[m.category] || 0) + 1;
+        // Get category breakdown from recent memories
+        const allMemories = memoryManager.getRecent(DEFAULT_USER_ID, 1000);
+        const byCategory: Record<string, number> = {};
+        for (const m of allMemories) {
+          byCategory[m.category] = (byCategory[m.category] || 0) + 1;
+        }
+
+        const info = [
+          `記憶統計：`,
+          `- 總數：${userCount}`,
+          `- 已封存：${archived}`,
+          `- 最新：${oldest || "無"}`,
+          ``,
+          `分類統計：`,
+          ...Object.entries(byCategory).map(([cat, count]) => `- ${cat}: ${count}`),
+        ];
+
+        return { content: [{ type: "text", text: info.join("\n") }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Memory 錯誤: ${message}` }],
+          isError: true,
+        };
       }
-
-      const info = [
-        `記憶統計：`,
-        `- 總數：${userCount}`,
-        `- 已封存：${archived}`,
-        `- 最新：${oldest || "無"}`,
-        ``,
-        `分類統計：`,
-        ...Object.entries(byCategory).map(([cat, count]) => `- ${cat}: ${count}`),
-      ];
-
-      return { content: [{ type: "text", text: info.join("\n") }] };
     },
   );
 }

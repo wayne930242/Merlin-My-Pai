@@ -124,30 +124,38 @@ export function registerHistoryTools(server: McpServer): void {
       },
     },
     async ({ type = "all", limit = 10 }) => {
-      const types: HistoryType[] =
-        type === "all" ? ["sessions", "learnings", "decisions"] : [type as HistoryType];
+      try {
+        const types: HistoryType[] =
+          type === "all" ? ["sessions", "learnings", "decisions"] : [type as HistoryType];
 
-      const allEntries: HistoryEntry[] = [];
-      for (const t of types) {
-        const entries = await listHistory(t, limit);
-        allEntries.push(...entries);
+        const allEntries: HistoryEntry[] = [];
+        for (const t of types) {
+          const entries = await listHistory(t, limit);
+          allEntries.push(...entries);
+        }
+
+        // 按日期排序
+        allEntries.sort((a, b) => b.date.localeCompare(a.date));
+        const limited = allEntries.slice(0, limit);
+
+        if (limited.length === 0) {
+          return { content: [{ type: "text", text: "沒有找到歷史記錄" }] };
+        }
+
+        const lines = [`工作歷史（顯示 ${limited.length} 條）：\n`];
+        for (const entry of limited) {
+          const summary = entry.summary ? ` - ${entry.summary}` : "";
+          lines.push(`- [${entry.type}] ${entry.filename}${summary}`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `History 錯誤: ${message}` }],
+          isError: true,
+        };
       }
-
-      // 按日期排序
-      allEntries.sort((a, b) => b.date.localeCompare(a.date));
-      const limited = allEntries.slice(0, limit);
-
-      if (limited.length === 0) {
-        return { content: [{ type: "text", text: "沒有找到歷史記錄" }] };
-      }
-
-      const lines = [`工作歷史（顯示 ${limited.length} 條）：\n`];
-      for (const entry of limited) {
-        const summary = entry.summary ? ` - ${entry.summary}` : "";
-        lines.push(`- [${entry.type}] ${entry.filename}${summary}`);
-      }
-
-      return { content: [{ type: "text", text: lines.join("\n") }] };
     },
   );
 
@@ -166,22 +174,30 @@ export function registerHistoryTools(server: McpServer): void {
       },
     },
     async ({ query, type = "all", limit = 5 }) => {
-      const types: HistoryType[] =
-        type === "all" ? ["sessions", "learnings", "decisions"] : [type as HistoryType];
+      try {
+        const types: HistoryType[] =
+          type === "all" ? ["sessions", "learnings", "decisions"] : [type as HistoryType];
 
-      const results = await searchHistory(query, types, limit);
+        const results = await searchHistory(query, types, limit);
 
-      if (results.length === 0) {
-        return { content: [{ type: "text", text: `沒有找到與「${query}」相關的歷史記錄` }] };
+        if (results.length === 0) {
+          return { content: [{ type: "text", text: `沒有找到與「${query}」相關的歷史記錄` }] };
+        }
+
+        const lines = [`與「${query}」相關的歷史記錄：\n`];
+        for (const entry of results) {
+          const summary = entry.summary ? ` - ${entry.summary}` : "";
+          lines.push(`- [${entry.type}] ${entry.filename}${summary}`);
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `History 錯誤: ${message}` }],
+          isError: true,
+        };
       }
-
-      const lines = [`與「${query}」相關的歷史記錄：\n`];
-      for (const entry of results) {
-        const summary = entry.summary ? ` - ${entry.summary}` : "";
-        lines.push(`- [${entry.type}] ${entry.filename}${summary}`);
-      }
-
-      return { content: [{ type: "text", text: lines.join("\n") }] };
     },
   );
 
@@ -202,7 +218,10 @@ export function registerHistoryTools(server: McpServer): void {
         const content = await readFile(filepath, "utf-8");
         return { content: [{ type: "text", text: content }] };
       } catch {
-        return { content: [{ type: "text", text: `找不到檔案：${type}/${filename}` }] };
+        return {
+          content: [{ type: "text", text: `找不到檔案：${type}/${filename}` }],
+          isError: true,
+        };
       }
     },
   );
