@@ -24,7 +24,7 @@ export interface UserStream {
   username: string;
   pcmPath: string;
   startOffset: number; // 相對於錄音開始的毫秒偏移
-  lastSegmentEndTime: number | null; // 上一段音訊結束的時間戳（用於填充靜音）
+  lastWriteTime: number | null; // 最後一次寫入 PCM 的時間戳（用於填充靜音）
 }
 
 export interface RecordingSession {
@@ -199,7 +199,7 @@ export async function startRecording(
           username: "Unknown",
           pcmPath,
           startOffset,
-          lastSegmentEndTime: null,
+          lastWriteTime: null,
         };
         session.userStreams.set(userId, userStream);
         logger.info(
@@ -212,9 +212,9 @@ export async function startRecording(
       const writeStream = createWriteStream(userStream.pcmPath, { flags: "a" });
 
       // 如果有上一段音訊，填充中間的靜音
-      if (userStream.lastSegmentEndTime !== null) {
+      if (userStream.lastWriteTime !== null) {
         const now = Date.now();
-        const gapMs = now - userStream.lastSegmentEndTime;
+        const gapMs = now - userStream.lastWriteTime;
         if (gapMs > 0) {
           // PCM 格式: 48000Hz, 2 channels, 16-bit (2 bytes)
           // 每秒 bytes = 48000 * 2 * 2 = 192000
@@ -243,12 +243,15 @@ export async function startRecording(
         frameSize: 960,
       });
 
-      opusStream.pipe(decoder).pipe(writeStream);
+      // 手動處理 decoder 輸出，追蹤最後寫入時間
+      opusStream.pipe(decoder);
+      decoder.on("data", (chunk: Buffer) => {
+        writeStream.write(chunk);
+        userStream.lastWriteTime = Date.now();
+      });
 
-      // 當這段音訊結束時，記錄結束時間
-      // 減去靜音偵測時間 (1000ms)，因為 stream 是在靜音 1 秒後才結束
       opusStream.on("end", () => {
-        userStream.lastSegmentEndTime = Date.now() - 1000;
+        writeStream.end();
         logger.debug({ userId, guildId }, "User audio stream segment ended");
       });
 
