@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.70.3 (2026-01-29)
+
+### Bug Fixes
+
+- Adjust silence gap timing by subtracting detection duration
+  ([`defe3d7`](https://github.com/wayne930242/Merlin-My-Pai/commit/defe3d77006825b0ac485c3b3428cc90ae92870c))
+
+
 ## v1.70.2 (2026-01-29)
 
 ### Bug Fixes
