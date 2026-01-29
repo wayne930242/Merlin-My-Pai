@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.70.2 (2026-01-29)
+
+### Bug Fixes
+
+- Fill silence gaps between speech segments for correct timing
+  ([`c07e91c`](https://github.com/wayne930242/Merlin-My-Pai/commit/c07e91ceaa98591fc21d35e8e1cfbd913ed73e90))
+
+
 ## v1.70.1 (2026-01-29)
 
 ### Bug Fixes
