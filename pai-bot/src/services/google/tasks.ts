@@ -1,6 +1,7 @@
 // Google Tasks 服務
 
 import { google, type tasks_v1 } from "googleapis";
+import { Err, Ok, type Result } from "ts-results";
 import { getAuthClient } from "./auth";
 
 function getTasks() {
@@ -10,10 +11,14 @@ function getTasks() {
 /**
  * 列出所有工作清單
  */
-export async function listTaskLists() {
-  const tasks = getTasks();
-  const res = await tasks.tasklists.list();
-  return res.data.items || [];
+export async function listTaskLists(): Promise<Result<tasks_v1.Schema$TaskList[], Error>> {
+  try {
+    const tasks = getTasks();
+    const res = await tasks.tasklists.list();
+    return Ok(res.data.items || []);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
@@ -26,27 +31,38 @@ export async function listTasks(
     showHidden?: boolean;
     maxResults?: number;
   } = {},
-) {
-  const tasks = getTasks();
-  const res = await tasks.tasks.list({
-    tasklist: taskListId,
-    showCompleted: options.showCompleted ?? false,
-    showHidden: options.showHidden ?? false,
-    maxResults: options.maxResults || 100,
-  });
-  return res.data.items || [];
+): Promise<Result<tasks_v1.Schema$Task[], Error>> {
+  try {
+    const tasks = getTasks();
+    const res = await tasks.tasks.list({
+      tasklist: taskListId,
+      showCompleted: options.showCompleted ?? false,
+      showHidden: options.showHidden ?? false,
+      maxResults: options.maxResults || 100,
+    });
+    return Ok(res.data.items || []);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
  * 取得單一工作
  */
-export async function getTask(taskId: string, taskListId = "@default") {
-  const tasks = getTasks();
-  const res = await tasks.tasks.get({
-    tasklist: taskListId,
-    task: taskId,
-  });
-  return res.data;
+export async function getTask(
+  taskId: string,
+  taskListId = "@default",
+): Promise<Result<tasks_v1.Schema$Task, Error>> {
+  try {
+    const tasks = getTasks();
+    const res = await tasks.tasks.get({
+      tasklist: taskListId,
+      task: taskId,
+    });
+    return Ok(res.data);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
@@ -59,13 +75,17 @@ export async function createTask(
     due?: string; // RFC 3339 timestamp
   },
   taskListId = "@default",
-) {
-  const tasks = getTasks();
-  const res = await tasks.tasks.insert({
-    tasklist: taskListId,
-    requestBody: task,
-  });
-  return res.data;
+): Promise<Result<tasks_v1.Schema$Task, Error>> {
+  try {
+    const tasks = getTasks();
+    const res = await tasks.tasks.insert({
+      tasklist: taskListId,
+      requestBody: task,
+    });
+    return Ok(res.data);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
@@ -75,53 +95,79 @@ export async function updateTask(
   taskId: string,
   task: Partial<tasks_v1.Schema$Task>,
   taskListId = "@default",
-) {
-  const tasks = getTasks();
-  const res = await tasks.tasks.patch({
-    tasklist: taskListId,
-    task: taskId,
-    requestBody: task,
-  });
-  return res.data;
+): Promise<Result<tasks_v1.Schema$Task, Error>> {
+  try {
+    const tasks = getTasks();
+    const res = await tasks.tasks.patch({
+      tasklist: taskListId,
+      task: taskId,
+      requestBody: task,
+    });
+    return Ok(res.data);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
  * 完成工作
  */
-export async function completeTask(taskId: string, taskListId = "@default") {
+export async function completeTask(
+  taskId: string,
+  taskListId = "@default",
+): Promise<Result<tasks_v1.Schema$Task, Error>> {
   return updateTask(taskId, { status: "completed" }, taskListId);
 }
 
 /**
  * 刪除工作
  */
-export async function deleteTask(taskId: string, taskListId = "@default") {
-  const tasks = getTasks();
-  await tasks.tasks.delete({
-    tasklist: taskListId,
-    task: taskId,
-  });
+export async function deleteTask(
+  taskId: string,
+  taskListId = "@default",
+): Promise<Result<void, Error>> {
+  try {
+    const tasks = getTasks();
+    await tasks.tasks.delete({
+      tasklist: taskListId,
+      task: taskId,
+    });
+    return Ok(undefined);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
  * 建立新工作清單
  */
-export async function createTaskList(title: string) {
-  const tasks = getTasks();
-  const res = await tasks.tasklists.insert({
-    requestBody: { title },
-  });
-  return res.data;
+export async function createTaskList(
+  title: string,
+): Promise<Result<tasks_v1.Schema$TaskList, Error>> {
+  try {
+    const tasks = getTasks();
+    const res = await tasks.tasklists.insert({
+      requestBody: { title },
+    });
+    return Ok(res.data);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
  * 刪除工作清單
  */
-export async function deleteTaskList(taskListId: string) {
-  const tasks = getTasks();
-  await tasks.tasklists.delete({
-    tasklist: taskListId,
-  });
+export async function deleteTaskList(taskListId: string): Promise<Result<void, Error>> {
+  try {
+    const tasks = getTasks();
+    await tasks.tasklists.delete({
+      tasklist: taskListId,
+    });
+    return Ok(undefined);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 export type { tasks_v1 };

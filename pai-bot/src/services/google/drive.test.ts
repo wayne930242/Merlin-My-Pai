@@ -25,7 +25,9 @@ test("uploadBinaryFile uploads buffer to Google Drive", async () => {
   const buffer = Buffer.from("test audio data");
   const result = await uploadBinaryFile("recording.mp3", buffer, "audio/mpeg");
 
-  expect(result).toBeDefined();
-  expect(result.id).toBe("test-id");
-  expect(result.name).toBe("test.mp3");
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.val.id).toBe("test-id");
+    expect(result.val.name).toBe("test.mp3");
+  }
 });
