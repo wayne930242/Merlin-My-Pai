@@ -427,7 +427,7 @@ export async function uploadRecording(
     const timestamp = new Date().toISOString().slice(0, 10);
     const fileName = `${timestamp}-${channelName.replace(/[^a-zA-Z0-9-_\u4e00-\u9fff]/g, "_")}.mp3`;
 
-    const file = await uploadBinaryFile(
+    const result = await uploadBinaryFile(
       fileName,
       buffer,
       "audio/mpeg",
@@ -437,9 +437,14 @@ export async function uploadRecording(
     // 清理本地檔案
     await unlink(mp3Path).catch(() => {});
 
-    logger.info({ fileName, fileId: file.id }, "Recording uploaded to Google Drive");
+    if (result.err) {
+      logger.error({ error: result.val.message, mp3Path }, "Failed to upload recording");
+      return { ok: false, error: result.val.message };
+    }
 
-    return { ok: true, webViewLink: file.webViewLink ?? "" };
+    logger.info({ fileName, fileId: result.val.id }, "Recording uploaded to Google Drive");
+
+    return { ok: true, webViewLink: result.val.webViewLink ?? "" };
   } catch (error) {
     logger.error({ error, mp3Path }, "Failed to upload recording");
     return { ok: false, error: String(error) };
