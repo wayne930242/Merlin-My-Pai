@@ -2,8 +2,14 @@
  * Voice Slash Commands (join, leave, spotify, say, panel, roll)
  */
 
-import { type ChatInputCommandInteraction, type Client, MessageFlags } from "discord.js";
 import { getVoiceConnection } from "@discordjs/voice";
+import { type ChatInputCommandInteraction, type Client, MessageFlags } from "discord.js";
+import {
+  deleteRecordingSession,
+  isRecording,
+  startRecording,
+  stopRecording,
+} from "../../recording";
 import {
   isInVoiceChannel,
   // isSpotifyConnected,
@@ -13,7 +19,6 @@ import {
   // startSpotifyConnect,
   // stopSpotifyConnect,
 } from "../../voice";
-import { isRecording, startRecording } from "../../recording";
 import {
   buildPanelComponents,
   buildPanelContent,
@@ -71,6 +76,12 @@ export async function handleLeave(interaction: ChatInputCommandInteraction): Pro
   if (!isInVoiceChannel(interaction.guildId)) {
     await interaction.reply({ content: "Bot 不在語音頻道中", flags: MessageFlags.Ephemeral });
     return;
+  }
+
+  // 如果正在錄音，先停止並清理（不上傳）
+  if (isRecording(interaction.guildId)) {
+    await stopRecording(interaction.guildId);
+    deleteRecordingSession(interaction.guildId);
   }
 
   leaveChannel(interaction.guildId);

@@ -85,68 +85,38 @@ export async function joinChannel(
       logger.error({ error }, "Audio player error");
     });
 
-    // 監聽連接狀態變化，自動重連（最多 3 次）
+    // 監聽連接狀態變化
+    // 當 bot 被移到另一個頻道時，會自動重連（Signalling → Connecting → Ready）
+    // 當 bot 被踢出或頻道被刪除時，5 秒內不會進入這些狀態，直接清理
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
       const guildId = channel.guild.id;
-      // const guildQueue = guildQueues.get(guildId);
-      // const wasSpotifyConnected = guildQueue?.spotifyConnected ?? false;
 
-      // Record current session to detect if a new join happens during reconnect
+      // Record current session to detect if a new join happens during this handler
       const mySession = reconnectSessions.get(guildId) ?? 0;
 
       logger.warn({ guildId }, "Voice connection disconnected");
 
-      const MAX_RETRIES = 3;
-      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        // Check if a new connection was established (user manually rejoined)
+      try {
+        // 等待 5 秒看是否是換頻道（自動重連）
+        await Promise.race([
+          entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+          entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+        ]);
+
+        // 如果進入 Signalling/Connecting，等待連接就緒
+        await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+        logger.info({ guildId }, "Voice connection reconnected after channel move");
+      } catch {
+        // 超時 = 真正的斷線（被踢出、頻道刪除等），直接清理
         if (reconnectSessions.get(guildId) !== mySession) {
-          logger.info({ guildId }, "New connection detected, cancelling reconnect");
+          logger.info({ guildId }, "New connection detected, skipping cleanup");
           return;
         }
 
-        try {
-          logger.info({ guildId, attempt, maxRetries: MAX_RETRIES }, "Attempting to reconnect");
-
-          // 嘗試等待重新連接（5 秒）
-          await Promise.race([
-            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-          ]);
-
-          // 等待連接完全就緒
-          await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
-          logger.info({ guildId, attempt }, "Voice connection ready after reconnect");
-
-          // Spotify Connect auto-restart disabled
-          // if (wasSpotifyConnected) {
-          //   logger.info({ guildId }, "Auto-restarting Spotify Connect after reconnect");
-          //   const result = await startSpotifyConnect(guildId);
-          //   if (!result.ok) {
-          //     logger.error(
-          //       { guildId, error: result.error },
-          //       "Failed to auto-restart Spotify Connect",
-          //     );
-          //   }
-          // }
-          return; // 成功，退出
-        } catch {
-          logger.warn({ guildId, attempt, maxRetries: MAX_RETRIES }, "Reconnect attempt failed");
-          if (attempt < MAX_RETRIES) {
-            await new Promise((r) => setTimeout(r, 2000)); // 等 2 秒再試
-          }
-        }
+        logger.info({ guildId }, "Voice connection truly disconnected, cleaning up");
+        connection.destroy();
+        guildQueues.delete(guildId);
       }
-
-      // Check again before cleanup
-      if (reconnectSessions.get(guildId) !== mySession) {
-        logger.info({ guildId }, "New connection detected, skipping cleanup");
-        return;
-      }
-
-      // 3 次都失敗，清理資源
-      logger.info({ guildId }, "All reconnect attempts failed, cleaning up");
-      connection.destroy();
-      guildQueues.delete(guildId);
     });
 
     connection.on(VoiceConnectionStatus.Destroyed, () => {
