@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.71.1 (2026-01-31)
+
+### Bug Fixes
+
+- Allow manual voice disconnect when recording
+  ([`fb6249a`](https://github.com/wayne930242/Merlin-My-Pai/commit/fb6249aacd0b23b41465efcc7a104ad82019a139))
+
+### Chores
+
+- Add agent-browser to workspace gitignore whitelist
+  ([`10cdfc2`](https://github.com/wayne930242/Merlin-My-Pai/commit/10cdfc22b083445675146a391f6b06effae77a1d))
+
+
 ## v1.71.0 (2026-01-29)
 
 ### Bug Fixes
