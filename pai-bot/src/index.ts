@@ -151,8 +151,8 @@ async function main() {
     // Start scheduler
     startScheduler(executeScheduledTask);
 
-    // Initialize Intel Feed daily schedule
-    if (config.telegram.allowedUserIds.length > 0) {
+    // Intel Feed daily schedule (controlled by ENABLE_INTEL_FEED env var)
+    if (process.env.ENABLE_INTEL_FEED === "true" && config.telegram.allowedUserIds.length > 0) {
       await initIntelFeedSchedule(config.telegram.allowedUserIds[0]);
     }
 

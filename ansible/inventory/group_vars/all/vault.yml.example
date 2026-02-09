@@ -67,6 +67,10 @@ vault_enable_transcription: true
 #   3. Token 格式應為 sk-ant-oat01-...
 vault_claude_code_oauth_token: "sk-ant-oat01-YOUR_OAUTH_TOKEN"
 
+# === Intel Feed 新聞摘要（可選）===
+# 啟用後會定期抓取 Reddit/RSS 並推送摘要通知
+vault_enable_intel_feed: false
+
 # === Fabric AI（可選）===
 vault_enable_fabric: false
 # Anthropic API Key（用於 Fabric AI）
