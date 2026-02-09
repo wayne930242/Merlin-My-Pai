@@ -202,7 +202,10 @@ export async function prepareTask(
       const memories = await memoryManager.search(MEMORY_USER_ID, text, 5);
       if (memories.length > 0) {
         memoryContext = formatMemoriesForPrompt(memories);
-        logger.debug({ memoryUserId: MEMORY_USER_ID, memoryCount: memories.length }, "Retrieved memories");
+        logger.debug(
+          { memoryUserId: MEMORY_USER_ID, memoryCount: memories.length },
+          "Retrieved memories",
+        );
       }
     } catch (error) {
       logger.warn({ error, memoryUserId: MEMORY_USER_ID }, "Memory search failed");

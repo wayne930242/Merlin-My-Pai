@@ -48,7 +48,9 @@ export async function searchContacts(
       readMask: PERSON_FIELDS,
     });
 
-    return Ok(res.data.results?.map((r) => r.person).filter(Boolean) as people_v1.Schema$Person[] || []);
+    return Ok(
+      (res.data.results?.map((r) => r.person).filter(Boolean) as people_v1.Schema$Person[]) || [],
+    );
   } catch (error) {
     return Err(error instanceof Error ? error : new Error(String(error)));
   }

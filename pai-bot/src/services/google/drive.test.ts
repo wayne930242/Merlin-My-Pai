@@ -1,13 +1,15 @@
-import { test, expect, mock } from "bun:test";
+import { expect, mock, test } from "bun:test";
 
 // Mock googleapis
 mock.module("googleapis", () => ({
   google: {
     drive: () => ({
       files: {
-        create: mock(() => Promise.resolve({
-          data: { id: "test-id", name: "test.mp3", webViewLink: "https://drive.google.com/test" }
-        })),
+        create: mock(() =>
+          Promise.resolve({
+            data: { id: "test-id", name: "test.mp3", webViewLink: "https://drive.google.com/test" },
+          }),
+        ),
       },
     }),
     auth: { OAuth2: class {} },

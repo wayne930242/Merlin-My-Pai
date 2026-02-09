@@ -3,13 +3,15 @@
  */
 
 import type { ButtonInteraction } from "discord.js";
+import { logger } from "../../../../utils/logger";
+import { getDiscordClient } from "../../bot";
 import {
   getRecordingSession,
   pauseRecording,
   resumeRecording,
+  setAutoStopCallback,
   stopRecording,
   uploadRecording,
-  setAutoStopCallback,
 } from "../../recording";
 import {
   buildRecordingComponents,
@@ -17,8 +19,6 @@ import {
   clearRecordingPanel,
   getRecordingPanel,
 } from "../panels/recording";
-import { logger } from "../../../../utils/logger";
-import { getDiscordClient } from "../../bot";
 
 // 設定自動停止 callback
 setAutoStopCallback(async (guildId: string, reason: string) => {
@@ -62,10 +62,7 @@ setAutoStopCallback(async (guildId: string, reason: string) => {
       }
     }
 
-    logger.info(
-      { guildId, reason, uploaded: uploadResult.ok },
-      "Recording auto-stopped"
-    );
+    logger.info({ guildId, reason, uploaded: uploadResult.ok }, "Recording auto-stopped");
   }
 
   clearRecordingPanel(guildId);

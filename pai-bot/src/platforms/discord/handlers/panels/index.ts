@@ -33,9 +33,17 @@ export {
   setGameSystem,
   undoLastDie,
 } from "./dice";
+// Re-export recording panel builders
+export {
+  buildRecordingComponents,
+  buildRecordingContent,
+  clearRecordingPanel,
+  getRecordingPanel,
+  type RecordingPanel,
+  setRecordingPanel,
+} from "./recording";
 // Re-export types
 export type { ControlPanel, PanelMode } from "./types";
-
 // Re-export volume panel builders
 export {
   buildVolumeComponents,
@@ -46,16 +54,6 @@ export {
   setVolumePanel,
   type VolumePanel,
 } from "./volume";
-
-// Re-export recording panel builders
-export {
-  buildRecordingComponents,
-  buildRecordingContent,
-  clearRecordingPanel,
-  getRecordingPanel,
-  type RecordingPanel,
-  setRecordingPanel,
-} from "./recording";
 
 /**
  * Build panel content based on mode

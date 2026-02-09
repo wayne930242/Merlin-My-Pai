@@ -437,10 +437,7 @@ export function registerGoogleTools(server: McpServer): void {
       },
     },
     async ({ title, notes, due, taskListId }) => {
-      const result = await google.tasks.createTask(
-        { title, notes, due },
-        taskListId || "@default",
-      );
+      const result = await google.tasks.createTask({ title, notes, due }, taskListId || "@default");
       if (result.err) {
         return {
           content: [{ type: "text", text: `Google Tasks 錯誤: ${result.val.message}` }],

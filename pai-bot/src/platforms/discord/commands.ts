@@ -37,9 +37,7 @@ const slashCommands = [
     .addStringOption((option) =>
       option.setName("dice").setDescription("骰子表達式 (例: d20, 2d6+3)").setRequired(true),
     ),
-  new SlashCommandBuilder()
-    .setName("record")
-    .setDescription("開始語音錄音"),
+  new SlashCommandBuilder().setName("record").setDescription("開始語音錄音"),
 ].map((cmd) => cmd.toJSON());
 
 /**

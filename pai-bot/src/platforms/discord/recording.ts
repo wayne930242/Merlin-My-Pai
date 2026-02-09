@@ -5,9 +5,9 @@
 
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdir, unlink, readFile } from "node:fs/promises";
+import { mkdir, readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { type VoiceConnection, EndBehaviorType } from "@discordjs/voice";
+import { EndBehaviorType, type VoiceConnection } from "@discordjs/voice";
 import prism from "prism-media";
 import { uploadBinaryFile } from "../../services/google/drive";
 import { logger } from "../../utils/logger";
@@ -51,7 +51,7 @@ let onAutoStop: ((guildId: string, reason: string) => Promise<void>) | null = nu
  * 設定自動停止 callback
  */
 export function setAutoStopCallback(
-  callback: (guildId: string, reason: string) => Promise<void>
+  callback: (guildId: string, reason: string) => Promise<void>,
 ): void {
   onAutoStop = callback;
 }
@@ -104,10 +104,7 @@ function updateLastActivity(session: RecordingSession): void {
 /**
  * 建立錄音 session
  */
-export function createRecordingSession(
-  guildId: string,
-  channelId: string
-): RecordingSession {
+export function createRecordingSession(guildId: string, channelId: string): RecordingSession {
   const session: RecordingSession = {
     guildId,
     channelId,
@@ -164,7 +161,7 @@ async function ensureTempDir(): Promise<void> {
 export async function startRecording(
   guildId: string,
   channelId: string,
-  connection: VoiceConnection
+  connection: VoiceConnection,
 ): Promise<{ ok: true; session: RecordingSession } | { ok: false; error: string }> {
   if (isRecording(guildId)) {
     return { ok: false, error: "已在錄音中" };
@@ -189,10 +186,7 @@ export async function startRecording(
       // 如果該使用者還沒有 PCM 檔案，建立一個
       if (!userStream) {
         const startOffset = Date.now() - session.startTime.getTime();
-        const pcmPath = join(
-          RECORDING_TEMP_DIR,
-          `${guildId}-${userId}-${Date.now()}.pcm`
-        );
+        const pcmPath = join(RECORDING_TEMP_DIR, `${guildId}-${userId}-${Date.now()}.pcm`);
 
         userStream = {
           userId,
@@ -202,10 +196,7 @@ export async function startRecording(
           lastWriteTime: null,
         };
         session.userStreams.set(userId, userStream);
-        logger.info(
-          { userId, guildId, pcmPath },
-          "Created new PCM file for user"
-        );
+        logger.info({ userId, guildId, pcmPath }, "Created new PCM file for user");
       }
 
       // 追加寫入 PCM 檔案（使用 flags: "a"）
@@ -223,7 +214,7 @@ export async function startRecording(
           writeStream.write(silence);
           logger.debug(
             { userId, guildId, gapMs, silenceBytes },
-            "Filled silence gap between segments"
+            "Filled silence gap between segments",
           );
         }
       }
@@ -326,10 +317,7 @@ export async function stopRecording(
 /**
  * 使用 ffmpeg 合併多個 PCM 音軌為 MP3
  */
-async function mergeAudioTracks(
-  userStreams: UserStream[],
-  outputPath: string,
-): Promise<void> {
+async function mergeAudioTracks(userStreams: UserStream[], outputPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     // 建立 ffmpeg 指令
     const inputs: string[] = [];
@@ -362,10 +350,14 @@ async function mergeAudioTracks(
 
     const args = [
       ...inputs,
-      "-filter_complex", filterComplex,
-      "-map", "[out]",
-      "-acodec", "libmp3lame",
-      "-q:a", "2",
+      "-filter_complex",
+      filterComplex,
+      "-map",
+      "[out]",
+      "-acodec",
+      "libmp3lame",
+      "-q:a",
+      "2",
       "-y",
       outputPath,
     ];
@@ -427,12 +419,7 @@ export async function uploadRecording(
     const timestamp = new Date().toISOString().slice(0, 10);
     const fileName = `${timestamp}-${channelName.replace(/[^a-zA-Z0-9-_\u4e00-\u9fff]/g, "_")}.mp3`;
 
-    const result = await uploadBinaryFile(
-      fileName,
-      buffer,
-      "audio/mpeg",
-      RECORDINGS_FOLDER_ID,
-    );
+    const result = await uploadBinaryFile(fileName, buffer, "audio/mpeg", RECORDINGS_FOLDER_ID);
 
     // 清理本地檔案
     await unlink(mp3Path).catch(() => {});

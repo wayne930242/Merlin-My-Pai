@@ -50,9 +50,7 @@ interface MessageContent {
   id?: string | null;
 }
 
-export async function getMessageContent(
-  messageId: string,
-): Promise<Result<MessageContent, Error>> {
+export async function getMessageContent(messageId: string): Promise<Result<MessageContent, Error>> {
   const messageResult = await getMessage(messageId, "full");
   if (messageResult.err) {
     return messageResult;

@@ -9,6 +9,7 @@ import {
   type StringSelectMenuInteraction,
   type TextBasedChannel,
 } from "discord.js";
+import { logger } from "../../../../utils/logger";
 import {
   addDie,
   buildCustomDiceModal,
@@ -24,7 +25,6 @@ import {
   undoLastDie,
 } from "../panels";
 import { isSendableChannel } from "../utils";
-import { logger } from "../../../../utils/logger";
 
 /**
  * Append roll result to history message
@@ -60,7 +60,10 @@ async function appendToHistory(
     await historyMsg.edit(newContent);
     return true;
   } catch (error) {
-    logger.error({ error, channelId, historyMessageId: dicePanel.historyMessageId }, "Failed to update dice history");
+    logger.error(
+      { error, channelId, historyMessageId: dicePanel.historyMessageId },
+      "Failed to update dice history",
+    );
     return false;
   }
 }
@@ -205,7 +208,13 @@ export async function handleDiceModalSubmit(
   }
 
   const channelId = interaction.channelId ?? channel.id;
-  const handled = await appendToHistory(channel, channelId, discordUserId, result.text, interaction);
+  const handled = await appendToHistory(
+    channel,
+    channelId,
+    discordUserId,
+    result.text,
+    interaction,
+  );
   if (handled) {
     if (!interaction.replied) {
       await interaction.reply({

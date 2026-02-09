@@ -1,14 +1,14 @@
-import { test, expect, beforeEach, mock } from "bun:test";
+import { beforeEach, expect, mock, test } from "bun:test";
 import {
-  type RecordingSession,
-  createRecordingSession,
-  isRecording,
-  getRecordingSession,
   clearAllSessions,
+  createRecordingSession,
+  getRecordingSession,
+  isRecording,
+  pauseRecording,
+  type RecordingSession,
+  resumeRecording,
   startRecording,
   stopRecording,
-  pauseRecording,
-  resumeRecording,
 } from "./recording";
 
 // Mock VoiceConnection
