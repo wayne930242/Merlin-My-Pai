@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.72.0 (2026-02-09)
+
+### Features
+
+- Control intel feed schedule via ENABLE_INTEL_FEED env var
+  ([`ffe9140`](https://github.com/wayne930242/Merlin-My-Pai/commit/ffe91400f6311ca61dcf232387136069987b70cf))
+
+
 ## v1.71.1 (2026-01-31)
 
 ### Bug Fixes
