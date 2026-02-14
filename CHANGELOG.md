@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.73.1 (2026-02-14)
+
+### Bug Fixes
+
+- Remove runtime dependency on monorepo memory package
+  ([`6c9010c`](https://github.com/wayne930242/Merlin-My-Pai/commit/6c9010cd3d7ad771d34f42a369c76f02e37d35e2))
+
+
 ## v1.73.0 (2026-02-14)
 
 ### Chores
