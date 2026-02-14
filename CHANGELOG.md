@@ -1,6 +1,27 @@
 # CHANGELOG
 
 
+## v1.73.0 (2026-02-14)
+
+### Chores
+
+- Format code and sort imports
+  ([`be71492`](https://github.com/wayne930242/Merlin-My-Pai/commit/be714920c756db7cb4819a672d21f5b6408a6011))
+
+- Link codex/claude skills and disable intel-feed scheduling
+  ([`6cce43c`](https://github.com/wayne930242/Merlin-My-Pai/commit/6cce43c14ff4f4a7ed20bdeaaa5f17c394a43681))
+
+### Features
+
+- Roll out memory capability across bot and web
+  ([`9c19071`](https://github.com/wayne930242/Merlin-My-Pai/commit/9c19071775c5ec66e29d2d72b230afc2aff80f68))
+
+### Refactoring
+
+- Isolate claude hooks from workspace runtime
+  ([`236edaa`](https://github.com/wayne930242/Merlin-My-Pai/commit/236edaa1bf44b5de764236dbea7840dee5660f66))
+
+
 ## v1.72.0 (2026-02-09)
 
 ### Features
