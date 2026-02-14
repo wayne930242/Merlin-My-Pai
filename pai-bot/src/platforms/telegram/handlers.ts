@@ -18,6 +18,7 @@ import { config } from "../../config";
 import { contextManager } from "../../context/manager";
 import { memoryManager } from "../../memory";
 import { transcribeAudio } from "../../services/transcription";
+import { renderWorkspaceSnapshot } from "../../services/workspace-tree";
 import { sessionService } from "../../storage/sessions";
 import { logger } from "../../utils/logger";
 import { escapeMarkdownV2, fmt } from "../../utils/telegram";
@@ -71,6 +72,7 @@ export async function handleStart(ctx: Context): Promise<void> {
 • \`/stop\` \\- 中斷當前任務
 • \`/clear\` \\- 清除對話歷史
 • \`/memory\` \\- 查看長期記憶
+• \`/workspace\` \\- 顯示 workspace 樹狀結構
 • \`/hq\` \\- 設定管理中心
 • \`/cc:<cmd>\` \\- 執行 Claude 指令
 
@@ -151,6 +153,18 @@ export async function handleMemory(ctx: Context): Promise<void> {
   }
 
   await ctx.reply(lines.join("\n"), { parse_mode: "MarkdownV2" });
+}
+
+export async function handleWorkspace(ctx: Context): Promise<void> {
+  const output = await renderWorkspaceSnapshot(config.claude.projectDir, {
+    maxDepth: 3,
+    maxEntries: 120,
+  });
+
+  const chunks = output.match(/[\s\S]{1,3900}/g) || [output];
+  for (const chunk of chunks) {
+    await ctx.reply(chunk);
+  }
 }
 
 export async function handleForget(ctx: Context): Promise<void> {

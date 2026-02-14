@@ -17,6 +17,7 @@ import {
   handleMemory,
   handleStatus,
   handleStop,
+  handleWorkspace,
 } from "./general";
 
 // Voice commands
@@ -63,6 +64,10 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
 
     case "memory":
       await handleMemory(interaction, userId);
+      break;
+
+    case "workspace":
+      await handleWorkspace(interaction);
       break;
 
     case "forget":

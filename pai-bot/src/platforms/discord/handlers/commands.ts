@@ -8,6 +8,7 @@ import { queueManager } from "../../../claude/queue-manager";
 import { config } from "../../../config";
 import { contextManager } from "../../../context/manager";
 import { memoryManager } from "../../../memory";
+import { renderWorkspaceSnapshot } from "../../../services/workspace-tree";
 import { sessionService } from "../../../storage/sessions";
 import { logger } from "../../../utils/logger";
 import { bindChannel, getBoundChannels, isChannelBound, unbindChannel } from "../channels";
@@ -39,6 +40,7 @@ export async function handleCommand(
           `- \`/channels\` - List bound channels\n` +
           `- \`/clear\` - Clear conversation history\n` +
           `- \`/memory\` - View long-term memories\n` +
+          `- \`/workspace\` - Show workspace tree\n` +
           `- \`/forget\` - Clear long-term memories\n` +
           `- \`/status\` - View status\n` +
           `- \`/stop\` - Stop current task`,
@@ -148,6 +150,18 @@ export async function handleCommand(
       const chunks = splitMessage(content, 2000);
       for (const chunk of chunks) {
         await message.reply(chunk);
+      }
+      break;
+    }
+
+    case "/workspace": {
+      const output = await renderWorkspaceSnapshot(config.claude.projectDir, {
+        maxDepth: 3,
+        maxEntries: 120,
+      });
+      const chunks = splitMessage(output, 1800);
+      for (const chunk of chunks) {
+        await message.reply(`\`\`\`\n${chunk}\n\`\`\``);
       }
       break;
     }

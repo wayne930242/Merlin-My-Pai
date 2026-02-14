@@ -8,6 +8,7 @@ import { queueManager } from "../../../../claude/queue-manager";
 import { config } from "../../../../config";
 import { contextManager } from "../../../../context/manager";
 import { memoryManager } from "../../../../memory";
+import { renderWorkspaceSnapshot } from "../../../../services/workspace-tree";
 import { sessionService } from "../../../../storage/sessions";
 import { logger } from "../../../../utils/logger";
 import { splitMessage } from "../utils";
@@ -21,6 +22,7 @@ export async function handleHelp(interaction: ChatInputCommandInteraction): Prom
       `- \`/channels\` - 查看已綁定頻道\n` +
       `- \`/clear\` - 清除對話歷史\n` +
       `- \`/memory\` - 查看長期記憶\n` +
+      `- \`/workspace\` - 顯示 workspace 樹狀結構\n` +
       `- \`/forget\` - 清除長期記憶\n` +
       `- \`/status\` - 查看狀態\n` +
       `- \`/stop\` - 中斷當前任務`,
@@ -101,6 +103,20 @@ export async function handleMemory(
 
   for (let i = 1; i < chunks.length; i++) {
     await interaction.followUp(chunks[i]);
+  }
+}
+
+export async function handleWorkspace(interaction: ChatInputCommandInteraction): Promise<void> {
+  const output = await renderWorkspaceSnapshot(config.claude.projectDir, {
+    maxDepth: 3,
+    maxEntries: 120,
+  });
+
+  const chunks = splitMessage(output, 1800);
+  await interaction.reply(`\`\`\`\n${chunks[0]}\n\`\`\``);
+
+  for (let i = 1; i < chunks.length; i++) {
+    await interaction.followUp(`\`\`\`\n${chunks[i]}\n\`\`\``);
   }
 }
 

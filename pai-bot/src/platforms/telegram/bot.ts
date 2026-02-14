@@ -15,6 +15,7 @@ import {
   handleStatus,
   handleStop,
   handleVoice,
+  handleWorkspace,
 } from "./handlers";
 
 export async function setupBotCommands(bot: Bot): Promise<void> {
@@ -25,6 +26,7 @@ export async function setupBotCommands(bot: Bot): Promise<void> {
     { command: "stop", description: "中斷當前任務" },
     { command: "clear", description: "清除對話歷史" },
     { command: "memory", description: "查看長期記憶" },
+    { command: "workspace", description: "顯示 workspace 樹狀結構" },
     { command: "hq", description: "設定為管理中心" },
   ]);
   logger.info("Bot commands registered");
@@ -57,6 +59,7 @@ export function createTelegramBot(): Bot {
   bot.command("stop", handleStop);
   bot.command("clear", handleClear);
   bot.command("memory", handleMemory);
+  bot.command("workspace", handleWorkspace);
   bot.command("hq", handleHQ);
 
   // Message handler (for non-command messages)
