@@ -31,6 +31,7 @@
       - "--exclude=CLAUDE.md"
       - "--exclude=context/"
       - "--exclude=workspace/"
+      - "--exclude=hooks/"
       - "--exclude=scripts/"
       - "--exclude=session-env/"
       - "--exclude=plans/"
@@ -81,9 +82,6 @@
       loop:
         - site
         - projects
-        - scripts
-        - tools
-        - data
         - downloads
         - history/sessions
         - history/learnings

@@ -3,8 +3,9 @@
  */
 
 import { join } from "node:path";
+import { getProjectRoot } from "./paths";
 
-const CONFIG_PATH = join(import.meta.dir, "..", "..", "merlin-config.json");
+const CONFIG_PATH = join(getProjectRoot(), "merlin-config.json");
 
 interface MerlinConfig {
   site_domain?: string;

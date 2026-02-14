@@ -11,12 +11,13 @@ workspace/
 │   ├── skills/         # 技能模組 (6)
 │   ├── commands/       # Slash commands (4)
 │   └── rules/          # 開發規範 (3)
-├── site/               # 網站檔案（Caddy 直接 serve）
-├── projects/           # Git repos 和專案
-├── scripts/            # 一次性腳本
-├── tools/              # 可重用工具程式
-└── data/               # 資料檔案（下載、快取等）
+├── memory/             # 長期記憶資料
+├── history/            # 對話歷史與決策紀錄
+├── downloads/          # 上傳與附件下載暫存
+└── site/               # 靜態網站內容
 ```
+
+> Hook 腳本已移至 `pai-claude/hooks/`，`workspace/` 只保留執行期資料。
 
 ## .claude 結構
 

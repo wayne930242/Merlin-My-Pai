@@ -15,6 +15,9 @@ Merlin 的 VPS 運行配置，同步至 VPS 的 `~/merlin/` 目錄。
 
 ```
 pai-claude/
+├── hooks/                    # Claude hooks 腳本（不放 workspace）
+│   ├── lib/                  # Hook 共用函式
+│   └── *.ts                  # Hook entrypoints
 ├── workspace/
 │   ├── CLAUDE.md              # Merlin 身份定義
 │   ├── .claude/
@@ -34,7 +37,8 @@ pai-claude/
 │   │       ├── research/      # 深度研究
 │   │       ├── scheduling/    # 排程管理
 │   │       └── web-deploy/    # 網站部署
-│   ├── scripts/               # Hook 腳本
+│   ├── memory/                # 執行期記憶資料
+│   ├── history/               # 執行期歷史資料
 │   └── site/                  # 靜態網站
 ├── .mcp.json                  # MCP Server 配置
 └── package.json
@@ -50,6 +54,12 @@ pai-claude/
 ./sync.py stop    # 停止同步
 ./sync.py status  # 查看狀態
 ```
+
+## Memory Hook 整合
+
+- Hook 入口在 `pai-claude/hooks/`
+- `hooks/memory-cli.ts` 使用 `hooks/lib/memory-capability.ts` 作為能力層 façade
+- `workspace/` 僅保留執行期資料（memory/history/site），不再放 hook 腳本
 
 ## 部署
 

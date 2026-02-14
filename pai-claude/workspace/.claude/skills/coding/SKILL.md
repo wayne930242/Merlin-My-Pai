@@ -56,12 +56,14 @@ description: 代碼撰寫與自動化。觸發：code, script, tool, automate, b
 
 ```
 ./
-├── site/           # 網站檔案（Caddy serve）
-├── projects/       # Git repos
-├── scripts/        # 一次性腳本
-├── tools/          # 可重用工具
-└── data/           # 資料檔案
+├── .claude/        # Claude 設定與技能
+├── memory/         # 記憶資料
+├── history/        # 會話與決策歷史
+├── downloads/      # 上傳/附件暫存
+└── site/           # 網站檔案（Caddy serve）
 ```
+
+> Hook 與自動化腳本放在 `pai-claude/hooks/`，不要放在 workspace 內。
 
 ## Technology Stack
 

@@ -16,8 +16,9 @@ import { spawn } from "bun";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isMemoryEnabled } from "./lib/config";
+import { getWorkspaceRoot } from "./lib/paths";
 
-const PAI_ROOT = join(import.meta.dir, "..");
+const WORKSPACE_ROOT = getWorkspaceRoot();
 const PAI_API_URL = process.env.PAI_API_URL || "http://127.0.0.1:3000";
 const SCRIPTS_DIR = import.meta.dir;
 const SHORT_TERM_LIMIT = 100;
@@ -67,7 +68,7 @@ async function getLongTermCount(): Promise<number> {
  * 從 history/sessions 讀取未完成的 follow-ups
  */
 async function getPendingFollowUps(): Promise<FollowUp[]> {
-  const sessionsDir = join(PAI_ROOT, "history", "sessions");
+  const sessionsDir = join(WORKSPACE_ROOT, "history", "sessions");
   const followUps: FollowUp[] = [];
 
   try {
@@ -100,7 +101,7 @@ async function getPendingFollowUps(): Promise<FollowUp[]> {
  */
 async function getAvailableSkills(): Promise<string[]> {
   try {
-    const skillsDir = join(PAI_ROOT, ".claude", "skills");
+    const skillsDir = join(WORKSPACE_ROOT, ".claude", "skills");
     const skills = await readdir(skillsDir);
     return skills.filter((s) => !s.startsWith("."));
   } catch {

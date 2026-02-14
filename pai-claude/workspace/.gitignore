@@ -57,14 +57,6 @@
 !memory/
 !memory/**
 
-# ===== Hook Scripts =====
-!scripts/
-!scripts/*.ts
-!scripts/lib/
-!scripts/lib/*.ts
-# Ignore build artifacts
-scripts/node_modules/
-
 # ===== Site (core pages only) =====
 !site/
 !site/index.html

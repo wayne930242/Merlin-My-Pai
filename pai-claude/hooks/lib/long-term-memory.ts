@@ -14,9 +14,10 @@
  */
 
 import { join } from "path";
+import { getMemoryRoot as getWorkspaceMemoryRoot } from "./paths";
 
 // Memory root directory
-const MEMORY_ROOT = join(import.meta.dir, "..", "..", "memory");
+const MEMORY_ROOT = getWorkspaceMemoryRoot();
 
 export function getMemoryRoot(): string {
   return MEMORY_ROOT;

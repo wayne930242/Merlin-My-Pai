@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/on-session-start.ts"
+            "command": "bun run --silent ../hooks/on-session-start.ts"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/on-stop.ts"
+            "command": "bun run --silent ../hooks/on-stop.ts"
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/pre-tool-use.ts"
+            "command": "bun run --silent ../hooks/pre-tool-use.ts"
           }
         ]
       }
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/on-post-tool-use.ts"
+            "command": "bun run --silent ../hooks/on-post-tool-use.ts"
           }
         ]
       }
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/on-notification.ts"
+            "command": "bun run --silent ../hooks/on-notification.ts"
           }
         ]
       }
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/on-subagent-stop.ts"
+            "command": "bun run --silent ../hooks/on-subagent-stop.ts"
           }
         ]
       }
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/on-pre-compact.ts"
+            "command": "bun run --silent ../hooks/on-pre-compact.ts"
           }
         ]
       }
@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run --silent scripts/on-user-prompt.ts"
+            "command": "bun run --silent ../hooks/on-user-prompt.ts"
           }
         ]
       }

@@ -3,27 +3,19 @@
  * Long-term Memory CLI
  *
  * Usage:
- *   bun run scripts/memory-cli.ts save <path> --title "..." --summary "..." --content "..." [--tags "a,b"]
- *   bun run scripts/memory-cli.ts get <path>
- *   bun run scripts/memory-cli.ts search <keywords...> [--limit N]
- *   bun run scripts/memory-cli.ts find-similar <keywords...> [--category <cat>] [--limit N]
- *   bun run scripts/memory-cli.ts update <path> [--summary "..."] [--content "..."] [--tags "a,b"] [--append]
- *   bun run scripts/memory-cli.ts list
- *   bun run scripts/memory-cli.ts init
+ *   bun run hooks/memory-cli.ts save <path> --title "..." --summary "..." --content "..." [--tags "a,b"]
+ *   bun run hooks/memory-cli.ts get <path>
+ *   bun run hooks/memory-cli.ts search <keywords...> [--limit N]
+ *   bun run hooks/memory-cli.ts find-similar <keywords...> [--category <cat>] [--limit N]
+ *   bun run hooks/memory-cli.ts update <path> [--summary "..."] [--content "..."] [--tags "a,b"] [--append]
+ *   bun run hooks/memory-cli.ts list
+ *   bun run hooks/memory-cli.ts init
  *
  * Output: JSON ({ ok: true, ... } or { ok: false, error: "..." })
  */
 
-import {
-  getMemory,
-  saveMemory,
-  searchMemory,
-  findSimilarMemory,
-  updateMemory,
-  listMemory,
-  initMemory,
-  getMemoryRoot,
-} from "./lib/long-term-memory";
+import { getMemory, getMemoryRoot, initMemory, listMemory } from "./lib/long-term-memory";
+import { semanticFindSimilar, semanticSearch, semanticUpsert } from "./lib/memory-capability";
 
 interface CliResult {
   ok: boolean;
@@ -74,11 +66,11 @@ async function main(): Promise<void> {
     console.log(
       JSON.stringify(
         error(
-          "Usage: memory-cli.ts <command> [args]\nCommands: save, get, search, find-similar, update, list, init"
+          "Usage: memory-cli.ts <command> [args]\nCommands: save, get, search, find-similar, update, list, init",
         ),
         null,
-        2
-      )
+        2,
+      ),
     );
     process.exit(1);
   }
@@ -119,7 +111,8 @@ async function main(): Promise<void> {
 
         const tagList = tags ? tags.split(",").map((t) => t.trim()) : [];
 
-        await saveMemory(path, {
+        await semanticUpsert({
+          path,
           title,
           summary,
           content,
@@ -164,7 +157,7 @@ async function main(): Promise<void> {
           break;
         }
 
-        const results = await searchMemory(keywords, limit);
+        const results = await semanticSearch(keywords, limit);
         result = success({ count: results.length, results });
         break;
       }
@@ -185,15 +178,10 @@ async function main(): Promise<void> {
           break;
         }
 
-        const results = await findSimilarMemory(keywords, category, limit);
+        const results = await semanticFindSimilar(keywords, category, limit);
         result = success({
           count: results.length,
-          results: results.map((r) => ({
-            path: r.memory.path,
-            title: r.memory.title,
-            summary: r.memory.summary,
-            score: r.score,
-          })),
+          results,
         });
         break;
       }
@@ -215,17 +203,22 @@ async function main(): Promise<void> {
 
         const tagList = tags ? tags.split(",").map((t) => t.trim()) : undefined;
 
-        const updated = await updateMemory(path, {
-          summary,
-          content,
-          tags: tagList,
-          appendContent: append === "true",
-        });
-
-        if (!updated) {
+        const existing = await getMemory(path);
+        if (!existing) {
           result = error(`Memory not found: ${path}`);
           break;
         }
+
+        await semanticUpsert({
+          path,
+          title: existing.title,
+          summary: summary || existing.summary,
+          content:
+            append === "true" && content
+              ? `${existing.content}\n\n${content}`
+              : content || existing.content,
+          tags: tagList ? [...new Set([...existing.tags, ...tagList])] : existing.tags,
+        });
 
         result = success({ message: "Memory updated", path });
         break;

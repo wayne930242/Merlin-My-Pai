@@ -9,8 +9,9 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getHistoryRoot } from "./paths";
 
-const PAI_ROOT = join(import.meta.dir, "..", "..");
+const HISTORY_ROOT = getHistoryRoot();
 
 export type HistoryType = "sessions" | "learnings" | "decisions";
 
@@ -113,7 +114,7 @@ export async function saveToHistory(
   const now = new Date();
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const dir = join(PAI_ROOT, "history", type, yearMonth);
+  const dir = join(HISTORY_ROOT, type, yearMonth);
   await mkdir(dir, { recursive: true });
 
   const fileName = generateFileName(type);
