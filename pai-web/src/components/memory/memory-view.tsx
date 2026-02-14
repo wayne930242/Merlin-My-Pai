@@ -50,10 +50,12 @@ export function MemoryView() {
                       </Badge>
                     </div>
                     <CardDescription className="text-xs shrink-0">
-                      {new Date(memory.createdAt).toLocaleDateString('zh-TW', {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {memory.createdAt
+                        ? new Date(memory.createdAt).toLocaleDateString('zh-TW', {
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                        : 'Recent'}
                     </CardDescription>
                   </div>
                 </CardHeader>

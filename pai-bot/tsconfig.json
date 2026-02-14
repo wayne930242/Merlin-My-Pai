@@ -10,7 +10,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "..",
     "types": ["bun-types"]
   },
   "include": ["src/**/*"],

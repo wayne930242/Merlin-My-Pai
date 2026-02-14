@@ -31,15 +31,6 @@ export function clearRecordingPanel(guildId: string): void {
 }
 
 /**
- * Format recording duration
- */
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
-/**
  * Build recording panel content
  */
 export function buildRecordingContent(guildId: string): string {

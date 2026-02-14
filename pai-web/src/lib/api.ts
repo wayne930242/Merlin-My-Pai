@@ -49,11 +49,10 @@ export async function apiFetch<T>(
 // Memory API types
 export interface Memory {
   id: number
-  userId: number
   category: string
   content: string
-  source: string
-  createdAt: string
+  importance?: number
+  createdAt?: string
 }
 
 export interface MemoryListResponse {
@@ -63,21 +62,25 @@ export interface MemoryListResponse {
 
 // Memory API functions
 export const memoryApi = {
-  list: (userId: number, category?: string) =>
+  list: (category?: string, limit = 20) =>
     apiFetch<MemoryListResponse>('/api/memory/list', {
-      params: { userId: String(userId), ...(category && { category }) },
+      params: { limit: String(limit), ...(category && { category }) },
     }),
 
-  search: (userId: number, query: string, limit = 10) =>
-    apiFetch<{ memories: Memory[] }>('/api/memory/search', {
-      params: { userId: String(userId), query, limit: String(limit) },
-    }),
-
-  create: (userId: number, content: string, category: string, source = 'web') =>
-    apiFetch<Memory>('/api/memory/save', {
+  search: (query: string, limit = 10) =>
+    apiFetch<{ ok: boolean; count: number; memories: Memory[] }>('/api/memory/search', {
       method: 'POST',
-      body: JSON.stringify({ userId, content, category, source }),
+      body: JSON.stringify({ query, limit }),
     }),
+
+  create: (content: string, category: string, importance = 1) =>
+    apiFetch<{ ok: boolean; id?: number; duplicate?: boolean }>('/api/memory/save', {
+      method: 'POST',
+      body: JSON.stringify({ content, category, importance }),
+    }),
+
+  stats: () =>
+    apiFetch<{ total: number; limit: number; usage: string }>('/api/memory/stats'),
 }
 
 // History API types

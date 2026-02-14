@@ -3,10 +3,17 @@
  * 支援雙層記憶系統的 REST API
  */
 
+import { createMemoryCapabilityForUser } from "../../memory/capability";
 import { MAX_MEMORIES_PER_USER } from "../../memory/constants";
-import { memoryManager } from "../../memory/manager";
 
-const DEFAULT_USER_ID = parseInt(process.env.TELEGRAM_ALLOWED_USER_IDS?.split(",")[0] || "0", 10);
+function resolveDefaultUserId(): number {
+  const raw = process.env.TELEGRAM_ALLOWED_USER_IDS?.split(",")[0];
+  const parsed = Number.parseInt(raw || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+const DEFAULT_USER_ID = resolveDefaultUserId();
+const memoryCapability = createMemoryCapabilityForUser(DEFAULT_USER_ID);
 
 interface MemoryRouteResult {
   response: Response;
@@ -43,8 +50,7 @@ export async function handleMemoryRoutes(
       };
     }
 
-    const id = await memoryManager.save({
-      userId: DEFAULT_USER_ID,
+    const id = await memoryCapability.saveShortTerm({
       content,
       category,
       importance,
@@ -73,7 +79,7 @@ export async function handleMemoryRoutes(
       keywords = extractKeywords(query);
     }
 
-    const memories = memoryManager.searchByKeywords(DEFAULT_USER_ID, keywords, limit);
+    const memories = await memoryCapability.search(keywords, limit);
 
     return {
       handled: true,
@@ -95,7 +101,7 @@ export async function handleMemoryRoutes(
 
   // GET /api/memory/stats - 記憶統計
   if (path === "/api/memory/stats" && method === "GET") {
-    const count = memoryManager.count(DEFAULT_USER_ID);
+    const count = memoryCapability.count();
     return {
       handled: true,
       response: Response.json(
@@ -111,7 +117,7 @@ export async function handleMemoryRoutes(
 
   // POST /api/memory/cleanup - 清理舊記憶（強制執行上限）
   if (path === "/api/memory/cleanup" && method === "POST") {
-    const removed = memoryManager.enforceLimit(DEFAULT_USER_ID);
+    const removed = memoryCapability.cleanup();
     return {
       handled: true,
       response: Response.json({ ok: true, removed }, { headers: corsHeaders }),

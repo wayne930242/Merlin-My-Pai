@@ -18,7 +18,13 @@ beforeEach(() => {
 
 test("pauseIntelFeedSchedules disables existing intel-feed schedules", async () => {
   listSchedulesMock.mockReturnValueOnce([
-    { id: 1, name: "Intel Feed Daily", task_type: "prompt", task_data: "/intel-digest", enabled: 1 },
+    {
+      id: 1,
+      name: "Intel Feed Daily",
+      task_type: "prompt",
+      task_data: "/intel-digest",
+      enabled: 1,
+    },
     { id: 2, name: "Random", task_type: "message", task_data: "hello", enabled: 1 },
     { id: 3, name: "Digest Legacy", task_type: "prompt", task_data: "/intel-digest", enabled: 1 },
   ]);

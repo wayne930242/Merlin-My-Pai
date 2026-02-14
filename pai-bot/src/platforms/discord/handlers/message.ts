@@ -102,7 +102,6 @@ export async function prepareTask(
   guildId?: string,
 ): Promise<QueuedTask> {
   const sessionKey = isChannelMode ? hashToNumeric(channelId) : toNumericId(discordUserId);
-  const userId = toNumericId(discordUserId);
 
   contextManager.saveMessage(sessionKey, "user", text, messageId);
   const history = contextManager.getConversationContext(sessionKey);

@@ -5,19 +5,20 @@ import {
   getRecordingSession,
   isRecording,
   pauseRecording,
-  type RecordingSession,
   resumeRecording,
   startRecording,
   stopRecording,
 } from "./recording";
 
+type SpeakingListener = (userId: string) => void;
+
 // Mock VoiceConnection
 const createMockConnection = () => {
-  const speakingListeners = new Map<string, Function>();
+  const speakingListeners = new Map<string, SpeakingListener>();
   return {
     receiver: {
       speaking: {
-        on: mock((event: string, fn: Function) => {
+        on: mock((event: string, fn: SpeakingListener) => {
           speakingListeners.set(event, fn);
         }),
         off: mock(() => {}),

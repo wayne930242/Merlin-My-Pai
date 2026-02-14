@@ -23,6 +23,13 @@ weihung-pai/
 | [scripts](scripts/README.md) | CLI 工具（ansible, ssh, bot, google） |
 | [setup](setup/README.md) | 互動式設定精靈 |
 
+## 架構重點（2026-02）
+
+- `packages/capabilities/memory`：記憶能力單一契約（working / episodic / semantic / procedural）
+- `pai-bot`：`/api/memory/*` 透過 capability adapter 提供統一路由行為
+- `pai-claude/hooks`：memory CLI 透過 capability façade，不直接放在 workspace
+- `pai-web`：memory API client 對齊 capability-backed payload（`POST /api/memory/search`, `POST /api/memory/save`）
+
 ## 功能
 
 - **多平台 Bot** - Telegram / Discord 與 Merlin 對話
