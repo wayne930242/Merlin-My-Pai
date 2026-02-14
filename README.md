@@ -2,6 +2,8 @@
 
 Personal AI Infrastructure - Merlin
 
+English version: [README.en.md](README.en.md)
+
 基於 [Daniel Miessler PAI v2](https://danielmiessler.com/blog/personal-ai-infrastructure) 架構設計的個人化 Claude Code 數位助理系統。
 
 ## 專案結構
@@ -25,10 +27,19 @@ weihung-pai/
 
 ## 架構重點（2026-02）
 
-- `packages/capabilities/memory`：記憶能力單一契約（working / episodic / semantic / procedural）
-- `pai-bot`：`/api/memory/*` 透過 capability adapter 提供統一路由行為
+- `packages/capabilities/memory`：記憶能力契約與測試（working / episodic / semantic / procedural）
+- `pai-bot`：`/api/memory/*` 透過本地 capability adapter 提供統一路由行為（部署時不依賴 monorepo 外部路徑）
 - `pai-claude/hooks`：memory CLI 透過 capability façade，不直接放在 workspace
 - `pai-web`：memory API client 對齊 capability-backed payload（`POST /api/memory/search`, `POST /api/memory/save`）
+
+## 記憶如何帶給 Agents
+
+1. 使用者輸入會先進到 `pai-claude/hooks/on-user-prompt.ts`。
+2. Hook 會抽關鍵字，並同時查詢：
+`pai-claude/hooks/lib/memory-capability.ts`（長期記憶）與 `pai-bot` 的 `/api/memory/search`（短期記憶）。
+3. 命中的記憶會被組成 context 片段注入 prompt，再交給 Claude 任務執行。
+4. Session 結束時，`pai-claude/hooks/on-stop.ts` 會抽取可保留資訊，寫回短期與長期記憶。
+5. `memory-cli` 的 `save/search/find-similar/update` 路徑統一經過 capability façade，避免分叉實作。
 
 ## 功能
 

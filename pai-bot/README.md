@@ -2,6 +2,8 @@
 
 Personal AI Bot - 整合 Claude Code 的多平台聊天機器人。
 
+English version: [README.en.md](README.en.md)
+
 ## 功能
 
 ### 核心
@@ -9,6 +11,7 @@ Personal AI Bot - 整合 Claude Code 的多平台聊天機器人。
 - **Claude Code 整合** - 透過 CLI headless 模式與 Claude 對話
 - **多平台支援** - Telegram、Discord 雙平台
 - **MCP Server** - 提供工具給 Claude Code 使用
+- **Workspace Tree 指令** - Telegram/Discord 可直接查目前 workspace 目錄樹
 
 ### MCP 工具
 
@@ -16,7 +19,7 @@ Personal AI Bot - 整合 Claude Code 的多平台聊天機器人。
 |------|------|
 | Google | Calendar、Gmail、Tasks、Drive、Contacts |
 | Scheduler | 排程任務管理 |
-| Memory | 向量記憶儲存與檢索 |
+| Memory | 記憶儲存與檢索（短期 + 長期整合） |
 | Notify | 推播通知 |
 | Garmin | 健康數據查詢 |
 | System | 系統管理 |
@@ -33,7 +36,7 @@ Personal AI Bot - 整合 Claude Code 的多平台聊天機器人。
 ### 其他
 
 - 語音訊息轉文字
-- 向量記憶（sqlite-vec）
+- 記憶管理（SQLite）
 - 定時任務排程
 
 ## 技術棧
@@ -42,6 +45,7 @@ Personal AI Bot - 整合 Claude Code 的多平台聊天機器人。
 - **Telegram**: grammY
 - **Discord**: discord.js + @discordjs/voice
 - **Database**: SQLite (bun:sqlite) + sqlite-vec
+- **Database**: SQLite (bun:sqlite)
 - **MCP**: @modelcontextprotocol/sdk
 
 ## 安裝
@@ -88,6 +92,24 @@ bun run db:init
 # 類型檢查
 bun run typecheck
 ```
+
+## Bot 指令（重點）
+
+- Telegram: `/start`, `/status`, `/memory`, `/workspace`
+- Discord Text: `/help`, `/status`, `/memory`, `/workspace`
+- Discord Slash: `/help`, `/status`, `/memory`, `/workspace`
+
+`/workspace` 會回傳：
+- 目前 workspace 根目錄
+- 目錄樹（限制深度與最大顯示數量）
+- 檔案/資料夾統計
+- git 狀態摘要（若目錄是 git repo）
+
+## 記憶帶給 Agent 的路徑
+
+1. 查詢：`/api/memory/search` 提供短期記憶內容給上層 hooks/agents。
+2. 寫入：`/api/memory/save` 保存重要內容，並由 capability adapter 統一路徑。
+3. 統計/維護：`/api/memory/stats`、`/api/memory/cleanup` 用於容量與健康狀態管理。
 
 ## 目錄結構
 
