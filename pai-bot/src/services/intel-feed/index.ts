@@ -233,23 +233,27 @@ export async function generateDigest(): Promise<{
 }
 
 /**
- * Initialize Intel Feed schedule
- * Call this on app startup to ensure the schedule exists
+ * Pause existing Intel Feed schedules.
+ * News digest scheduling is deprecated and should remain disabled.
  */
-export async function initIntelFeedSchedule(userId: number): Promise<void> {
-  const { listSchedules, createSchedule } = await import("../scheduler");
-
+export async function pauseIntelFeedSchedules(userId: number): Promise<number> {
+  const { listSchedules, setScheduleEnabled } = await import("../scheduler");
   const existing = listSchedules(userId);
-  const hasIntelFeed = existing.some((s) => s.name === "Intel Feed Daily");
 
-  if (!hasIntelFeed) {
-    createSchedule({
-      name: "Intel Feed Daily",
-      cronExpression: "0 8 */2 * *", // Every 2 days at 08:00
-      taskType: "prompt",
-      taskData: "/intel-digest",
-      userId,
-    });
-    logger.info("Created Intel Feed daily schedule");
+  const intelSchedules = existing.filter(
+    (s) => s.enabled === 1 && s.task_type === "prompt" && s.task_data === "/intel-digest",
+  );
+
+  let pausedCount = 0;
+  for (const schedule of intelSchedules) {
+    if (setScheduleEnabled(schedule.id, false)) {
+      pausedCount += 1;
+    }
   }
+
+  if (pausedCount > 0) {
+    logger.info({ pausedCount }, "Paused Intel Feed schedules");
+  }
+
+  return pausedCount;
 }

@@ -5,7 +5,7 @@ import { config, isDiscordEnabled, isTelegramEnabled, validateConfig } from "./c
 import { createDiscordBot, startDiscordBot, stopDiscordBot } from "./platforms/discord";
 import { createTelegramBot, setupBotCommands } from "./platforms/telegram/bot";
 import { initWebPlatform } from "./platforms/web";
-import { generateDigest, initIntelFeedSchedule } from "./services/intel-feed";
+import { generateDigest, pauseIntelFeedSchedules } from "./services/intel-feed";
 import {
   type Schedule,
   startScheduler,
@@ -148,13 +148,13 @@ async function main() {
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);
 
+    // Pause deprecated Intel Feed schedules before scheduler starts
+    if (config.telegram.allowedUserIds.length > 0) {
+      await pauseIntelFeedSchedules(config.telegram.allowedUserIds[0]);
+    }
+
     // Start scheduler
     startScheduler(executeScheduledTask);
-
-    // Intel Feed daily schedule (controlled by ENABLE_INTEL_FEED env var)
-    if (process.env.ENABLE_INTEL_FEED === "true" && config.telegram.allowedUserIds.length > 0) {
-      await initIntelFeedSchedule(config.telegram.allowedUserIds[0]);
-    }
 
     // Start platforms
     // Discord first (non-blocking), then Telegram (blocking long-poll)
