@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.74.0 (2026-02-14)
+
+### Features
+
+- Add workspace tree commands for telegram and discord
+  ([`598b686`](https://github.com/wayne930242/Merlin-My-Pai/commit/598b6868a357b3db36e3f3f4a9cfdf93003a8f3d))
+
+
 ## v1.73.1 (2026-02-14)
 
 ### Bug Fixes
