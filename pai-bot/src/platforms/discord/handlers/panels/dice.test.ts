@@ -6,6 +6,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildDiceComponents,
   clearCustomExpressions,
+  parseCustomExpressionsInput,
   parseAndRoll,
   saveCustomExpression,
   setDicePanel,
@@ -361,6 +362,31 @@ describe("buildDiceComponents", () => {
     const rows = buildDiceComponents("guild-1", "channel-empty");
     expect(rows.length).toBe(4);
   });
+
+  test("shows more than 5 quick presets for every game system", () => {
+    const systems = ["generic", "coc", "dnd", "fate"] as const;
+
+    for (const system of systems) {
+      const channelId = `channel-${system}`;
+      setDicePanel(channelId, {
+        historyMessageId: `history-${system}`,
+        panelMessageId: `panel-${system}`,
+        channelId,
+        gameSystem: system,
+        savedCustomExpressions: [],
+      });
+
+      const rows = buildDiceComponents("guild-1", channelId);
+      const presetQuickCount = rows
+        .slice(1, 3)
+        .flatMap((row) => row.toJSON().components)
+        .map((component) => ("custom_id" in component ? component.custom_id : undefined))
+        .filter((id): id is string => typeof id === "string")
+        .filter((id) => id.startsWith("dice:quick:")).length;
+
+      expect(presetQuickCount).toBeGreaterThan(5);
+    }
+  });
 });
 
 describe("saved custom expressions", () => {
@@ -396,5 +422,19 @@ describe("saved custom expressions", () => {
     clearCustomExpressions("channel-3");
     const customIds = getAllCustomIds(buildDiceComponents("guild-1", "channel-3"));
     expect(customIds.some((id) => id.startsWith("dice:saved:"))).toBe(false);
+  });
+});
+
+describe("parseCustomExpressionsInput", () => {
+  test("supports comma separated expressions", () => {
+    expect(parseCustomExpressionsInput("1d20,2d6+3,4d6k3")).toEqual(["1d20", "2d6+3", "4d6k3"]);
+  });
+
+  test("trims spaces and removes empty segments", () => {
+    expect(parseCustomExpressionsInput(" 1d20 , , 2d6+3  , ")).toEqual(["1d20", "2d6+3"]);
+  });
+
+  test("deduplicates expressions by normalized form", () => {
+    expect(parseCustomExpressionsInput("1D20, 1d20,  1d20 ")).toEqual(["1D20"]);
   });
 });

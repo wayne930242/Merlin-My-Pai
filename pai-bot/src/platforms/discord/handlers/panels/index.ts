@@ -23,6 +23,7 @@ export {
   GAME_SYSTEM_PRESETS,
   type GameSystem,
   getDicePanel,
+  parseCustomExpressionsInput,
   parseAndRoll,
   roll,
   saveCustomExpression,

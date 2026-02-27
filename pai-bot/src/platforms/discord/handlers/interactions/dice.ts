@@ -16,11 +16,15 @@ import {
   clearCustomExpressions,
   type GameSystem,
   getDicePanel,
+  parseCustomExpressionsInput,
   parseAndRoll,
   saveCustomExpression,
   setGameSystem,
 } from "../panels";
 import { isSendableChannel } from "../utils";
+
+const CUSTOM_SYNTAX_HELP =
+  "範例: d20 | 2d6+3 | 4d6k3 | 2d20kl1 | 4d6d1 | 10*2d10k1+1d10 | 4dF\n可用逗號一次新增: 1d20,2d6+3,4d6k3";
 
 /**
  * Append roll result to history message
@@ -208,46 +212,104 @@ export async function handleDiceModalSubmit(
   interaction: ModalSubmitInteraction,
   discordUserId: string,
 ): Promise<void> {
-  const expression = interaction.fields.getTextInputValue("dice_expression");
-  const result = parseAndRoll(expression);
-
-  if (!result) {
-    await interaction.reply({ content: "無效的骰子表達式", flags: MessageFlags.Ephemeral });
+  const rawInput = interaction.fields.getTextInputValue("dice_expression");
+  const expressions = parseCustomExpressionsInput(rawInput);
+  if (expressions.length === 0) {
+    await interaction.reply({
+      content: `無效的骰子表達式\n${CUSTOM_SYNTAX_HELP}`,
+      flags: MessageFlags.Ephemeral,
+    });
     return;
   }
 
   const channel = interaction.channel;
   if (!channel || !isSendableChannel(channel)) {
-    await interaction.reply({ content: result.text, flags: MessageFlags.Ephemeral });
+    // Keep old behavior for non-sendable channels: single expression roll preview only.
+    const single = expressions[0];
+    const singleResult = parseAndRoll(single);
+    await interaction.reply({
+      content: singleResult ? singleResult.text : "無效的骰子表達式",
+      flags: MessageFlags.Ephemeral,
+    });
     return;
   }
 
   const channelId = interaction.channelId ?? channel.id;
   const guildId = interaction.guildId;
 
-  saveCustomExpression(channelId, expression);
+  // Single expression: keep existing flow (save + roll + history)
+  if (expressions.length === 1) {
+    const expression = expressions[0];
+    const result = parseAndRoll(expression);
+    if (!result) {
+      await interaction.reply({
+        content: `無效的骰子表達式\n${CUSTOM_SYNTAX_HELP}`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    saveCustomExpression(channelId, expression);
+    if (guildId) {
+      await refreshPanelComponents(channel, channelId, guildId);
+    }
+
+    const handled = await appendToHistory(
+      channel,
+      channelId,
+      discordUserId,
+      result.text,
+      interaction,
+    );
+    if (handled) {
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: `你的結果: ${result.text}\n複製: \`${expression}\``,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+      return;
+    }
+
+    await interaction.reply(`<@${discordUserId}> ${result.text}`);
+    return;
+  }
+
+  // Multiple expressions: add as custom presets in batch.
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const expression of expressions) {
+    if (parseAndRoll(expression)) {
+      valid.push(expression);
+    } else {
+      invalid.push(expression);
+    }
+  }
+
+  if (valid.length === 0) {
+    await interaction.reply({
+      content: `無效的骰子表達式: ${invalid.join(", ")}\n${CUSTOM_SYNTAX_HELP}`,
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // saveCustomExpression prepends, so reverse insert preserves input order on panel.
+  for (const expression of [...valid].reverse()) {
+    saveCustomExpression(channelId, expression);
+  }
   if (guildId) {
     await refreshPanelComponents(channel, channelId, guildId);
   }
 
-  const handled = await appendToHistory(
-    channel,
-    channelId,
-    discordUserId,
-    result.text,
-    interaction,
-  );
-  if (handled) {
-    if (!interaction.replied) {
-      await interaction.reply({
-        content: `你的結果: ${result.text}\n複製: \`${expression}\``,
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-    return;
-  }
+  const msg = [
+    `已新增 ${valid.length} 組 custom 骰子: ${valid.join(", ")}`,
+    invalid.length > 0 ? `以下無效已略過: ${invalid.join(", ")}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  await interaction.reply(`<@${discordUserId}> ${result.text}`);
+  await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral });
 }
 
 /**

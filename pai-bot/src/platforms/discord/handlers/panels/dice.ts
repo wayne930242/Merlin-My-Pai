@@ -32,6 +32,11 @@ export interface DicePreset {
 
 // Basic presets shared by all systems
 const BASIC_PRESETS: DicePreset[] = [
+  { label: "1d4", expression: "1d4" },
+  { label: "1d6", expression: "1d6" },
+  { label: "1d8", expression: "1d8" },
+  { label: "1d10", expression: "1d10" },
+  { label: "1d12", expression: "1d12" },
   { label: "1d20", expression: "1d20" },
   { label: "1d100", expression: "1d100" },
   { label: "2d6", expression: "2d6" },
@@ -39,28 +44,45 @@ const BASIC_PRESETS: DicePreset[] = [
 
 // System-specific presets (will be combined with basic)
 const SYSTEM_SPECIFIC_PRESETS: Record<GameSystem, DicePreset[]> = {
-  generic: [],
+  generic: [{ label: "3d6", expression: "3d6" }],
   coc: [
     { label: "獎1", expression: "10*2d10kl1+1d10" }, // keep lowest tens = lower result (better in CoC)
     { label: "罰1", expression: "10*2d10k1+1d10" }, // keep highest tens = higher result (worse in CoC)
     { label: "獎2", expression: "10*3d10kl1+1d10" }, // keep lowest from 3 tens dice
     { label: "罰2", expression: "10*3d10k1+1d10" }, // keep highest from 3 tens dice
-    { label: "3d6", expression: "3d6" },
+    { label: "3d6", expression: "3d6" }, // SAN check
+    { label: "1d100", expression: "1d100" },
+    { label: "2d6", expression: "2d6" },
+    { label: "1d10", expression: "1d10" },
   ],
   dnd: [
     { label: "優勢", expression: "2d20k1" },
     { label: "劣勢", expression: "2d20kl1" },
     { label: "4d6k3", expression: "4d6k3" },
+    { label: "1d20", expression: "1d20" },
+    { label: "1d12", expression: "1d12" },
+    { label: "1d10", expression: "1d10" },
+    { label: "1d8", expression: "1d8" },
+    { label: "1d6", expression: "1d6" },
   ],
-  fate: [{ label: "4dF", expression: "4dF" }],
+  fate: [
+    { label: "4dF", expression: "4dF" },
+    { label: "2dF", expression: "2dF" },
+    { label: "1dF", expression: "1dF" },
+    { label: "1d20", expression: "1d20" },
+    { label: "2d6", expression: "2d6" },
+    { label: "1d6", expression: "1d6" },
+    { label: "1d8", expression: "1d8" },
+    { label: "1d100", expression: "1d100" },
+  ],
 };
 
-// Combined presets: system-specific first, then basic
+// Combined presets: keep first 8 to fit 2 rows (row1:5, row2:3 + custom/reset)
 export const GAME_SYSTEM_PRESETS: Record<GameSystem, DicePreset[]> = {
-  generic: [...BASIC_PRESETS],
-  coc: [...SYSTEM_SPECIFIC_PRESETS.coc, ...BASIC_PRESETS],
-  dnd: [...SYSTEM_SPECIFIC_PRESETS.dnd, ...BASIC_PRESETS],
-  fate: [...SYSTEM_SPECIFIC_PRESETS.fate, ...BASIC_PRESETS],
+  generic: [...SYSTEM_SPECIFIC_PRESETS.generic, ...BASIC_PRESETS].slice(0, 8),
+  coc: [...SYSTEM_SPECIFIC_PRESETS.coc].slice(0, 8),
+  dnd: [...SYSTEM_SPECIFIC_PRESETS.dnd].slice(0, 8),
+  fate: [...SYSTEM_SPECIFIC_PRESETS.fate].slice(0, 8),
 };
 
 export const GAME_SYSTEM_LABELS: Record<GameSystem, string> = {
@@ -118,6 +140,27 @@ export function saveCustomExpression(channelId: string, expression: string): str
 
   panel.savedCustomExpressions = [expression.trim(), ...filtered].slice(0, MAX_SAVED_CUSTOM);
   return panel.savedCustomExpressions;
+}
+
+/**
+ * Parse custom input supporting comma-separated expressions.
+ * Example: "2d6+3, 1d20, 4d6k3"
+ */
+export function parseCustomExpressionsInput(input: string): string[] {
+  const seen = new Set<string>();
+  const parsed: string[] = [];
+
+  for (const raw of input.split(",")) {
+    const expression = raw.trim();
+    if (!expression) continue;
+
+    const normalized = expression.toLowerCase().replace(/\s+/g, "");
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    parsed.push(expression);
+  }
+
+  return parsed;
 }
 
 /**
@@ -355,7 +398,9 @@ function buildSystemSelector(
 
 /**
  * Build preset rows (based on current game system)
- * Returns 1-2 rows depending on number of presets
+ * Always returns 2 rows:
+ * - Row 1: up to 5 quick presets
+ * - Row 2: up to 3 quick presets + Custom + 重置Custom
  */
 function buildPresetRows(guildId: string, system: GameSystem): ActionRowBuilder<ButtonBuilder>[] {
   const presets = GAME_SYSTEM_PRESETS[system];
@@ -374,9 +419,9 @@ function buildPresetRows(guildId: string, system: GameSystem): ActionRowBuilder<
   }
   rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...row1Buttons));
 
-  // Row 2: remaining presets + Custom (if more than 5 presets)
+  // Row 2: remaining presets (up to 3) + Custom controls
   const row2Buttons: ButtonBuilder[] = [];
-  for (let i = 5; i < presets.length; i++) {
+  for (let i = 5; i < Math.min(presets.length, 8); i++) {
     const preset = presets[i];
     row2Buttons.push(
       new ButtonBuilder()
@@ -455,12 +500,12 @@ export function buildCustomDiceModal(guildId: string): ModalBuilder {
 
   const diceInput = new TextInputBuilder()
     .setCustomId("dice_expression")
-    .setLabel("骰子表達式")
-    .setPlaceholder("2d6+3 | 4d6k3 取高 | 2d20kl1 取低 | 4d6d1 去低")
+    .setLabel("骰子語法（支援逗號一次多組）")
+    .setPlaceholder("d20 | 2d6+3 | 4d6k3 | 2d20kl1 | 4d6d1 | 10*2d10k1+1d10 | 4dF | 1d20,2d6+3")
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
     .setMinLength(2)
-    .setMaxLength(50);
+    .setMaxLength(200);
 
   const row = new ActionRowBuilder<TextInputBuilder>().addComponents(diceInput);
   modal.addComponents(row);
