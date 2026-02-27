@@ -17,6 +17,8 @@ import {
 const DICE_ROW_1 = ["d4", "d6", "d8", "d10", "d12"] as const;
 const DICE_ROW_2 = ["d20", "d100"] as const;
 const ALL_DICE = [...DICE_ROW_1, ...DICE_ROW_2] as const;
+const MAX_SAVED_CUSTOM = 5;
+const MAX_VISIBLE_SAVED_CUSTOM = 5;
 
 export type DiceType = (typeof ALL_DICE)[number];
 
@@ -68,21 +70,13 @@ export const GAME_SYSTEM_LABELS: Record<GameSystem, string> = {
   fate: "Fate",
 };
 
-// Per-user dice accumulation state
-export interface DiceState {
-  dice: Map<DiceType, number>; // dice type -> count
-  history: DiceType[]; // order of dice added (for undo)
-  guildId: string;
-}
-
-const userDiceStates = new Map<string, DiceState>();
-
 // Per-channel dice history message tracking
 export interface DicePanel {
   historyMessageId: string;
   panelMessageId: string;
   channelId: string;
   gameSystem: GameSystem;
+  savedCustomExpressions: string[];
 }
 
 const dicePanels = new Map<string, DicePanel>(); // channelId -> DicePanel
@@ -110,95 +104,29 @@ export function setGameSystem(channelId: string, system: GameSystem): void {
 }
 
 /**
- * Get user's dice state
+ * Save custom expression for a channel (shared by everyone in the channel)
+ * Keeps latest 5 unique expressions.
  */
-export function getDiceState(userId: string): DiceState | undefined {
-  return userDiceStates.get(userId);
+export function saveCustomExpression(channelId: string, expression: string): string[] {
+  const panel = dicePanels.get(channelId);
+  if (!panel) return [];
+
+  const normalized = expression.toLowerCase().trim().replace(/\s+/g, "");
+  const filtered = (panel.savedCustomExpressions || []).filter(
+    (expr) => expr.toLowerCase().trim().replace(/\s+/g, "") !== normalized,
+  );
+
+  panel.savedCustomExpressions = [expression.trim(), ...filtered].slice(0, MAX_SAVED_CUSTOM);
+  return panel.savedCustomExpressions;
 }
 
 /**
- * Add a die to user's accumulation
+ * Clear all saved custom expressions for a channel.
  */
-export function addDie(userId: string, diceType: DiceType, guildId: string): DiceState {
-  let state = userDiceStates.get(userId);
-  if (!state || state.guildId !== guildId) {
-    state = { dice: new Map(), history: [], guildId };
-    userDiceStates.set(userId, state);
-  }
-  state.dice.set(diceType, (state.dice.get(diceType) || 0) + 1);
-  state.history.push(diceType);
-  return state;
-}
-
-/**
- * Undo last added die
- */
-export function undoLastDie(userId: string): DiceState | null {
-  const state = userDiceStates.get(userId);
-  if (!state || state.history.length === 0) return null;
-
-  const lastDice = state.history.pop()!;
-  const count = state.dice.get(lastDice) || 0;
-  if (count <= 1) {
-    state.dice.delete(lastDice);
-  } else {
-    state.dice.set(lastDice, count - 1);
-  }
-
-  return state;
-}
-
-/**
- * Clear user's dice state
- */
-export function clearDiceState(userId: string): void {
-  userDiceStates.delete(userId);
-}
-
-/**
- * Format accumulated dice for display
- */
-export function formatAccumulatedDice(state: DiceState): string {
-  const parts: string[] = [];
-  for (const diceType of ALL_DICE) {
-    const count = state.dice.get(diceType);
-    if (count && count > 0) {
-      parts.push(`${count}${diceType}`);
-    }
-  }
-  return parts.length > 0 ? parts.join(" + ") : "—";
-}
-
-/**
- * Roll all accumulated dice and return formatted result
- */
-export function rollAccumulatedDice(userId: string): string | null {
-  const state = userDiceStates.get(userId);
-  if (!state || state.dice.size === 0) return null;
-
-  const results: string[] = [];
-  let grandTotal = 0;
-
-  for (const diceType of ALL_DICE) {
-    const count = state.dice.get(diceType);
-    if (!count || count === 0) continue;
-
-    const sides = parseInt(diceType.slice(1), 10);
-    const rolls: number[] = [];
-    for (let i = 0; i < count; i++) {
-      rolls.push(rollDie(sides));
-    }
-    const sum = rolls.reduce((a, b) => a + b, 0);
-    grandTotal += sum;
-
-    // Format: **2d6**: [3, 5] = 8
-    results.push(`**${count}${diceType}**: [${rolls.join(", ")}] = **${sum}**`);
-  }
-
-  // Clear state after rolling
-  clearDiceState(userId);
-
-  return `${results.join("\n")}\n\n**Total: ${grandTotal}**`;
+export function clearCustomExpressions(channelId: string): void {
+  const panel = dicePanels.get(channelId);
+  if (!panel) return;
+  panel.savedCustomExpressions = [];
 }
 
 export interface DiceResult {
@@ -463,6 +391,10 @@ function buildPresetRows(guildId: string, system: GameSystem): ActionRowBuilder<
       .setCustomId(`dice:custom:${guildId}`)
       .setLabel("Custom")
       .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`dice:customreset:${guildId}`)
+      .setLabel("重置Custom")
+      .setStyle(ButtonStyle.Danger),
   );
   rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...row2Buttons));
 
@@ -470,13 +402,13 @@ function buildPresetRows(guildId: string, system: GameSystem): ActionRowBuilder<
 }
 
 /**
- * Build dice buttons row 1 (d4-d12) - accumulation mode
+ * Build dice buttons row 1 - instant roll mode
  */
 function buildDiceRow1(guildId: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     ...DICE_ROW_1.map((dice) =>
       new ButtonBuilder()
-        .setCustomId(`dice:add:${dice}:${guildId}`)
+        .setCustomId(`dice:quick:${dice}:${guildId}`)
         .setLabel(dice)
         .setStyle(ButtonStyle.Secondary),
     ),
@@ -484,29 +416,24 @@ function buildDiceRow1(guildId: string): ActionRowBuilder<ButtonBuilder> {
 }
 
 /**
- * Build dice buttons row 2 (d20, d100, Undo) - accumulation mode
+ * Build row 2 as saved custom buttons (up to 5).
+ * d20/d100 can still be rolled from basic presets (1d20/1d100).
  */
-function buildDiceRow2(guildId: string): ActionRowBuilder<ButtonBuilder> {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    ...DICE_ROW_2.map((dice) =>
+function buildDiceRow2(guildId: string, savedCustomExpressions: string[]): ActionRowBuilder<ButtonBuilder> {
+  const buttons: ButtonBuilder[] = [];
+
+  const visibleSaved = savedCustomExpressions.slice(0, MAX_VISIBLE_SAVED_CUSTOM);
+  visibleSaved.forEach((expression, index) => {
+    const label = expression.length > 18 ? `${expression.slice(0, 15)}...` : expression;
+    buttons.push(
       new ButtonBuilder()
-        .setCustomId(`dice:add:${dice}:${guildId}`)
-        .setLabel(dice)
-        .setStyle(ButtonStyle.Secondary),
-    ),
-    new ButtonBuilder()
-      .setCustomId(`dice:undo:${guildId}`)
-      .setLabel("↩")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`dice:roll:${guildId}`)
-      .setLabel("🎲")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`dice:clear:${guildId}`)
-      .setLabel("✕")
-      .setStyle(ButtonStyle.Danger),
-  );
+        .setCustomId(`dice:saved:${index}:${guildId}`)
+        .setLabel(label)
+        .setStyle(ButtonStyle.Primary),
+    );
+  });
+
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
 }
 
 /**
@@ -542,9 +469,9 @@ export function buildCustomDiceModal(guildId: string): ModalBuilder {
  * Layout (5 rows max):
  * 1. System dropdown
  * 2. Presets row 1 (up to 5)
- * 3. Presets row 2 (remaining + Custom)
- * 4. Accumulation d4-d12
- * 5. Accumulation d20, d100, ↩, 🎲, ✕
+ * 3. Presets row 2 (remaining + Custom + 重置Custom)
+ * 4. Instant roll d4-d12
+ * 5. Saved custom buttons (up to 5)
  */
 export function buildDiceComponents(
   guildId: string,
@@ -552,10 +479,12 @@ export function buildDiceComponents(
 ): ActionRowBuilder<MessageActionRowComponentBuilder>[] {
   // Get current game system from panel, default to generic
   let gameSystem: GameSystem = "generic";
+  let savedCustomExpressions: string[] = [];
   if (channelId) {
     const panel = getDicePanel(channelId);
     if (panel) {
       gameSystem = panel.gameSystem;
+      savedCustomExpressions = panel.savedCustomExpressions || [];
     }
   }
 
@@ -565,6 +494,6 @@ export function buildDiceComponents(
     buildSystemSelector(guildId, gameSystem) as ActionRowBuilder<MessageActionRowComponentBuilder>,
     ...presetRows.map((row) => row as ActionRowBuilder<MessageActionRowComponentBuilder>),
     buildDiceRow1(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>,
-    buildDiceRow2(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>,
+    buildDiceRow2(guildId, savedCustomExpressions) as ActionRowBuilder<MessageActionRowComponentBuilder>,
   ];
 }

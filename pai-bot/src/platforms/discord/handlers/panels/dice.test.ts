@@ -3,7 +3,22 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { parseAndRoll } from "./dice";
+import {
+  buildDiceComponents,
+  clearCustomExpressions,
+  parseAndRoll,
+  saveCustomExpression,
+  setDicePanel,
+} from "./dice";
+
+function getAllCustomIds(rows: ReturnType<typeof buildDiceComponents>): string[] {
+  return rows.flatMap((row) => {
+    const json = row.toJSON();
+    return json.components
+      .map((component) => ("custom_id" in component ? component.custom_id : undefined))
+      .filter((id): id is string => typeof id === "string");
+  });
+}
 
 describe("parseAndRoll", () => {
   describe("basic dice", () => {
@@ -277,5 +292,96 @@ describe("parseAndRoll", () => {
       expect(result!.total).toBeGreaterThanOrEqual(1);
       expect(result!.total).toBeLessThanOrEqual(6);
     });
+  });
+});
+
+describe("buildDiceComponents", () => {
+  test("includes instant-roll dice buttons that use quick action", () => {
+    const customIds = getAllCustomIds(buildDiceComponents("guild-1"));
+
+    expect(customIds).toContain("dice:quick:1d20:guild-1");
+    expect(customIds).toContain("dice:quick:1d100:guild-1");
+    expect(customIds).toContain("dice:quick:d4:guild-1");
+    expect(customIds).toContain("dice:quick:d6:guild-1");
+    expect(customIds).toContain("dice:quick:d8:guild-1");
+    expect(customIds).toContain("dice:quick:d10:guild-1");
+    expect(customIds).toContain("dice:quick:d12:guild-1");
+  });
+
+  test("does not include accumulation actions", () => {
+    const customIds = getAllCustomIds(buildDiceComponents("guild-1"));
+
+    for (const id of customIds) {
+      expect(id.startsWith("dice:add:")).toBe(false);
+      expect(id.startsWith("dice:roll:")).toBe(false);
+      expect(id.startsWith("dice:undo:")).toBe(false);
+      expect(id.startsWith("dice:clear:")).toBe(false);
+    }
+  });
+
+  test("shows saved custom dice buttons on panel (up to 5 visible)", () => {
+    setDicePanel("channel-1", {
+      historyMessageId: "history-1",
+      panelMessageId: "panel-1",
+      channelId: "channel-1",
+      gameSystem: "generic",
+      savedCustomExpressions: [],
+    });
+
+    saveCustomExpression("channel-1", "2d6+3");
+    saveCustomExpression("channel-1", "4d6k3");
+    saveCustomExpression("channel-1", "2d20kl1");
+    saveCustomExpression("channel-1", "3d8+2");
+    saveCustomExpression("channel-1", "2d8+1");
+    saveCustomExpression("channel-1", "1d12+2");
+
+    const customIds = getAllCustomIds(buildDiceComponents("guild-1", "channel-1"));
+
+    expect(customIds).toContain("dice:saved:0:guild-1");
+    expect(customIds).toContain("dice:saved:1:guild-1");
+    expect(customIds).toContain("dice:saved:2:guild-1");
+    expect(customIds).toContain("dice:saved:3:guild-1");
+    expect(customIds).toContain("dice:saved:4:guild-1");
+  });
+
+  test("includes custom reset button", () => {
+    const customIds = getAllCustomIds(buildDiceComponents("guild-1"));
+    expect(customIds).toContain("dice:customreset:guild-1");
+  });
+});
+
+describe("saved custom expressions", () => {
+  test("keeps latest 5 unique expressions", () => {
+    setDicePanel("channel-2", {
+      historyMessageId: "history-2",
+      panelMessageId: "panel-2",
+      channelId: "channel-2",
+      gameSystem: "generic",
+      savedCustomExpressions: [],
+    });
+
+    saveCustomExpression("channel-2", "d20");
+    saveCustomExpression("channel-2", "2d6");
+    saveCustomExpression("channel-2", "3d6");
+    saveCustomExpression("channel-2", "4d6k3");
+    saveCustomExpression("channel-2", "2d20k1");
+    const saved = saveCustomExpression("channel-2", "2d6");
+
+    expect(saved.length).toBe(5);
+    expect(saved[0]).toBe("2d6");
+  });
+
+  test("clear removes all saved expressions", () => {
+    setDicePanel("channel-3", {
+      historyMessageId: "history-3",
+      panelMessageId: "panel-3",
+      channelId: "channel-3",
+      gameSystem: "generic",
+      savedCustomExpressions: ["2d6+3"],
+    });
+
+    clearCustomExpressions("channel-3");
+    const customIds = getAllCustomIds(buildDiceComponents("guild-1", "channel-3"));
+    expect(customIds.some((id) => id.startsWith("dice:saved:"))).toBe(false);
   });
 });

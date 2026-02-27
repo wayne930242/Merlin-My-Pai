@@ -11,18 +11,14 @@ import {
 } from "discord.js";
 import { logger } from "../../../../utils/logger";
 import {
-  addDie,
   buildCustomDiceModal,
   buildDiceComponents,
-  clearDiceState,
-  type DiceType,
-  formatAccumulatedDice,
+  clearCustomExpressions,
   type GameSystem,
   getDicePanel,
   parseAndRoll,
-  rollAccumulatedDice,
+  saveCustomExpression,
   setGameSystem,
-  undoLastDie,
 } from "../panels";
 import { isSendableChannel } from "../utils";
 
@@ -37,7 +33,7 @@ async function appendToHistory(
   interaction: ButtonInteraction | ModalSubmitInteraction,
 ): Promise<boolean> {
   const dicePanel = getDicePanel(channelId);
-  if (!dicePanel || !("messages" in channel)) return false;
+  if (!dicePanel || !isSendableChannel(channel)) return false;
 
   try {
     const historyMsg = await channel.messages.fetch(dicePanel.historyMessageId);
@@ -45,11 +41,10 @@ async function appendToHistory(
     const newEntry = `<@${discordUserId}> ${resultText}`;
 
     if (currentContent.length + newEntry.length + 2 > 1900) {
-      await interaction.reply({
-        content: "歷史訊息已滿，請使用 `/panel dice` 重新建立面板",
-        flags: MessageFlags.Ephemeral,
-      });
-      return true; // Handled, but as error
+      // Auto-rotate history message when content reaches Discord limit.
+      const rotatedHistory = await channel.send(`**擲骰歷史**\n${newEntry}`);
+      dicePanel.historyMessageId = rotatedHistory.id;
+      return true;
     }
 
     const newContent =
@@ -65,6 +60,26 @@ async function appendToHistory(
       "Failed to update dice history",
     );
     return false;
+  }
+}
+
+async function refreshPanelComponents(
+  channel: TextBasedChannel,
+  channelId: string,
+  guildId: string,
+): Promise<void> {
+  const dicePanel = getDicePanel(channelId);
+  if (!dicePanel || !isSendableChannel(channel)) return;
+
+  try {
+    const panelMsg = await channel.messages.fetch(dicePanel.panelMessageId);
+    const components = buildDiceComponents(guildId, channelId);
+    await panelMsg.edit({ components });
+  } catch (error) {
+    logger.error(
+      { error, channelId, panelMessageId: dicePanel.panelMessageId },
+      "Failed to refresh dice panel components",
+    );
   }
 }
 
@@ -110,6 +125,45 @@ export async function handleDiceButton(
       return;
     }
 
+    case "saved": {
+      // dice:saved:index:guildId
+      const savedIndex = parseInt(parts[2], 10);
+      const panel = getDicePanel(interaction.channelId);
+      const expression = panel?.savedCustomExpressions?.[savedIndex];
+      if (!expression) {
+        await interaction.reply({ content: "找不到這組 custom 骰子", flags: MessageFlags.Ephemeral });
+        return;
+      }
+
+      const result = parseAndRoll(expression);
+      if (!result) {
+        await interaction.reply({
+          content: "這組 custom 骰子已失效，請重建",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      const handled = await appendToHistory(
+        channel,
+        interaction.channelId,
+        discordUserId,
+        result.text,
+        interaction,
+      );
+      if (handled) {
+        if (!interaction.replied) {
+          await interaction.reply({
+            content: `你的結果: ${result.text}`,
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+        return;
+      }
+      await interaction.reply(`<@${discordUserId}> ${result.text}`);
+      return;
+    }
+
     case "custom": {
       // dice:custom:guildId
       const guildId = parts[2];
@@ -118,63 +172,24 @@ export async function handleDiceButton(
       return;
     }
 
-    case "add": {
-      // dice:add:diceType:guildId
-      const diceType = parts[2] as DiceType;
-      const guildId = parts[3];
-      const state = addDie(discordUserId, diceType, guildId);
-      const accumulated = formatAccumulatedDice(state);
+    case "customreset": {
+      // dice:customreset:guildId
+      const guildId = parts[2];
+      clearCustomExpressions(interaction.channelId);
+      await refreshPanelComponents(channel, interaction.channelId, guildId);
       await interaction.reply({
-        content: `你的累積: ${accumulated}`,
+        content: "已移除本頻道所有 custom 骰子",
         flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
-    case "roll": {
-      // dice:roll:guildId
-      const rollResult = rollAccumulatedDice(discordUserId);
-      if (!rollResult) {
-        await interaction.reply({ content: "沒有累積的骰子", flags: MessageFlags.Ephemeral });
-        return;
-      }
-
-      const historyText = rollResult.replace(/\n\n\*\*Total:.*\*\*$/, "").replace(/\n/g, " | ");
-      const handled = await appendToHistory(
-        channel,
-        interaction.channelId,
-        discordUserId,
-        historyText,
-        interaction,
-      );
-      if (handled) {
-        if (!interaction.replied) {
-          await interaction.reply({
-            content: `你的結果:\n${rollResult}`,
-            flags: MessageFlags.Ephemeral,
-          });
-        }
-        return;
-      }
-      await interaction.reply(`<@${discordUserId}> 擲骰:\n${rollResult}`);
-      return;
-    }
-
-    case "clear": {
-      clearDiceState(discordUserId);
-      await interaction.reply({ content: "已清除累積", flags: MessageFlags.Ephemeral });
-      return;
-    }
-
+    case "add":
+    case "roll":
+    case "clear":
     case "undo": {
-      const state = undoLastDie(discordUserId);
-      if (!state) {
-        await interaction.reply({ content: "沒有可撤銷的骰子", flags: MessageFlags.Ephemeral });
-        return;
-      }
-      const accumulated = formatAccumulatedDice(state);
       await interaction.reply({
-        content: `你的累積: ${accumulated}`,
+        content: "此按鈕已停用，請使用新版骰盤（立即擲骰）",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -208,6 +223,13 @@ export async function handleDiceModalSubmit(
   }
 
   const channelId = interaction.channelId ?? channel.id;
+  const guildId = interaction.guildId;
+
+  saveCustomExpression(channelId, expression);
+  if (guildId) {
+    await refreshPanelComponents(channel, channelId, guildId);
+  }
+
   const handled = await appendToHistory(
     channel,
     channelId,

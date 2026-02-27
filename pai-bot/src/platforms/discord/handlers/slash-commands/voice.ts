@@ -213,6 +213,7 @@ export async function handlePanel(
     panelMessageId: panelMsg.id,
     channelId: interaction.channelId,
     gameSystem: "generic",
+    savedCustomExpressions: [],
   });
 }
 

@@ -10,28 +10,24 @@ import { buildVolumeComponents, buildVolumeContent } from "./volume";
 
 // Re-export dice panel builders
 export {
-  addDie,
   buildCustomDiceModal,
   buildDiceComponents,
   buildDiceContent,
   clearDicePanel,
-  clearDiceState,
+  clearCustomExpressions,
   type DicePanel,
   type DiceResult,
   type DiceType,
-  formatAccumulatedDice,
   formatResult,
   GAME_SYSTEM_LABELS,
   GAME_SYSTEM_PRESETS,
   type GameSystem,
   getDicePanel,
-  getDiceState,
   parseAndRoll,
   roll,
-  rollAccumulatedDice,
+  saveCustomExpression,
   setDicePanel,
   setGameSystem,
-  undoLastDie,
 } from "./dice";
 // Re-export recording panel builders
 export {
