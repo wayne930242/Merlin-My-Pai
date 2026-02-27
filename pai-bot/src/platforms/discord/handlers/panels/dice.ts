@@ -419,7 +419,10 @@ function buildDiceRow1(guildId: string): ActionRowBuilder<ButtonBuilder> {
  * Build row 2 as saved custom buttons (up to 5).
  * d20/d100 can still be rolled from basic presets (1d20/1d100).
  */
-function buildDiceRow2(guildId: string, savedCustomExpressions: string[]): ActionRowBuilder<ButtonBuilder> {
+function buildDiceRow2(
+  guildId: string,
+  savedCustomExpressions: string[],
+): ActionRowBuilder<ButtonBuilder> | null {
   const buttons: ButtonBuilder[] = [];
 
   const visibleSaved = savedCustomExpressions.slice(0, MAX_VISIBLE_SAVED_CUSTOM);
@@ -433,6 +436,7 @@ function buildDiceRow2(guildId: string, savedCustomExpressions: string[]): Actio
     );
   });
 
+  if (buttons.length === 0) return null;
   return new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
 }
 
@@ -489,11 +493,17 @@ export function buildDiceComponents(
   }
 
   const presetRows = buildPresetRows(guildId, gameSystem);
+  const savedCustomRow = buildDiceRow2(guildId, savedCustomExpressions);
 
-  return [
+  const rows = [
     buildSystemSelector(guildId, gameSystem) as ActionRowBuilder<MessageActionRowComponentBuilder>,
     ...presetRows.map((row) => row as ActionRowBuilder<MessageActionRowComponentBuilder>),
     buildDiceRow1(guildId) as ActionRowBuilder<MessageActionRowComponentBuilder>,
-    buildDiceRow2(guildId, savedCustomExpressions) as ActionRowBuilder<MessageActionRowComponentBuilder>,
   ];
+
+  if (savedCustomRow) {
+    rows.push(savedCustomRow as ActionRowBuilder<MessageActionRowComponentBuilder>);
+  }
+
+  return rows;
 }

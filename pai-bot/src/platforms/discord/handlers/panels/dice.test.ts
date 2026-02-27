@@ -348,6 +348,19 @@ describe("buildDiceComponents", () => {
     const customIds = getAllCustomIds(buildDiceComponents("guild-1"));
     expect(customIds).toContain("dice:customreset:guild-1");
   });
+
+  test("does not render saved-custom row when there is no saved custom", () => {
+    setDicePanel("channel-empty", {
+      historyMessageId: "history-empty",
+      panelMessageId: "panel-empty",
+      channelId: "channel-empty",
+      gameSystem: "generic",
+      savedCustomExpressions: [],
+    });
+
+    const rows = buildDiceComponents("guild-1", "channel-empty");
+    expect(rows.length).toBe(4);
+  });
 });
 
 describe("saved custom expressions", () => {
