@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.74.1 (2026-03-05)
+
+### Bug Fixes
+
+- Handle opus decode errors and invalid URL requests
+  ([`689a920`](https://github.com/wayne930242/Merlin-My-Pai/commit/689a920b2880a18487160767579e55da0ba7ab89))
+
+### Documentation
+
+- Align zh/en readmes with current architecture
+  ([`e8d3a74`](https://github.com/wayne930242/Merlin-My-Pai/commit/e8d3a7421767fb33e2c254fd4eba822e98e9eb72))
+
+
 ## v1.74.0 (2026-02-14)
 
 ### Features
