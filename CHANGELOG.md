@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.77.1 (2026-03-05)
+
+### Bug Fixes
+
+- Add /protect to /protect/ redirect in Caddyfile
+  ([`22f17e7`](https://github.com/wayne930242/Merlin-My-Pai/commit/22f17e73aa19c0576893af0e5b14cee1d04438f5))
+
+
 ## v1.77.0 (2026-03-05)
 
 ### Documentation
