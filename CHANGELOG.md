@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v1.77.0 (2026-03-05)
+
+### Documentation
+
+- Add base URL prefix /protect design plan
+  ([`6333171`](https://github.com/wayne930242/Merlin-My-Pai/commit/6333171e61e58da224c7468ea77072e7cad73d4f))
+
+- Update design doc with implementation plan
+  ([`19183f4`](https://github.com/wayne930242/Merlin-My-Pai/commit/19183f48d034cff869bb94ed139d3ffca825f439))
+
+### Features
+
+- Add /protect base URL prefix for zero trust protection
+  ([`6743f26`](https://github.com/wayne930242/Merlin-My-Pai/commit/6743f2682d16f9951e489d15e348ed5115729c6a))
+
+
 ## v1.76.0 (2026-03-05)
 
 ### Chores
