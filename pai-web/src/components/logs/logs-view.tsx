@@ -54,7 +54,10 @@ export function LogsView({ logs, notifications, onClearLogs, onClearNotification
   // Auto-scroll to bottom when new logs arrive (if not paused)
   useEffect(() => {
     if (!isPaused && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      const viewport = scrollRef.current.querySelector('[data-slot="scroll-area-viewport"]')
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight
+      }
     }
   }, [logs, notifications, isPaused])
 

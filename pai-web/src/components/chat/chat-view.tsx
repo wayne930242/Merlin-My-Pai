@@ -77,7 +77,10 @@ export function ChatView({ messages, isLoading, currentResponse, onSendMessage, 
   // 自動滾動到底部
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      const viewport = scrollRef.current.querySelector('[data-slot="scroll-area-viewport"]')
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight
+      }
     }
   }, [messages, currentResponse])
 
