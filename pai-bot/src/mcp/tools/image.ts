@@ -15,9 +15,9 @@ type ModelKey = keyof typeof MODELS;
 const modelSchema = z
   .enum(["standard", "pro", "nano-banana-2"])
   .optional()
-  .default("standard")
+  .default("nano-banana-2")
   .describe(
-    "模型選擇：standard（預設，便宜快速）、pro（專業品質）、nano-banana-2（最新，速度+品質）",
+    "模型選擇：standard（便宜快速）、pro（專業品質）、nano-banana-2（預設，最新，速度+品質）",
   );
 
 const resolutionSchema = z
