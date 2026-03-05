@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.75.0 (2026-03-05)
+
+### Features
+
+- Image processing, guild/channel context, and download cleanup
+  ([`e06f0ff`](https://github.com/wayne930242/Merlin-My-Pai/commit/e06f0ffa615897e00c0643c1880ae329efa403a6))
+
+
 ## v1.74.1 (2026-03-05)
 
 ### Bug Fixes
