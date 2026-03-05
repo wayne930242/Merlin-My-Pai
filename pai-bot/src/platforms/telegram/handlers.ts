@@ -400,14 +400,53 @@ export async function handlePhoto(ctx: Context): Promise<void> {
     await Bun.write(localPath, response);
     logger.info({ userId, fileName, localPath }, "Photo downloaded");
 
-    const userMessage = `[用戶傳送圖片]`;
-    const assistantMessage = `已下載至 ${localPath}`;
+    // Initialize bot API if needed
+    if (!botApi) {
+      initializeTaskExecutor(ctx.api);
+    }
 
-    contextManager.saveMessage(userId, "user", userMessage);
-    contextManager.saveMessage(userId, "assistant", assistantMessage);
+    // Trigger Claude processing with image path
+    const prompt = `[圖片] 用戶傳送了圖片，已下載至 ${localPath}`;
+    const caption = ctx.message?.caption;
+    const fullPrompt = caption ? `${prompt}\n用戶附言：${caption}` : prompt;
 
-    const formatted = fmt`已下載至 \`${localPath}\``;
-    await ctx.reply(formatted.text, { parse_mode: "MarkdownV2", entities: formatted.entities });
+    const session: SessionInfo = {
+      sessionId: userId,
+      platform: "telegram",
+      sessionType: "dm",
+    };
+    const task = await prepareTask(userId, chatId, fullPrompt, fullPrompt, session);
+    const sender = createTelegramSender(ctx.api);
+
+    const isProcessing = queueManager.isProcessing(userId) || hasActiveProcess(userId);
+
+    if (isProcessing) {
+      const mode = queueManager.getMode(userId);
+
+      if (mode === "interrupt") {
+        abortUserProcess(userId);
+        queueManager.clearQueue(userId);
+        await queueManager.executeImmediately(task, async (t) => {
+          await executeClaudeTask(t, chatId, sender);
+        });
+      } else {
+        const queueSize = queueManager.getQueueLength(userId) + 1;
+        await ctx.reply(`📋 已排入佇列（第 ${queueSize} 位）`);
+        queueManager
+          .enqueue(task, async (t) => {
+            await executeClaudeTask(t, chatId, sender);
+          })
+          .catch((error) => {
+            logger.error({ error, taskId: task.id }, "Queued task failed");
+            ctx.api.sendMessage(chatId, `❌ 任務執行失敗：${error.message}`).catch(() => {});
+          });
+      }
+      return;
+    }
+
+    await queueManager.executeImmediately(task, async (t) => {
+      await executeClaudeTask(t, chatId, sender);
+    });
   } catch (error) {
     logger.error({ error, userId }, "Failed to download photo");
     await ctx.reply("下載圖片失敗，請稍後再試");

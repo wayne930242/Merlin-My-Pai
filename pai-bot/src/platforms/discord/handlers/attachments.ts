@@ -83,14 +83,38 @@ export async function handleAttachment(
         await Bun.write(localPath, response);
         logger.info({ userId, fileName, localPath }, "File downloaded");
 
-        const typeLabel = isImage ? "圖片" : "檔案";
-        const userMessage = `[用戶傳送${typeLabel}: ${fileName}]`;
-        const assistantMessage = `已下載至 ${localPath}`;
+        if (isImage) {
+          // Image: trigger Claude processing (Claude can read images via Read tool)
+          const caption = message.content?.trim();
+          const basePrompt = `[圖片] 用戶傳送了圖片，已下載至 ${localPath}`;
+          const prompt = caption ? `${basePrompt}\n用戶附言：${caption}` : basePrompt;
 
-        contextManager.saveMessage(sessionKey, "user", userMessage);
-        contextManager.saveMessage(sessionKey, "assistant", assistantMessage);
+          const task = await prepareTask(
+            discordUserId,
+            channelId,
+            prompt,
+            prompt,
+            isChannelMode,
+            message.channel,
+            message.id,
+            guildId,
+          );
 
-        await message.reply(`已下載至 \`${localPath}\``);
+          if (!isSendableChannel(message.channel)) return;
+
+          await queueManager.executeImmediately(task, async (t) => {
+            await executeClaudeTask(t, message.channel as TextBasedChannel);
+          });
+        } else {
+          // Non-image file: save path to context only
+          const userMessage = `[用戶傳送檔案: ${fileName}]`;
+          const assistantMessage = `已下載至 ${localPath}`;
+
+          contextManager.saveMessage(sessionKey, "user", userMessage);
+          contextManager.saveMessage(sessionKey, "assistant", assistantMessage);
+
+          await message.reply(`已下載至 \`${localPath}\``);
+        }
       }
     } catch (error) {
       logger.error({ error, sessionKey }, "Failed to process attachment");

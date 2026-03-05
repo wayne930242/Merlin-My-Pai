@@ -7,11 +7,22 @@ export interface VoiceContext {
   channelId: string | null;
 }
 
+export interface GuildContext {
+  name: string;
+  description?: string | null;
+}
+
+export interface ChannelContext {
+  name: string;
+}
+
 export interface SessionContextOptions {
   sessionId: string | number;
   platform: "telegram" | "discord";
   type: "dm" | "channel";
   voice?: VoiceContext;
+  guild?: GuildContext;
+  channel?: ChannelContext;
 }
 
 /**
@@ -21,7 +32,7 @@ export function buildSessionContext(
   sessionId: string | number,
   platform: "telegram" | "discord",
   type: "dm" | "channel",
-  options?: { voice?: VoiceContext },
+  options?: { voice?: VoiceContext; guild?: GuildContext; channel?: ChannelContext },
 ): string {
   const now = new Date();
   const taipeiTime = now.toLocaleString("zh-TW", {
@@ -40,6 +51,17 @@ session_id: ${sessionId}
 platform: ${platform}
 type: ${type}
 time: ${taipeiTime}`;
+
+  // Add guild/channel context if available
+  if (options?.guild) {
+    context += `\nguild: ${options.guild.name}`;
+    if (options.guild.description) {
+      context += `\nguild_description: ${options.guild.description}`;
+    }
+  }
+  if (options?.channel) {
+    context += `\nchannel: ${options.channel.name}`;
+  }
 
   // Add Discord voice context if available
   if (platform === "discord" && options?.voice) {

@@ -31,6 +31,30 @@ function runMigrations(db: Database): void {
     }
   }
 
+  // Migration: Remove legacy 'key' column from memories (rebuild table)
+  if (hasTable("memories") && hasColumn("memories", "key")) {
+    try {
+      db.run(`CREATE TABLE IF NOT EXISTS memories_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        category TEXT DEFAULT 'general',
+        importance INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        last_accessed TEXT NOT NULL DEFAULT (datetime('now'))
+      )`);
+      db.run(`INSERT INTO memories_new (id, user_id, content, category, importance, created_at, last_accessed)
+              SELECT id, user_id, content, COALESCE(category, 'general'), COALESCE(importance, 0),
+                     COALESCE(created_at, datetime('now')), COALESCE(last_accessed, datetime('now'))
+              FROM memories`);
+      db.run("DROP TABLE memories");
+      db.run("ALTER TABLE memories_new RENAME TO memories");
+      logger.info("Migration: Rebuilt memories table (removed legacy key column)");
+    } catch (_e) {
+      // Ignore if migration fails
+    }
+  }
+
   // Migration: Add is_hq to sessions
   if (hasTable("sessions") && !hasColumn("sessions", "is_hq")) {
     try {

@@ -13,6 +13,8 @@
  * 參考：PAI (Personal AI Infrastructure) 的 Stop Hook 設計
  */
 
+import { readdir, stat, unlink } from "node:fs/promises";
+import { join } from "node:path";
 import { isMemoryEnabled } from "./lib/config";
 import { saveToHistory } from "./lib/history";
 import { classifyWithLLM, type ClassifyResult } from "./lib/llm";
@@ -225,4 +227,33 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+/**
+ * 清理 downloads 目錄中超過 30 分鐘的檔案
+ */
+async function cleanupDownloads() {
+  const downloadsDir = join(process.cwd(), "downloads");
+  const maxAgeMs = 30 * 60 * 1000;
+
+  try {
+    const files = await readdir(downloadsDir);
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const file of files) {
+      const filePath = join(downloadsDir, file);
+      const fileStat = await stat(filePath);
+      if (fileStat.isFile() && now - fileStat.mtimeMs > maxAgeMs) {
+        await unlink(filePath);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      console.log(`[Cleanup] Removed ${cleaned} old file(s) from downloads`);
+    }
+  } catch {
+    // downloads dir may not exist, ignore
+  }
+}
+
+Promise.all([main(), cleanupDownloads()]).catch(console.error);

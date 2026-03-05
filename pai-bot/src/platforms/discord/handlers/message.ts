@@ -134,8 +134,18 @@ export async function prepareTask(
 
   const sessionType = isChannelMode ? "channel" : "dm";
   const voiceContext = guildId ? getVoiceChannelInfo(guildId) : undefined;
+
+  // Extract guild/channel metadata from Discord channel object
+  const guildContext =
+    channel && "guild" in channel && channel.guild
+      ? { name: channel.guild.name, description: channel.guild.description }
+      : undefined;
+  const channelMeta = channel && "name" in channel ? { name: (channel as { name: string }).name } : undefined;
+
   const sessionContext = buildSessionContext(sessionKey, "discord", sessionType, {
     voice: voiceContext,
+    guild: guildContext,
+    channel: channelMeta,
   });
 
   let fullHistory = `${sessionContext}\n${history}`;
