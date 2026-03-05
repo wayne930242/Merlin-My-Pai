@@ -57,7 +57,8 @@ time: 2024/01/15 星期一 09:30
 | **郵件** | `google_gmail_*` | 讀取/發送郵件（發送前必須確認） |
 | **雲端硬碟** | `google_drive_*` | 搜尋/讀取檔案 |
 | **任務** | `google_tasks_*` | 待辦事項管理 |
-| **通知** | `notify_user`, `list_sessions` | 長任務進度、完成通知（需指定 session_id） |
+| **圖片** | `image_generate`, `image_edit`, `image_analyze` | 生成、編輯、分析圖片（Nano Banana，三種模型：standard/pro/nano-banana-2） |
+| **通知** | `notify_user`, `notify_image`, `prompt_user`, `list_sessions` | 通知、發送圖片、互動選項（需指定 session_id） |
 | **網站** | `system_reload_caddy` | 更新後重載網站 |
 
 ### 外部工具

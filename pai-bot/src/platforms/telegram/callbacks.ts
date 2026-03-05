@@ -6,6 +6,7 @@
 import type { Context } from "grammy";
 import { abortUserProcess } from "../../claude/client";
 import { type QueuedTask, queueManager } from "../../claude/queue-manager";
+import { getPrompt, resolvePrompt } from "../../services/prompt-store";
 import { logger } from "../../utils/logger";
 
 // 任務執行器（由 handlers.ts 設定）
@@ -36,6 +37,43 @@ export async function handleCallbackQuery(ctx: Context): Promise<void> {
 
   const action = data.slice(0, colonIndex);
   const taskId = data.slice(colonIndex + 1);
+
+  // Handle prompt callbacks: prompt:promptId:optionIndex
+  if (action === "prompt") {
+    const parts = data.split(":");
+    const promptId = parts[1];
+    const optionIndex = parseInt(parts[2], 10);
+
+    const prompt = getPrompt(promptId);
+    if (!prompt) {
+      await ctx.answerCallbackQuery({ text: "此提示已過期" });
+      return;
+    }
+
+    if (prompt.result !== null) {
+      await ctx.answerCallbackQuery({ text: `已選擇：${prompt.options[prompt.result]}` });
+      return;
+    }
+
+    const resolved = resolvePrompt(promptId, optionIndex);
+    if (resolved) {
+      await ctx.answerCallbackQuery({ text: `已選擇：${prompt.options[optionIndex]}` });
+      // Update message to show selection
+      try {
+        await ctx.editMessageText(
+          `${prompt.question}\n\n✅ 已選擇：${prompt.options[optionIndex]}`,
+          {
+            reply_markup: undefined,
+          },
+        );
+      } catch {
+        // Ignore edit failures
+      }
+    } else {
+      await ctx.answerCallbackQuery({ text: "操作失敗" });
+    }
+    return;
+  }
 
   // 只處理 queue 相關的 callback
   if (action !== "abort" && action !== "queue") return;

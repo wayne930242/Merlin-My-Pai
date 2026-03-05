@@ -122,6 +122,128 @@ export function registerNotifyTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "notify_image",
+    {
+      title: "Send Image to User",
+      description: "透過 session ID 發送圖片給用戶（Telegram 或 Discord）。支援 base64 或檔案路徑",
+      inputSchema: {
+        sessionId: z.number().describe("Session ID（來自對話）"),
+        image_path: z.string().optional().describe("圖片檔案路徑（與 image 二選一）"),
+        image: z.string().optional().describe("Base64 編碼的圖片資料（與 image_path 二選一）"),
+        caption: z.string().optional().describe("圖片說明文字"),
+      },
+    },
+    async ({ sessionId, image_path, image, caption }) => {
+      if (!image_path && !image) {
+        return {
+          content: [{ type: "text", text: "必須提供 image_path 或 image（base64）" }],
+          isError: true,
+        };
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/notify/session/image`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, image, image_path, caption }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          return {
+            content: [{ type: "text", text: `發送失敗: ${data.error}` }],
+            isError: true,
+          };
+        }
+
+        return {
+          content: [{ type: "text", text: `圖片已發送至 ${data.platform}` }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `發送失敗: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "prompt_user",
+    {
+      title: "Prompt User with Options",
+      description:
+        "透過 session ID 發送選項按鈕給用戶，等待用戶選擇後回傳結果。支援 Telegram 和 Discord",
+      inputSchema: {
+        sessionId: z.number().describe("Session ID（來自對話）"),
+        question: z.string().describe("要問用戶的問題"),
+        options: z.array(z.string()).min(2).max(10).describe("選項列表（2-10 個）"),
+        timeoutMs: z.number().optional().default(60000).describe("等待超時（毫秒），預設 60 秒"),
+      },
+    },
+    async ({ sessionId, question, options, timeoutMs }) => {
+      try {
+        // Create prompt and send buttons
+        const createRes = await fetch(`${API_BASE}/api/prompt/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, question, options, timeoutMs }),
+        });
+
+        const createData = await createRes.json();
+        if (!createRes.ok) {
+          return {
+            content: [{ type: "text", text: `發送失敗: ${createData.error}` }],
+            isError: true,
+          };
+        }
+
+        const { promptId } = createData;
+
+        // Poll for result
+        const pollInterval = 1000;
+        const maxAttempts = Math.ceil(timeoutMs / pollInterval);
+
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise((r) => setTimeout(r, pollInterval));
+
+          const pollRes = await fetch(`${API_BASE}/api/prompt/${promptId}/result`);
+          const pollData = await pollRes.json();
+
+          if (pollData.resolved) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `用戶選擇了: ${pollData.selectedOption} (index: ${pollData.selectedIndex})`,
+                },
+              ],
+            };
+          }
+
+          if (pollData.expired) {
+            return {
+              content: [{ type: "text", text: "用戶未在時間內回應" }],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [{ type: "text", text: "等待超時，用戶未回應" }],
+          isError: true,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `發送失敗: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
     "get_session",
     {
       title: "Get Session",

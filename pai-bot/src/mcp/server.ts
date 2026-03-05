@@ -9,6 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerGarminTools } from "./tools/garmin";
 import { registerGoogleTools } from "./tools/google";
 import { registerHistoryTools } from "./tools/history";
+import { registerImageTools } from "./tools/image";
 import { registerMemoryTools } from "./tools/memory";
 import { registerNotifyTools } from "./tools/notify";
 import { registerObsidianTools } from "./tools/obsidian";
@@ -38,6 +39,7 @@ registerMemoryTools(server);
 registerHistoryTools(server);
 registerNotifyTools(server);
 registerGarminTools(server);
+registerImageTools(server);
 registerObsidianTools(server);
 
 // Start server

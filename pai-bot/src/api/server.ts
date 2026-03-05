@@ -11,6 +11,7 @@ import { type PaiEvents, paiEvents } from "../events";
 import { memoryManager } from "../memory";
 import * as google from "../services/google";
 import { generateDigest } from "../services/intel-feed";
+import { createPrompt, getPrompt, isExpired } from "../services/prompt-store";
 import { type Session, sessionService } from "../storage/sessions";
 import { logger } from "../utils/logger";
 import { handleMemoryRoutes } from "./routes/memory";
@@ -43,6 +44,13 @@ function validateApiKey(req: Request): boolean {
 // Telegram bot 實例（稍後注入）
 let telegramBot: {
   sendMessage: (userId: number, text: string) => Promise<void>;
+  sendPhoto: (chatId: number, photo: Buffer | string, caption?: string) => Promise<void>;
+  sendPrompt: (
+    chatId: number,
+    promptId: string,
+    question: string,
+    options: string[],
+  ) => Promise<void>;
 } | null = null;
 
 // Discord client 實例（稍後注入）
@@ -78,6 +86,81 @@ async function notifyBySession(session: Session, message: string): Promise<void>
       throw new Error("Discord channel not found or not text-based");
     }
     await (channel as TextChannel).send(message);
+  }
+}
+
+/**
+ * 透過 session 發送圖片
+ */
+async function notifyImageBySession(
+  session: Session,
+  image: Buffer | string,
+  caption?: string,
+): Promise<void> {
+  if (session.platform === "telegram") {
+    if (!telegramBot || !session.chat_id) {
+      throw new Error("Telegram bot not configured or missing chat_id");
+    }
+    await telegramBot.sendPhoto(parseInt(session.chat_id, 10), image, caption);
+  } else if (session.platform === "discord") {
+    if (!discordClient || !session.channel_id) {
+      throw new Error("Discord client not configured or missing channel_id");
+    }
+    const channel = await discordClient.channels.fetch(session.channel_id);
+    if (!channel || !channel.isTextBased()) {
+      throw new Error("Discord channel not found or not text-based");
+    }
+    const buf = typeof image === "string" ? Buffer.from(image, "base64") : image;
+    const { AttachmentBuilder } = await import("discord.js");
+    const attachment = new AttachmentBuilder(buf, { name: "image.png" });
+    await (channel as TextChannel).send({
+      content: caption || undefined,
+      files: [attachment],
+    });
+  }
+}
+
+/**
+ * 透過 session 發送選項提示
+ */
+async function notifyPromptBySession(
+  session: Session,
+  promptId: string,
+  question: string,
+  options: string[],
+): Promise<void> {
+  if (session.platform === "telegram") {
+    if (!telegramBot || !session.chat_id) {
+      throw new Error("Telegram bot not configured or missing chat_id");
+    }
+    await telegramBot.sendPrompt(parseInt(session.chat_id, 10), promptId, question, options);
+  } else if (session.platform === "discord") {
+    if (!discordClient || !session.channel_id) {
+      throw new Error("Discord client not configured or missing channel_id");
+    }
+    const channel = await discordClient.channels.fetch(session.channel_id);
+    if (!channel || !channel.isTextBased()) {
+      throw new Error("Discord channel not found or not text-based");
+    }
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import("discord.js");
+    const rows: InstanceType<typeof ActionRowBuilder<InstanceType<typeof ButtonBuilder>>>[] = [];
+    let currentRow = new ActionRowBuilder<InstanceType<typeof ButtonBuilder>>();
+
+    for (let i = 0; i < options.length; i++) {
+      if (currentRow.components.length >= 5) {
+        rows.push(currentRow);
+        currentRow = new ActionRowBuilder<InstanceType<typeof ButtonBuilder>>();
+      }
+      currentRow.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`prompt:${promptId}:${i}`)
+          .setLabel(options[i].slice(0, 80))
+          .setStyle(ButtonStyle.Primary),
+      );
+    }
+    if (currentRow.components.length > 0) rows.push(currentRow);
+
+    await (channel as TextChannel).send({ content: question, components: rows });
   }
 }
 
@@ -208,6 +291,108 @@ export function startApiServer(port = 3000) {
 
           await notifyBySession(session, message);
           return Response.json({ success: true, platform: session.platform });
+        }
+
+        // Session-based image notify API
+        if (path === "/api/notify/session/image" && method === "POST") {
+          const body = await req.json();
+          const {
+            sessionId,
+            image,
+            image_path,
+            caption,
+          }: { sessionId: number; image?: string; image_path?: string; caption?: string } = body;
+
+          if (!sessionId || (!image && !image_path)) {
+            return Response.json(
+              { error: "Missing sessionId, and one of image (base64) or image_path" },
+              { status: 400 },
+            );
+          }
+
+          const session = sessionService.get(sessionId);
+          if (!session) {
+            return Response.json({ error: "Session not found" }, { status: 404 });
+          }
+
+          let imageData: Buffer | string;
+          if (image_path) {
+            const file = Bun.file(image_path);
+            if (!(await file.exists())) {
+              return Response.json({ error: `File not found: ${image_path}` }, { status: 404 });
+            }
+            imageData = Buffer.from(await file.arrayBuffer());
+          } else {
+            imageData = image!;
+          }
+
+          await notifyImageBySession(session, imageData, caption);
+          return Response.json({ success: true, platform: session.platform });
+        }
+
+        // Prompt API - create interactive prompt
+        if (path === "/api/prompt/create" && method === "POST") {
+          const body = await req.json();
+          const {
+            sessionId,
+            question,
+            options,
+            timeoutMs,
+          }: {
+            sessionId: number;
+            question: string;
+            options: string[];
+            timeoutMs?: number;
+          } = body;
+
+          if (!sessionId || !question || !options?.length) {
+            return Response.json(
+              { error: "Missing sessionId, question, or options" },
+              { status: 400 },
+            );
+          }
+
+          if (options.length > 10) {
+            return Response.json({ error: "Maximum 10 options" }, { status: 400 });
+          }
+
+          const session = sessionService.get(sessionId);
+          if (!session) {
+            return Response.json({ error: "Session not found" }, { status: 404 });
+          }
+
+          const prompt = createPrompt(sessionId, question, options, timeoutMs);
+          await notifyPromptBySession(session, prompt.id, question, options);
+
+          return Response.json({
+            success: true,
+            promptId: prompt.id,
+            platform: session.platform,
+          });
+        }
+
+        // Prompt API - poll for result
+        if (path.match(/^\/api\/prompt\/p\d+\/result$/) && method === "GET") {
+          const promptId = path.split("/")[3];
+          const prompt = getPrompt(promptId);
+
+          if (!prompt) {
+            return Response.json({ error: "Prompt not found" }, { status: 404 });
+          }
+
+          if (prompt.result !== null) {
+            return Response.json({
+              resolved: true,
+              selectedIndex: prompt.result,
+              selectedOption: prompt.options[prompt.result],
+            });
+          }
+
+          if (isExpired(prompt)) {
+            return Response.json({ resolved: false, expired: true });
+          }
+
+          return Response.json({ resolved: false, expired: false });
         }
 
         // Intel Feed - trigger digest

@@ -8,6 +8,7 @@ import type {
   StringSelectMenuInteraction,
 } from "discord.js";
 
+import { getPrompt, resolvePrompt } from "../../../../services/prompt-store";
 import { handleDiceButton, handleDiceModalSubmit, handleDiceSelectMenu } from "./dice";
 import { handleQueueButton } from "./queue";
 import { handleRecordingInteraction } from "./recording";
@@ -39,6 +40,37 @@ export async function handleButtonInteraction(interaction: ButtonInteraction): P
   if (parts[0] === "recording") {
     const [, action, guildId] = parts;
     await handleRecordingInteraction(interaction, action, guildId);
+    return;
+  }
+
+  // Handle prompt buttons: prompt:promptId:optionIndex
+  if (parts[0] === "prompt") {
+    const promptId = parts[1];
+    const optionIndex = parseInt(parts[2], 10);
+
+    const prompt = getPrompt(promptId);
+    if (!prompt) {
+      await interaction.reply({ content: "此提示已過期", flags: 64 });
+      return;
+    }
+
+    if (prompt.result !== null) {
+      await interaction.reply({
+        content: `已選擇：${prompt.options[prompt.result]}`,
+        flags: 64,
+      });
+      return;
+    }
+
+    const resolved = resolvePrompt(promptId, optionIndex);
+    if (resolved) {
+      await interaction.update({
+        content: `${prompt.question}\n\n✅ 已選擇：${prompt.options[optionIndex]}`,
+        components: [],
+      });
+    } else {
+      await interaction.reply({ content: "操作失敗", flags: 64 });
+    }
     return;
   }
 

@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { InlineKeyboard, InputFile } from "grammy";
 import { setDiscordClient, setTelegramBot, startApiServer } from "./api/server";
 import { callClaude } from "./claude/client";
 import { config, isDiscordEnabled, isTelegramEnabled, validateConfig } from "./config";
@@ -56,6 +57,35 @@ async function main() {
         {
           sendMessage: async (userId: number, text: string) => {
             await telegramBot!.api.sendMessage(userId, text);
+          },
+          sendPhoto: async (chatId: number, photo: Buffer | string, caption?: string) => {
+            if (typeof photo === "string") {
+              // base64 string
+              const buf = Buffer.from(photo, "base64");
+              await telegramBot!.api.sendPhoto(chatId, new InputFile(buf, "image.png"), {
+                caption,
+              });
+            } else {
+              await telegramBot!.api.sendPhoto(chatId, new InputFile(photo, "image.png"), {
+                caption,
+              });
+            }
+          },
+          sendPrompt: async (
+            chatId: number,
+            promptId: string,
+            question: string,
+            options: string[],
+          ) => {
+            const keyboard = new InlineKeyboard();
+            for (let i = 0; i < options.length; i++) {
+              keyboard.text(options[i].slice(0, 64), `prompt:${promptId}:${i}`);
+              // 2 buttons per row
+              if (i % 2 === 1 && i < options.length - 1) keyboard.row();
+            }
+            await telegramBot!.api.sendMessage(chatId, question, {
+              reply_markup: keyboard,
+            });
           },
         },
         config.telegram.allowedUserIds,
