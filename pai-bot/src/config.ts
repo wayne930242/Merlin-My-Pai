@@ -14,7 +14,7 @@ export const config = {
   },
   memory: {
     enabled: process.env.ENABLE_MEMORY === "true",
-    provider: (process.env.MEMORY_PROVIDER || "gemini") as "gemini" | "haiku",
+    provider: "gemini" as const,
   },
   transcription: {
     enabled: process.env.ENABLE_TRANSCRIPTION === "true",
