@@ -2,6 +2,8 @@ import { GoogleGenAI } from "@google/genai";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+const API_BASE = process.env.API_BASE || "http://127.0.0.1:3000";
+
 const MODELS = {
   standard: "gemini-2.5-flash-image",
   pro: "gemini-3-pro-image-preview",
@@ -76,7 +78,8 @@ export function registerImageTools(server: McpServer): void {
     "image_generate",
     {
       title: "Generate Image",
-      description: "使用 Nano Banana 生成圖片。支援三種模型：standard（預設）、pro、nano-banana-2",
+      description:
+        "使用 Nano Banana 生成圖片。生成後會自動顯示在 Web UI。如果用戶在 Telegram/Discord 上，請額外使用 notify_image 將圖片發送給用戶。支援三種模型：standard（預設）、pro、nano-banana-2",
       inputSchema: {
         prompt: z.string().describe("圖片生成提示詞"),
         model: modelSchema,
@@ -121,6 +124,20 @@ export function registerImageTools(server: McpServer): void {
             content.push({ type: "text", text: `圖片已儲存至 ${save_path}` });
           }
           content.push({ type: "image", data: img.data, mimeType: img.mimeType });
+
+          // Broadcast to web UI
+          await fetch(`${API_BASE}/internal/broadcast`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "notify:image",
+              data: {
+                image: img.data,
+                caption: prompt,
+                timestamp: Date.now(),
+              },
+            }),
+          }).catch(() => {});
         }
 
         if (texts.length > 0) {
@@ -201,6 +218,20 @@ export function registerImageTools(server: McpServer): void {
             content.push({ type: "text", text: `圖片已儲存至 ${save_path}` });
           }
           content.push({ type: "image", data: img.data, mimeType: img.mimeType });
+
+          // Broadcast to web UI
+          await fetch(`${API_BASE}/internal/broadcast`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "notify:image",
+              data: {
+                image: img.data,
+                caption: prompt,
+                timestamp: Date.now(),
+              },
+            }),
+          }).catch(() => {});
         }
 
         if (texts.length > 0) {
