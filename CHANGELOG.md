@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.77.3 (2026-03-05)
+
+### Bug Fixes
+
+- Scroll to bottom on chat and logs by targeting ScrollArea viewport
+  ([`ab218d2`](https://github.com/wayne930242/Merlin-My-Pai/commit/ab218d22657c02413ad3c18c81a3fdb629639836))
+
+
 ## v1.77.2 (2026-03-05)
 
 ### Bug Fixes
