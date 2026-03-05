@@ -19,7 +19,7 @@ export async function apiFetch<T>(
   const { params, ...init } = options
 
   // Build URL with query params
-  const url = new URL(endpoint, API_BASE_URL)
+  const url = new URL(`${API_BASE_URL}${endpoint}`)
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.set(key, value)

@@ -5,6 +5,7 @@
     - ../inventory/group_vars/all/vault.yml
   vars:
     web_dir: "/home/{{ ansible_user }}/pai-web"
+    root_dir: "/home/{{ ansible_user }}/pai-web-root"
     caddy_conf: "/etc/caddy/conf.d/pai-web.caddy"
 
   tasks:
@@ -48,6 +49,27 @@
     - name: Fix ownership of synced files
       ansible.builtin.file:
         path: "{{ web_dir }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        recurse: true
+
+    - name: Ensure root directory exists
+      ansible.builtin.file:
+        path: "{{ root_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    - name: Sync root index page to server
+      ansible.posix.synchronize:
+        src: "{{ playbook_dir }}/../../pai-web/public-root/"
+        dest: "{{ root_dir }}/"
+        delete: true
+
+    - name: Fix ownership of root files
+      ansible.builtin.file:
+        path: "{{ root_dir }}"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         recurse: true

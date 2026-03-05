@@ -1,20 +1,26 @@
 {{ vault_web_domain }} {
     encode gzip
 
-    # API proxy to bot
-    handle /api/* {
+    # API proxy - strip /protect prefix before forwarding to bot
+    handle_path /protect/api/* {
         reverse_proxy localhost:3000
     }
 
-    # WebSocket proxy
-    handle /ws {
+    # WebSocket proxy - strip /protect prefix
+    handle_path /protect/ws {
         reverse_proxy localhost:3000
     }
 
-    # Static files (SPA)
-    handle {
+    # SPA static files under /protect
+    handle_path /protect/* {
         root * /home/{{ ansible_user }}/pai-web
         try_files {path} /index.html
+        file_server
+    }
+
+    # Root - simple index page
+    handle {
+        root * /home/{{ ansible_user }}/pai-web-root
         file_server
     }
 }

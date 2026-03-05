@@ -49,7 +49,7 @@ function showBrowserNotification(title: string, body: string) {
 
   const notification = new Notification(title, {
     body,
-    icon: '/favicon.ico',
+    icon: `${import.meta.env.BASE_URL}favicon.ico`,
     tag: 'merlin-notify', // 相同 tag 會取代舊的
   })
 
@@ -88,7 +88,7 @@ function App() {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const url = new URL('/api/chat/history', API_BASE_URL)
+        const url = new URL(`${API_BASE_URL}/api/chat/history`)
         if (API_KEY) url.searchParams.set('key', API_KEY)
         url.searchParams.set('limit', '50')
 
