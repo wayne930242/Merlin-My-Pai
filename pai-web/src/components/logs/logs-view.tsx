@@ -18,6 +18,8 @@ export interface Notification {
   sessionId?: number
   platform?: string
   message: string
+  image?: string // base64
+  caption?: string
   timestamp: number
 }
 
@@ -147,17 +149,26 @@ export function LogsView({ logs, notifications, onClearLogs, onClearNotification
             notifications.map((notif) => (
               <div
                 key={notif.id}
-                className="flex items-start gap-2 py-2 px-2 rounded bg-primary/5 border-l-2 border-primary"
+                className="flex flex-col gap-1 py-2 px-2 rounded bg-primary/5 border-l-2 border-primary"
               >
-                <span className="text-muted-foreground shrink-0">
-                  {formatTime(notif.timestamp)}
-                </span>
-                {notif.platform && (
-                  <Badge variant="outline" className="shrink-0">
-                    {notif.platform}
-                  </Badge>
+                <div className="flex items-start gap-2">
+                  <span className="text-muted-foreground shrink-0">
+                    {formatTime(notif.timestamp)}
+                  </span>
+                  {notif.platform && (
+                    <Badge variant="outline" className="shrink-0">
+                      {notif.platform}
+                    </Badge>
+                  )}
+                  <span className="break-all">{notif.image ? (notif.caption || 'Image') : notif.message}</span>
+                </div>
+                {notif.image && (
+                  <img
+                    src={`data:image/png;base64,${notif.image}`}
+                    alt={notif.caption || 'Notification image'}
+                    className="max-w-xs max-h-64 rounded mt-1 ml-auto mr-auto"
+                  />
                 )}
-                <span className="break-all">{notif.message}</span>
               </div>
             ))
           )}

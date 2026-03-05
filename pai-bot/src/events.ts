@@ -79,6 +79,14 @@ export interface PaiEvents {
     timestamp: number;
   };
 
+  "notify:image": {
+    sessionId?: number;
+    platform?: string;
+    image: string; // base64
+    caption?: string;
+    timestamp: number;
+  };
+
   // Log 事件（bot 日誌串流）
   "log:entry": {
     level: "debug" | "info" | "warn" | "error" | "fatal";

@@ -21,7 +21,8 @@ const clients = new Map<string, ServerWebSocket<WsClientData>>();
 const MAX_LOG_BUFFER = 200;
 const MAX_NOTIFICATION_BUFFER = 50;
 const logBuffer: PaiEvents["log:entry"][] = [];
-const notificationBuffer: PaiEvents["notify:message"][] = [];
+// Buffer stores broadcast-ready objects (with type field)
+const notificationBuffer: Record<string, unknown>[] = [];
 
 // Client → Server 訊息格式
 interface WsCommand {
@@ -143,8 +144,8 @@ export function broadcast<K extends keyof PaiEvents>(
       if (logBuffer.length > MAX_LOG_BUFFER) {
         logBuffer.shift();
       }
-    } else if (event === "notify:message") {
-      notificationBuffer.push(data as PaiEvents["notify:message"]);
+    } else if (event === "notify:message" || event === "notify:image") {
+      notificationBuffer.push({ type: event, ...data });
       if (notificationBuffer.length > MAX_NOTIFICATION_BUFFER) {
         notificationBuffer.shift();
       }
@@ -199,6 +200,7 @@ export function initEventBroadcast(): void {
     "claude:error",
     "system:status",
     "notify:message",
+    "notify:image",
     "log:entry",
   ];
 
@@ -210,8 +212,8 @@ export function initEventBroadcast(): void {
         if (logBuffer.length > MAX_LOG_BUFFER) {
           logBuffer.shift();
         }
-      } else if (event === "notify:message") {
-        notificationBuffer.push(data as PaiEvents["notify:message"]);
+      } else if (event === "notify:message" || event === "notify:image") {
+        notificationBuffer.push({ type: event, ...data });
         if (notificationBuffer.length > MAX_NOTIFICATION_BUFFER) {
           notificationBuffer.shift();
         }

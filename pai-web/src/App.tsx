@@ -221,6 +221,31 @@ function App() {
         break
       }
 
+      case 'notify:image': {
+        const platform = event.platform as string | undefined
+        const caption = event.caption as string | undefined
+
+        setNotifications((prev) => {
+          const newNotif: Notification = {
+            id: crypto.randomUUID(),
+            sessionId: event.sessionId as number | undefined,
+            platform,
+            message: caption || 'Image',
+            image: event.image as string,
+            caption,
+            timestamp: event.timestamp as number,
+          }
+          const updated = [...prev, newNotif]
+          return updated.slice(-MAX_NOTIFICATIONS)
+        })
+
+        showBrowserNotification(
+          platform ? `Merlin (${platform})` : 'Merlin',
+          caption || '收到圖片'
+        )
+        break
+      }
+
       case 'log:init':
         setLogs(
           ((event.logs as Array<Omit<LogEntry, 'id'>>) || []).map((log) => ({
@@ -232,9 +257,14 @@ function App() {
 
       case 'notify:init':
         setNotifications(
-          ((event.notifications as Array<Omit<Notification, 'id'>>) || []).map((n) => ({
-            ...n,
+          ((event.notifications as Array<Record<string, unknown>>) || []).map((n) => ({
             id: crypto.randomUUID(),
+            sessionId: n.sessionId as number | undefined,
+            platform: n.platform as string | undefined,
+            message: (n.message as string) || (n.caption as string) || 'Image',
+            image: n.image as string | undefined,
+            caption: n.caption as string | undefined,
+            timestamp: n.timestamp as number,
           }))
         )
         break

@@ -157,6 +157,32 @@ export function registerNotifyTools(server: McpServer): void {
           };
         }
 
+        // Broadcast to web UI
+        const imageBase64 = image || "";
+        if (imageBase64 || image_path) {
+          let broadcastImage = imageBase64;
+          if (!broadcastImage && image_path) {
+            const file = Bun.file(image_path);
+            if (await file.exists()) {
+              broadcastImage = Buffer.from(await file.arrayBuffer()).toString("base64");
+            }
+          }
+          await fetch(`${API_BASE}/internal/broadcast`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "notify:image",
+              data: {
+                sessionId,
+                platform: data.platform,
+                image: broadcastImage,
+                caption,
+                timestamp: Date.now(),
+              },
+            }),
+          }).catch(() => {});
+        }
+
         return {
           content: [{ type: "text", text: `圖片已發送至 ${data.platform}` }],
         };
