@@ -1,6 +1,28 @@
 # CHANGELOG
 
 
+## v1.78.0 (2026-03-05)
+
+### Chores
+
+- Trigger CI
+  ([`9440ba2`](https://github.com/wayne930242/Merlin-My-Pai/commit/9440ba226ea02793666256243e88f53e02e9c539))
+
+- Update remote URL to Merlin-My-Pai
+  ([`fac483e`](https://github.com/wayne930242/Merlin-My-Pai/commit/fac483e4957f4639d930e4bdcade5d4d368b3552))
+
+### Features
+
+- Change default image generation model to nano-banana-2
+  ([`8bd9a1b`](https://github.com/wayne930242/Merlin-My-Pai/commit/8bd9a1bdb190786265b4059cbdab017b232db357))
+
+- Deploy waits for release workflow, image broadcast to web UI
+  ([`b01654b`](https://github.com/wayne930242/Merlin-My-Pai/commit/b01654be05f0e8fa58c46ca8afc92efabc24d322))
+
+- Notify HQ session on error/fatal log entries
+  ([`bf035fe`](https://github.com/wayne930242/Merlin-My-Pai/commit/bf035fe81132bb56b33fdc167b753d3a0c8280bd))
+
+
 ## v1.77.3 (2026-03-05)
 
 ### Bug Fixes
