@@ -241,6 +241,14 @@ export async function startRecording(
         userStream.lastWriteTime = Date.now();
       });
 
+      decoder.on("error", (error: Error) => {
+        logger.warn({ error: error.message, userId, guildId }, "Opus decode error, skipping corrupted frame");
+      });
+
+      opusStream.on("error", (error: Error) => {
+        logger.warn({ error: error.message, userId, guildId }, "Opus stream error");
+      });
+
       opusStream.on("end", () => {
         writeStream.end();
         logger.debug({ userId, guildId }, "User audio stream segment ended");

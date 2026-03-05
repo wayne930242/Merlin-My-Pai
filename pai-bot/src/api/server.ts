@@ -92,7 +92,13 @@ export function startApiServer(port = 3000) {
     port,
     hostname: "0.0.0.0", // 監聽所有介面（透過 Cloudflare 保護）
     async fetch(req, server) {
-      const url = new URL(req.url);
+      let url: URL;
+      try {
+        url = new URL(req.url);
+      } catch {
+        // 外部掃描器可能送出相對路徑，無法解析為完整 URL
+        return new Response("Bad Request", { status: 400 });
+      }
       const path = url.pathname;
       const method = req.method;
 
