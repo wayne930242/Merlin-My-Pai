@@ -16,8 +16,8 @@ import {
   clearCustomExpressions,
   type GameSystem,
   getDicePanel,
-  parseCustomExpressionsInput,
   parseAndRoll,
+  parseCustomExpressionsInput,
   saveCustomExpression,
   setGameSystem,
 } from "../panels";
@@ -135,7 +135,10 @@ export async function handleDiceButton(
       const panel = getDicePanel(interaction.channelId);
       const expression = panel?.savedCustomExpressions?.[savedIndex];
       if (!expression) {
-        await interaction.reply({ content: "找不到這組 custom 骰子", flags: MessageFlags.Ephemeral });
+        await interaction.reply({
+          content: "找不到這組 custom 骰子",
+          flags: MessageFlags.Ephemeral,
+        });
         return;
       }
 

@@ -6,8 +6,8 @@ import { describe, expect, test } from "bun:test";
 import {
   buildDiceComponents,
   clearCustomExpressions,
-  parseCustomExpressionsInput,
   parseAndRoll,
+  parseCustomExpressionsInput,
   saveCustomExpression,
   setDicePanel,
 } from "./dice";

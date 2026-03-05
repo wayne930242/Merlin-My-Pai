@@ -242,7 +242,10 @@ export async function startRecording(
       });
 
       decoder.on("error", (error: Error) => {
-        logger.warn({ error: error.message, userId, guildId }, "Opus decode error, skipping corrupted frame");
+        logger.warn(
+          { error: error.message, userId, guildId },
+          "Opus decode error, skipping corrupted frame",
+        );
       });
 
       opusStream.on("error", (error: Error) => {
