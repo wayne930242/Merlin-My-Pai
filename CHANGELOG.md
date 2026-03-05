@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v1.76.0 (2026-03-05)
+
+### Chores
+
+- Biome formatting fixes
+  ([`a928e13`](https://github.com/wayne930242/Merlin-My-Pai/commit/a928e13d895aaa3095cb198c00f3ba561e4384d7))
+
+### Features
+
+- Add image generation MCP tools, notify_image, and prompt_user
+  ([`89d5b3f`](https://github.com/wayne930242/Merlin-My-Pai/commit/89d5b3f34312f750564d4116583b7b3946c29d70))
+
+### Refactoring
+
+- Remove Anthropic API key and Haiku fallback
+  ([`92220fe`](https://github.com/wayne930242/Merlin-My-Pai/commit/92220feae51e25fdc09f2ca138165da9a802cb96))
+
+
 ## v1.75.0 (2026-03-05)
 
 ### Features
