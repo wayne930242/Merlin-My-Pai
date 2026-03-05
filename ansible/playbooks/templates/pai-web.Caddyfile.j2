@@ -11,6 +11,9 @@
         reverse_proxy localhost:3000
     }
 
+    # Redirect /protect to /protect/
+    redir /protect /protect/ 308
+
     # SPA static files under /protect
     handle_path /protect/* {
         root * /home/{{ ansible_user }}/pai-web
