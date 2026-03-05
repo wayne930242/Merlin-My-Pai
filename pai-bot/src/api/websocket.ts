@@ -223,5 +223,21 @@ export function initEventBroadcast(): void {
     });
   }
 
+  // Error/fatal logs → notify HQ session
+  const API_BASE = process.env.API_BASE || "http://127.0.0.1:3000";
+  paiEvents.on("log:entry", (data) => {
+    if (data.level === "error" || data.level === "fatal") {
+      const ctx = data.context ? `[${data.context}] ` : "";
+      fetch(`${API_BASE}/api/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: `${ctx}${data.msg}`,
+          level: "error",
+        }),
+      }).catch(() => {});
+    }
+  });
+
   console.log("[WS] Event broadcast initialized");
 }
