@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v1.77.2 (2026-03-05)
+
+### Bug Fixes
+
+- Correct Caddy handle_path nesting and add notify:image web support
+  ([`ec294c0`](https://github.com/wayne930242/Merlin-My-Pai/commit/ec294c04fc73b9772fdaec7964b57f5ea9f0faab))
+
+### Documentation
+
+- Add notify web support design
+  ([`34e1d6b`](https://github.com/wayne930242/Merlin-My-Pai/commit/34e1d6bfbfade26a456f8eddf0b6d186f4c77a77))
+
+
 ## v1.77.1 (2026-03-05)
 
 ### Bug Fixes
