@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.79.0 (2026-03-06)
+
+### Features
+
+- Add deployment verification step to web-deploy skill
+  ([`fe9d55f`](https://github.com/wayne930242/Merlin-My-Pai/commit/fe9d55ff10045b6a4670baca1f1ae3fed96a461a))
+
+
 ## v1.78.0 (2026-03-05)
 
 ### Chores
